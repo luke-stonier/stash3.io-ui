@@ -1,4 +1,4 @@
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, Menu } = require('electron');
 const path = require('path');
 
 function createWindow() {
@@ -9,6 +9,9 @@ function createWindow() {
             preload: path.join(__dirname, 'preload.js'),
         },
     });
+
+    const menu = Menu.buildFromTemplate([]);
+    Menu.setApplicationMenu(menu);
 
     if (process.env.ELECTRON_START_URL) {
         win.loadURL(process.env.ELECTRON_START_URL);
