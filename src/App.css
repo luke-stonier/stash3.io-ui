@@ -111,3 +111,7 @@ input.show:focus{
     outline: none !important;
     box-shadow: none !important;
 }
+
+p, i, span, h1, h2, h3, h4, h5, h6, label {
+    color: inherit;
+}

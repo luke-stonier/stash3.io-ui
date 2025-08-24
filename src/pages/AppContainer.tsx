@@ -1,6 +1,6 @@
 import logo from "../assets/images/stash3_logo.png";
 import React from "react";
-import {Outlet} from "react-router-dom";
+import {Outlet, useNavigate} from "react-router-dom";
 import {IconButton} from "../components/Button";
 import {Avatar} from "../components/Avatar";
 import Icon from "../components/Icon";
@@ -13,12 +13,13 @@ class NavigationOption {
 
 export default function AppContainer() {
 
+    const navigation = useNavigate();
     const navigationOptions: NavigationOption[] = [
         {id: 'buckets', name: 'Buckets', icon: 'inventory_2'},
         {id: 'uploads', name: 'Uploads', icon: 'upload'},
         {id: 'settings', name: 'Settings', icon: 'settings'},
     ];
-    const [navigation, setNavigation] = React.useState<string>('buckets');
+    const [nav, setNav] = React.useState<string>('buckets');
 
     return (
         <div className="min-vh-100 d-flex flex-column bg-dark text-light">
@@ -44,8 +45,11 @@ export default function AppContainer() {
                         {
                             navigationOptions.map((option) => (
                                 <IconButton key={option.name} icon={option.icon} filled={true}
-                                            onClick={() => setNavigation(option.id)}
-                                            isButton={option.id !== navigation}
+                                            onClick={() => {
+                                                setNav(option.id)
+                                                navigation(option.id)
+                                            }}
+                                            isButton={option.id !== nav}
                                             staticClasses={'mb-2 w-100 text-start justify-content-start gap-2'}
                                             activeClasses={'btn-ghost btn-ghost-warning fw-normal'}
                                             disabledClasses={'bg-trans-warning text-white fw-bold'}
@@ -58,7 +62,7 @@ export default function AppContainer() {
 
                     {/* Content */}
                     <div className="col-12 col-md-9 col-lg-10 min-h-0">
-                        <div className="d-flex flex-column justify-content-between align-items-stretch w-100 gap-2 pt-3" style={{ maxHeight: '100vh' }}>
+                        <div className="d-flex flex-column h-100 justify-content-between align-items-stretch w-100 gap-2 pt-3" style={{ maxHeight: '100vh' }}>
                             <div className="d-flex justify-content-end align-items-center gap-4">
                                 <div className="bg-lighter border-0 rounded-pill w-100 d-flex align-items-center justify-content-start gap-2 px-3 py-2">
                                     <Icon name="search" />
@@ -67,7 +71,7 @@ export default function AppContainer() {
                                 <Avatar name={'Luke Stonier'}/>
                             </div>
                             
-                            <div className="mt-3 flex-1 min-h-0 px-1 mb-2" style={{overflowX: 'hidden', overflowY: 'auto'}}>
+                            <div className="mt-3 d-flex align-items-stretch justify-content-start w-100 h-100 min-h-0 px-1 mb-2" style={{overflowX: 'hidden', overflowY: 'auto'}}>
                                 <Outlet/>
                             </div>
                         </div>

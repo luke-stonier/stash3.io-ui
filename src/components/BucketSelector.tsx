@@ -1,8 +1,9 @@
 import Bucket from "../Models/Bucket";
 import Icon from "./Icon";
+import {Link} from "react-router-dom";
 
 export default function BucketSelector({bucket, altStyle = false }: { bucket: Bucket, altStyle?: boolean }) {
-    return <div className="ratio ratio-1x1">
+    const content = <div className="ratio ratio-1x1">
         <button
             className="bg-lighter text-white border-0 overflow-hidden rounded-3 p-3 w-100">
             <div className="flex items-center justify-between gap-2">
@@ -11,5 +12,9 @@ export default function BucketSelector({bucket, altStyle = false }: { bucket: Bu
                 <p className="text-center fw-light my-0">{bucket.region}</p>
             </div>
         </button>
-    </div>
+    </div>;
+    
+    return <Link to={`/buckets/${bucket.id}`} className="text-decoration-none text-reset">
+        {content}
+    </Link>
 }
