@@ -1,17 +1,16 @@
 const { contextBridge, ipcRenderer } = require("electron");
 
-window.addEventListener('DOMContentLoaded', () => {
-    console.log("Preload script loaded");
-});
-
 contextBridge.exposeInMainWorld("api", {
+    listBuckets: () => ipcRenderer.invoke("s3:listBuckets"),
+    listObjects: (bucket, prefix) => ipcRenderer.invoke("s3:listObjects", bucket, prefix),
     upload: (payload) => ipcRenderer.invoke("s3:upload", payload),
-
-    // return an unsubscribe so React effects can clean up
     onUploadProgress: (cb) => {
         const channel = "s3:uploadProgress";
         const handler = (_e, data) => cb(data);
         ipcRenderer.on(channel, handler);
         return () => ipcRenderer.removeListener(channel, handler);
     },
+    deleteObject: (bucket, key) => ipcRenderer.invoke("s3:deleteObject", bucket, key),
+    setRegion: (region) => ipcRenderer.invoke("prefs:setRegion", region),
+    setCreds: (akid, secret) => ipcRenderer.invoke("creds:set", akid, secret),
 });

@@ -21,7 +21,7 @@ export default function Home() {
                     ({id: 'asdf', region: 'eu-west-2', name: 'S3 Bucket'} as Bucket),
                     ({id: 'asdf', region: 'eu-west-2', name: 'S3 Bucket'} as Bucket)
                 ].map((bucket: Bucket, index: number) => {
-                    return <div key={bucket.id} className="col-6 col-sm-4 col-lg-3 mb-3">
+                    return <div key={`${bucket.id}_${index}`} className="col-6 col-sm-4 col-lg-3 mb-3">
                         <BucketSelector bucket={bucket} altStyle={index % 2 !== 0} />
                     </div>
                 })
