@@ -1,8 +1,9 @@
-﻿import logo from "../assets/images/stash3_logo.png";
+import logo from "../assets/images/stash3_logo.png";
 import React from "react";
-import { Outlet } from "react-router-dom";
-import Icon from "../components/Icon";
+import {Outlet} from "react-router-dom";
 import {IconButton} from "../components/Button";
+import {Avatar} from "../components/Avatar";
+import Icon from "../components/Icon";
 
 class NavigationOption {
     id: string;
@@ -11,18 +12,19 @@ class NavigationOption {
 }
 
 export default function AppContainer() {
-    
-    const navigationOptions = [
-        { id: 'buckets', name: 'Buckets', icon: 'inventory_2' },
-        { id: 'uploads', name: 'Uploads', icon: 'upload' },
-        { id: 'settings', name: 'Settings', icon: 'settings' },
+
+    const navigationOptions: NavigationOption[] = [
+        {id: 'buckets', name: 'Buckets', icon: 'inventory_2'},
+        {id: 'uploads', name: 'Uploads', icon: 'upload'},
+        {id: 'settings', name: 'Settings', icon: 'settings'},
     ];
     const [navigation, setNavigation] = React.useState<string>('buckets');
-    
+
     return (
         <div className="min-vh-100 d-flex flex-column bg-dark text-light">
+
             {/* Main */}
-            <main className="container-fluid flex-grow-1 overflow-hidden d-flex flex-column">
+            <main className="container-fluid flex-grow-1 overflow-hidden d-flex flex-column min-h-0">
                 <div className="row flex-grow-1 h-100 overflow-hidden">
                     {/* Sidebar */}
                     <div className="col-12 col-md-3 col-lg-2 border-end border-black overflow-auto min-h-0 py-3">
@@ -31,7 +33,7 @@ export default function AppContainer() {
                                 src={logo}
                                 alt="logo"
                                 className="img-fluid d-block"
-                                style={{height: "2.25rem"}} /* ~36px @16px root, not fixed px */
+                                style={{height: "2.25rem"}}
                             />
                             <h1 className="h3 mb-0 fw-bold">Stash3.io</h1>
                         </div>
@@ -41,10 +43,12 @@ export default function AppContainer() {
 
                         {
                             navigationOptions.map((option) => (
-                                <IconButton key={option.name} icon={option.icon} filled={true} isButton={option.id !== navigation}
+                                <IconButton key={option.name} icon={option.icon} filled={true}
+                                            onClick={() => setNavigation(option.id)}
+                                            isButton={option.id !== navigation}
                                             staticClasses={'mb-2 w-100 text-start justify-content-start gap-2'}
-                                            activeClasses={'btn btn-outline-warning'}
-                                            disabledClasses={'bg-trans-warning text-white'}
+                                            activeClasses={'btn-ghost btn-ghost-warning fw-normal'}
+                                            disabledClasses={'bg-trans-warning text-white fw-bold'}
                                             icon_inactiveColor={'text-warning'}>
                                     <span className="text-white">{option.name}</span>
                                 </IconButton>
@@ -53,21 +57,23 @@ export default function AppContainer() {
                     </div>
 
                     {/* Content */}
-                    <div className="col-12 col-md-9 col-lg-10 overflow-auto min-h-0 py-3">
-                        <Outlet/>
+                    <div className="col-12 col-md-9 col-lg-10 min-h-0">
+                        <div className="d-flex flex-column justify-content-between align-items-stretch w-100 gap-2 pt-3" style={{ maxHeight: '100vh' }}>
+                            <div className="d-flex justify-content-end align-items-center gap-4">
+                                <div className="bg-lighter border-0 rounded-pill w-100 d-flex align-items-center justify-content-start gap-2 px-3 py-2">
+                                    <Icon name="search" />
+                                    <input className="bg-transparent text-white border-0 flex-fill" placeholder='Search buckets or files...' />
+                                </div>
+                                <Avatar name={'Luke Stonier'}/>
+                            </div>
+                            
+                            <div className="mt-3 flex-1 min-h-0 px-1 mb-2" style={{overflowX: 'hidden', overflowY: 'auto'}}>
+                                <Outlet/>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </main>
-
-            {/* Footer */}
-            <footer className="container-fluid border-top border-black py-1">
-                <div className="d-flex align-items-center gap-2">
-          <span className="badge bg-success p-2 rounded-circle">
-            <span className="material-symbols">cloud</span>
-          </span>
-                    <small className="text-secondary">Ready</small>
-                </div>
-            </footer>
         </div>
     );
 }

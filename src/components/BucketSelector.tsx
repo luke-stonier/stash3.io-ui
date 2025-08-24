@@ -1,11 +1,15 @@
 import Bucket from "../Models/Bucket";
 import Icon from "./Icon";
 
-export default function BucketSelector({ bucket } : { bucket: Bucket }) {
-    return <button
-        className="btn btn-outline-light text-white rounded-3 p-3 bg-transparent d-flex align-items-center justify-content-center w-100">
-        <Icon name={'box'} filled={true} />
-
-        <p className="text-center my-0">{bucket.name}</p>
-    </button>
+export default function BucketSelector({bucket, altStyle = false }: { bucket: Bucket, altStyle?: boolean }) {
+    return <div className="ratio ratio-1x1">
+        <button
+            className="bg-lighter text-white border-0 overflow-hidden rounded-3 p-3 w-100">
+            <div className="flex items-center justify-between gap-2">
+                <Icon classes={'display-4 fw-normal'} name={'deployed_code'} filled={altStyle}/>
+                <p className="text-center fw-bolder my-0">{bucket.name}</p>
+                <p className="text-center fw-light my-0">{bucket.region}</p>
+            </div>
+        </button>
+    </div>
 }

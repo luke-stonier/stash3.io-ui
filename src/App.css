@@ -97,12 +97,17 @@ html, body, #root {
     box-sizing: border-box;
 }
 
-.min-h-0 { min-height: 0; } /* lets overflow containers shrink inside flex */
+.min-h-0 { min-height: 0; }
+.min-w-0 { min-width: 0; }
+
 
 /* Remove focus ring & shadow from all Bootstrap buttons */
 .btn:focus,
 .btn:active:focus,
-.btn.show:focus {
+.btn.show:focus,
+input:focus,
+input:active:focus,
+input.show:focus{
     outline: none !important;
     box-shadow: none !important;
 }
