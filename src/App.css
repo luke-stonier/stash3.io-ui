@@ -115,3 +115,8 @@ input.show:focus{
 p, i, span, h1, h2, h3, h4, h5, h6, label {
     color: inherit;
 }
+
+/* hide the default caret */
+.dropdown-toggle.no-caret::after {
+    display: none !important;
+}

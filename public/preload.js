@@ -10,6 +10,12 @@ contextBridge.exposeInMainWorld("api", {
         ipcRenderer.on(channel, handler);
         return () => ipcRenderer.removeListener(channel, handler);
     },
+    onUploadEnd: (cb) => {
+        const channel = "s3:uploadEnd";
+        const handler = (_e, data) => cb(data);
+        ipcRenderer.on(channel, handler);
+        return () => ipcRenderer.removeListener(channel, handler);
+    },
     deleteObject: (bucket, key) => ipcRenderer.invoke("s3:deleteObject", bucket, key),
     setRegion: (region) => ipcRenderer.invoke("prefs:setRegion", region),
     setCreds: (akid, secret) => ipcRenderer.invoke("creds:set", akid, secret),

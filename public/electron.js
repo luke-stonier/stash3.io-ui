@@ -37,6 +37,14 @@ function createWindow() {
     const menu = Menu.buildFromTemplate([]);
     Menu.setApplicationMenu(menu);
 
+    win.webContents.on('before-input-event', (_, input) => {
+        if (input.type === 'keyDown' && input.key === 'F12') {
+            win.webContents.isDevToolsOpened()
+                ? win.webContents.closeDevTools()
+                : win.webContents.openDevTools({ mode: 'left' });
+        }
+    });
+    
     const devURL = process.env.ELECTRON_START_URL;
     if (devURL) {
         win.loadURL(devURL);

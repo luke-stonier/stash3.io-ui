@@ -1,16 +1,140 @@
 ﻿import express from "express";
-import { S3Client, ListBucketsCommand } from "@aws-sdk/client-s3";
+import bcrypt from "bcryptjs";
+import jwt, { JwtPayload, SignOptions } from "jsonwebtoken";
+import path from "path";
+import "reflect-metadata";
+import dotenv from "dotenv";
+import cors from "cors";
 
-const app = express();
-const PORT = process.env.SVC_PORT ? Number(process.env.SVC_PORT) : 0;
+const customEnvPath = process.env.STASH3_ENV
+    || path.join(process.cwd(), "api", ".env");  // fallback to local .env
+dotenv.config({ path: customEnvPath });
+console.log("[env] loaded from:", customEnvPath);
 
-app.get("/buckets", async (_req, res) => {
-    const s3 = new S3Client({ region: "eu-west-1" });
-    const { Buckets } = await s3.send(new ListBucketsCommand({}));
-    res.json(Buckets ?? []);
+import { DataSource } from "typeorm";
+import { User } from "./entities/User";
+import { Bucket } from "./entities/Bucket";
+import {AuthRequest} from "./types/auth";
+import {stash3RequireAuth} from "./middleware/auth";
+
+export const db = new DataSource({
+    type: "postgres",
+    host: process.env.PGHOST,
+    port: Number(process.env.PGPORT || 5432),
+    username: process.env.PGUSER,
+    password: process.env.PGPASSWORD,
+    database: process.env.PGDATABASE,
+    ssl: process.env.PGSSL === "true" ? { rejectUnauthorized: false } : false,
+    entities: [User, Bucket],
+    synchronize: true,   // ✅ dev-friendly. For prod, switch to migrations.
+    logging: false
 });
 
-const server = app.listen(PORT, "127.0.0.1", () => {
-    const actualPort = (server.address() as any).port;
-    console.log("svc listening on", actualPort);
+async function bootstrap() {
+    await db.initialize();
+    console.log("[db] connected to", db.options.database);
+
+    const app = express();
+    const apiRouter = express.Router();
+    const PORT = process.env.SVC_PORT ? Number(process.env.SVC_PORT) : 3001;
+
+    type JwtUser = { sub: string; email: string };
+
+    function signToken(payload: JwtUser, ttl: string = "12h") {
+        const secret: jwt.Secret = process.env.JWT_SECRET as string; // ensure it's defined
+        const options: SignOptions = { expiresIn: "12h" };
+
+        return jwt.sign(payload, secret, options);
+    }
+
+    /** REGISTER */
+    apiRouter.post("/auth/register", async (req, res) => {
+        const {email, password, passwordRepeat} = req.body || {};
+        if (!email || !password || !passwordRepeat) return res.status(400).json({error: "Email & password required"});
+        if (password !== passwordRepeat) return res.status(400).json({error: "Passwords do not match"});
+
+        const repo = db.getRepository(User);
+        const existing = await repo.findOne({where: {email}});
+        if (existing) return res.status(409).json({error: "Email already registered"});
+
+        const passwordHash = await bcrypt.hash(password, 12);
+        const user = repo.create({email, passwordHash});
+        await repo.save(user);
+
+        const token = signToken({sub: user.id, email: user.email});
+        
+        console.log('[auth] new user registered:', email);
+        
+        res.json({token, user: {id: user.id, email: user.email}});
+    });
+
+    /** LOGIN */
+    apiRouter.post("/auth/login", async (req, res) => {
+        const {email, password} = req.body || {};
+        const repo = db.getRepository(User);
+        const user = await repo.findOne({where: {email}});
+        if (!user) return res.status(401).json({error: "Invalid credentials"});
+
+        const ok = await bcrypt.compare(password, user.passwordHash);
+        if (!ok) return res.status(401).json({error: "Invalid credentials"});
+
+        const token = signToken({sub: user.id, email: user.email});
+        
+        console.log('[auth] user logged in:', email);
+        
+        res.json({token, user: {id: user.id, email: user.email}});
+    });
+
+
+    /** INSERT a grant */
+    apiRouter.post("/grants", async (req: AuthRequest, res) => {
+        if (!req.user) return res.status(401).json({error: "Unauthorized"});
+        const {bucket, region, perms} = req.body; // perms: string[]
+        const repo = db.getRepository(Bucket);
+        const grant = repo.create({
+            userId: req.user.sub,
+            bucket,
+            region,
+            perms: JSON.stringify(perms || []),
+        });
+        await repo.save(grant);
+        res.json({ok: true, grant});
+    });
+
+    /** SELECT grants for current user */
+    apiRouter.get("/grants", async (req: AuthRequest, res) => {
+        if (!req.user) return res.status(401).json({error: "Unauthorized"});
+        const repo = db.getRepository(Bucket);
+        const rows = await repo.find({where: {userId: req.user.sub}});
+        // parse perms back to array for convenience
+        const grants = rows.map(r => ({...r, perms: JSON.parse(r.perms)}));
+        res.json(grants);
+    });
+
+    
+    // heartbeat
+    apiRouter.get("/ping", (_req, res) => {
+        console.log("[<3] Alive");
+        res.json({pong: true});
+    });
+
+    
+    // middlewares
+    app.use(cors());
+    app.use(express.json());
+    app.use("/api", apiRouter);
+    app.use(stash3RequireAuth);
+
+    
+    // startup
+    const server = app.listen(PORT, "127.0.0.1", () => {
+        const actualPort = (server.address() as any).port;
+        console.log("svc listening on", actualPort);
+    });
+}
+
+
+bootstrap().catch((err) => {
+    console.error("Fatal error:", err);
+    process.exit(1);
 });

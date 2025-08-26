@@ -14,7 +14,10 @@ async function s3ClientForUser() {
     const accessKeyId = await keytar.getPassword(`${SERVICE}:akid`, account);
     const secretAccessKey = await keytar.getPassword(`${SERVICE}:secret`, account);
     const region = store.get("region") || "eu-west-1";
-    if (!accessKeyId || !secretAccessKey) throw new Error("Missing AWS credentials");
+    if (!accessKeyId || !secretAccessKey) {
+        console.error("Missing AWS credentials");
+        return null;
+    }
     return new S3Client({ region, credentials: { accessKeyId, secretAccessKey } });
 }
 
@@ -34,18 +37,27 @@ ipcMain.handle("s3:listObjects", async (_e, bucket, prefix = "") => {
 });
 
 ipcMain.handle("s3:upload", async (e, { bucket, key, filePath }) => {
-    const s3 = await s3ClientForUser();
-    const upload = new Upload({
-        client: s3,
-        params: { Bucket: bucket, Key: key, Body: fs.createReadStream(filePath) },
-        queueSize: 4,
-        leavePartsOnError: false,
-    });
-    upload.on("httpUploadProgress", (p) => {
-        e.sender.send("s3:uploadProgress", { key, loaded: p.loaded, total: p.total });
-    });
-    await upload.done();
-    return { ok: true };
+    try {
+        const s3 = await s3ClientForUser();
+        if (!s3) {
+            e.sender.send("s3:uploadEnd", { key, status: false });
+            return {ok: false, error: "No S3 client"};
+        }
+        const upload = new Upload({
+            client: s3,
+            params: {Bucket: bucket, Key: key, Body: fs.createReadStream(filePath)},
+            queueSize: 4,
+            leavePartsOnError: false,
+        });
+        upload.on("httpUploadProgress", (p) => {
+            e.sender.send("s3:uploadProgress", {key, loaded: p.loaded, total: p.total});
+        });
+        await upload.done();
+        return {ok: true};
+    } catch (err) {
+        e.sender.send("s3:uploadEnd", { key, status: false });
+        return {ok: false, error: err.message};
+    }
 });
 
 ipcMain.handle("s3:deleteObject", async (_e, bucket, key) => {

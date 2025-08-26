@@ -1,5 +1,5 @@
 // example UploadPane.tsx
-import React, {useEffect, useState} from "react";
+import React, {useCallback, useEffect, useState} from "react";
 import Icon from "./Icon";
 
 type UploadItem = {
@@ -9,12 +9,6 @@ type UploadItem = {
     total?: number;
     status: "queued" | "running" | "done" | "error"
 };
-
-type ElectronFile = File & { path: string };
-
-function hasPath(f: File): f is ElectronFile {
-    return typeof (f as any).path === "string";
-}
 
 export default function UploadPane({bucket, children}: { bucket: string, children: React.ReactNode; }) {
     const [items, setItems] = useState<UploadItem[]>([]);
@@ -39,7 +33,7 @@ export default function UploadPane({bucket, children}: { bucket: string, childre
         setPaneVisible(false);
     };
 
-    const startUpload = async (it: UploadItem) => {
+    const startUpload = useCallback(async (it: UploadItem) => {
         setItems(prev => prev.map(p => p === it ? {...p, status: "running"} : p));
         try {
             await (window as any).api.upload({bucket, key: it.key, filePath: it.path});
@@ -47,9 +41,18 @@ export default function UploadPane({bucket, children}: { bucket: string, childre
         } catch {
             setItems(prev => prev.map(p => p === it ? {...p, status: "error"} : p));
         }
-    };
+    }, [bucket]);
 
     useEffect(() => {
+        console.log("Setting up upload listeners", (window as any).api);
+        (window as any).api.onUploadEnd((p: { key: string; status: boolean }) => {
+            setItems(prev => prev.map(it => it.key === p.key ? {
+                ...it,
+                status: p.status ? "done" : "error",
+                loaded: it.total ?? it.loaded
+            } : it));
+        });
+            
         (window as any).api.onUploadProgress((p: { key: string; loaded: number; total?: number }) => {
             setItems(prev => prev.map(it => it.key === p.key ? {
                 ...it,
@@ -63,7 +66,7 @@ export default function UploadPane({bucket, children}: { bucket: string, childre
         // kick off queued uploads (simple serial; make it parallel if you want)
         const next = items.find(i => i.status === "queued");
         if (next) startUpload(next);
-    }, [items]);
+    }, [items, startUpload]);
 
     return (
         <div
@@ -96,10 +99,10 @@ export default function UploadPane({bucket, children}: { bucket: string, childre
                         <li key={it.key} className="mb-2">
                             {it.key} — {it.status}
                             {it.total ? (
-                                <div className="progress mt-1" role="progressbar"
+                                <div className={`progress mt-1`} role="progressbar"
                                      aria-valuenow={Math.floor((it.loaded / it.total) * 100)} aria-valuemin={0}
                                      aria-valuemax={100}>
-                                    <div className="progress-bar"
+                                    <div className={`progress-bar ${it.status === 'error' ? 'bg-danger' : 'bg-success'}`}
                                          style={{width: `${(it.loaded / it.total) * 100}%`}}/>
                                 </div>
                             ) : null}
