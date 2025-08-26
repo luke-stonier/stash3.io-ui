@@ -1,4 +1,4 @@
-﻿export default function UploadsPage() {
+export default function UploadsPage() {
     return (
         <div className="container-fluid">
             <h1 className="mb-4">Recent Uploads</h1>

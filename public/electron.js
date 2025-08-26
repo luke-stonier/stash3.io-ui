@@ -1,6 +1,7 @@
-const { app, BrowserWindow } = require("electron");
+const { app, BrowserWindow, Menu  } = require("electron");
 const path = require("path");
 const { spawn } = require("child_process");
+require('./s3-ipc');
 
 let svc;
 async function startService() {
@@ -22,14 +23,19 @@ async function startService() {
 
 function createWindow() {
     const win = new BrowserWindow({
-        width: 1200,
-        height: 800,
+        width: 800,
+        height: 600,
+        minWidth: 600,
+        minHeight: 600,
         webPreferences: {
             contextIsolation: true,
             nodeIntegration: false,
-            preload: path.join(__dirname, "preload.js"),
-        }
+            preload: path.join(__dirname, 'preload.js'),
+        },
     });
+
+    const menu = Menu.buildFromTemplate([]);
+    Menu.setApplicationMenu(menu);
 
     const devURL = process.env.ELECTRON_START_URL;
     if (devURL) {

@@ -1,5 +1,5 @@
-﻿// example UploadPane.tsx
-import React, {Children, useEffect, useMemo, useState} from "react";
+// example UploadPane.tsx
+import React, {useEffect, useState} from "react";
 import Icon from "./Icon";
 
 type UploadItem = {

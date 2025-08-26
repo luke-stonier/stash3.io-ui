@@ -1,4 +1,4 @@
-﻿import UploadPane from "../components/UploadPane";
+import UploadPane from "../components/UploadPane";
 import {useParams} from "react-router-dom";
 
 export default function BucketDetail() {

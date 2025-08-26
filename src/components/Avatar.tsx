@@ -31,6 +31,8 @@ export function Avatar({ src, name, size = 2.25 }: AvatarProps) {
             style={{
                 height: `${size}rem`,
                 width: `${size}rem`,
+                minHeight: `${size}rem`,
+                minWidth: `${size}rem`,
                 backgroundColor: "var(--bs-primary)",
                 color: "white",
                 fontSize: `${size * 0.4}rem`,
