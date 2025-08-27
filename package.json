@@ -20,6 +20,7 @@
     "dotenv": "^17.2.1",
     "electron-store": "^8.2.0",
     "jsonwebtoken": "^9.0.2",
+    "jwt-decode": "^4.0.0",
     "keytar": "^7.9.0",
     "material-symbols": "^0.34.1",
     "pg": "^8.16.3",

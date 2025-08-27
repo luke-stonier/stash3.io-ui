@@ -26,6 +26,7 @@ export default function Login() {
                 email: '',
                 password: ''
             });
+            console.log(resp);
             UserService.UpdateSession(resp);
         }, (err: HttpError) => {
             setLoading(false);

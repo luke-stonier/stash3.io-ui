@@ -1,5 +1,5 @@
 export default class Bucket {
     public id: string;
-    public name: string;
+    public bucket: string;
     public region: string;
 }

@@ -16,6 +16,7 @@ import { User } from "./entities/User";
 import { Bucket } from "./entities/Bucket";
 import {AuthRequest} from "./types/auth";
 import {stash3RequireAuth} from "./middleware/auth";
+import {AWSAccountRef} from "./entities/AWSAccountRef";
 
 export const db = new DataSource({
     type: "postgres",
@@ -25,7 +26,7 @@ export const db = new DataSource({
     password: process.env.PGPASSWORD,
     database: process.env.PGDATABASE,
     ssl: process.env.PGSSL === "true" ? { rejectUnauthorized: false } : false,
-    entities: [User, Bucket],
+    entities: [User, Bucket, AWSAccountRef],
     synchronize: true,   // ✅ dev-friendly. For prod, switch to migrations.
     logging: false
 });
@@ -84,10 +85,56 @@ async function bootstrap() {
         
         res.json({token, user: {id: user.id, email: user.email}});
     });
-
-
-    /** INSERT a grant */
-    apiRouter.post("/grants", async (req: AuthRequest, res) => {
+    
+    // AWS ACCOUNT REFS
+    apiRouter.post("/accounts", async (req: AuthRequest, res) => {
+        if (!req.user) return res.status(401).json({error: "Unauthorized"});
+        const { accountName } = req.body;
+        if (!accountName) {
+            return res.status(400).json({error: "Name is required"});
+        }
+        const repo = db.getRepository(AWSAccountRef);
+        const existing = await repo.findOne({where: {userId: req.user.sub, name: accountName}});
+        if (existing) {
+            return res.status(409).json({error: "Account Name already exists"});
+        }
+        const accRef = repo.create({
+            userId: req.user.sub,
+            name: accountName,
+            handle: accountName.toLowerCase()
+                .trim()
+                .replace(/[^a-z0-9\s-]/g, "")   // remove all non-alphanumeric, non-space, non-dash
+                .replace(/\s+/g, "-")           // replace spaces with -
+                .replace(/-+/g, "-")           // collapse multiple - into one
+        });
+        await repo.save(accRef);
+        res.json(accRef);
+    });
+    
+    apiRouter.get("/accounts", async (req: AuthRequest, res) => {
+        if (!req.user) return res.status(401).json({error: "Unauthorized"});
+        const repo = db.getRepository(AWSAccountRef);
+        const rows = await repo.find({where: {userId: req.user.sub}});
+        res.json([...rows]);
+    });
+    
+    apiRouter.delete("/accounts/:handle", async (req: AuthRequest, res) => {
+        if (!req.user) return res.status(401).json({error: "Unauthorized"});
+        const { handle } = req.params;
+        if (!handle) {
+            return res.status(400).json({error: "Handle is required"});
+        }
+        const repo = db.getRepository(AWSAccountRef);
+        const existing = await repo.findOne({where: {userId: req.user.sub, handle}});
+        if (!existing) {
+            return res.status(404).json({error: "Account not found"});
+        }
+        await repo.remove(existing);
+        res.json({ok: true});
+    });
+    
+    // BUCKETS
+    apiRouter.post("/buckets", async (req: AuthRequest, res) => {
         if (!req.user) return res.status(401).json({error: "Unauthorized"});
         const {bucket, region, perms} = req.body; // perms: string[]
         const repo = db.getRepository(Bucket);
@@ -100,15 +147,14 @@ async function bootstrap() {
         await repo.save(grant);
         res.json({ok: true, grant});
     });
-
-    /** SELECT grants for current user */
-    apiRouter.get("/grants", async (req: AuthRequest, res) => {
+    
+    apiRouter.get("/buckets", async (req: AuthRequest, res) => {
         if (!req.user) return res.status(401).json({error: "Unauthorized"});
         const repo = db.getRepository(Bucket);
         const rows = await repo.find({where: {userId: req.user.sub}});
         // parse perms back to array for convenience
         const grants = rows.map(r => ({...r, perms: JSON.parse(r.perms)}));
-        res.json(grants);
+        res.json([...grants]);
     });
 
     
@@ -120,10 +166,10 @@ async function bootstrap() {
 
     
     // middlewares
+    app.use(stash3RequireAuth);
     app.use(cors());
     app.use(express.json());
     app.use("/api", apiRouter);
-    app.use(stash3RequireAuth);
 
     
     // startup

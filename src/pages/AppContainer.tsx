@@ -15,11 +15,12 @@ export default function AppContainer() {
 
     const navigation = useNavigate();
     const navigationOptions: NavigationOption[] = [
+        {id: 'accounts', name: 'Accounts', icon: 'account_circle'},
         {id: 'buckets', name: 'Buckets', icon: 'inventory_2'},
         {id: 'uploads', name: 'Uploads', icon: 'upload'},
         {id: 'settings', name: 'Settings', icon: 'settings'},
     ];
-    const [nav, setNav] = React.useState<string>('buckets');
+    const [nav, setNav] = React.useState<string>('accounts');
 
     return (
         <div className="min-vh-100 d-flex flex-column bg-dark text-light">

@@ -18,5 +18,7 @@ contextBridge.exposeInMainWorld("api", {
     },
     deleteObject: (bucket, key) => ipcRenderer.invoke("s3:deleteObject", bucket, key),
     setRegion: (region) => ipcRenderer.invoke("prefs:setRegion", region),
-    setCreds: (akid, secret) => ipcRenderer.invoke("creds:set", akid, secret),
+    setCreds: (handle, akid, secret) => ipcRenderer.invoke("creds:set", handle, akid, secret),
+    getCreds: (handle) => ipcRenderer.invoke("creds:get", handle),
+    removeCreds: (handle) => ipcRenderer.invoke("creds:remove", handle),
 });

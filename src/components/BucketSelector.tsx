@@ -8,7 +8,7 @@ export default function BucketSelector({bucket, altStyle = false }: { bucket: Bu
             className="bg-lighter text-white border-0 overflow-hidden rounded-3 p-3 w-100">
             <div className="flex items-center justify-between gap-2">
                 <Icon classes={'display-4 fw-normal'} name={'deployed_code'} filled={altStyle}/>
-                <p className="text-center fw-bolder my-0">{bucket.name}</p>
+                <p className="text-center fw-bolder my-0">{bucket.bucket}</p>
                 <p className="text-center fw-light my-0">{bucket.region}</p>
             </div>
         </button>

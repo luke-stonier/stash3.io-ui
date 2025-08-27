@@ -71,9 +71,23 @@ ipcMain.handle("prefs:setRegion", (_e, region) => {
     return { ok: true };
 });
 
-ipcMain.handle("creds:set", async (_e, accessKeyId, secretAccessKey) => {
-    const account = "default";
-    await keytar.setPassword(`${SERVICE}:akid`, account, accessKeyId);
-    await keytar.setPassword(`${SERVICE}:secret`, account, secretAccessKey);
+ipcMain.handle("creds:set", async (_e, accountHandle, accessKeyId, secretAccessKey) => {
+    await keytar.setPassword(`${SERVICE}:akid`, accountHandle, accessKeyId);
+    await keytar.setPassword(`${SERVICE}:secret`, accountHandle, secretAccessKey);
+    return { ok: true };
+});
+
+ipcMain.handle("creds:get", async (_e, accountHandle) => {
+    const accessKeyId = await keytar.getPassword(`${SERVICE}:akid`, accountHandle);
+    const secretAccessKey = await keytar.getPassword(`${SERVICE}:secret`, accountHandle);
+    if (!accessKeyId || !secretAccessKey) {
+        return { ok: false, error: "No credentials found" };
+    }
+    return { ok: true, accessKeyId, secretAccessKey };
+});
+
+ipcMain.handle("creds:remove", async (_e, accountHandle) => {
+    await keytar.deletePassword(`${SERVICE}:akid`, accountHandle);
+    await keytar.deletePassword(`${SERVICE}:secret`, accountHandle);
     return { ok: true };
 });

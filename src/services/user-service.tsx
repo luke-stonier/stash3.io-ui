@@ -9,9 +9,17 @@ export default class UserService {
     static invalidPermissionsEvent = new EventEmitter<void>();
 
     static UpdateSession = (session: UserSession | null) => {
-        UserService.currentSession = session;
-        if (session !== null) UserService.sessionUpdatedEvent.emit(session);
-        else UserService.sessionExpiredEvent.emit();
+        try {
+            console.log('update session', session);
+            UserService.currentSession = session;
+            if (session !== null) {
+                localStorage.setItem('session', JSON.stringify(session));
+                localStorage.setItem('token', session.token);
+                UserService.sessionUpdatedEvent.emit(session);
+            } else UserService.sessionExpiredEvent.emit();
+        } catch (er) {
+            console.error('Failed to update session', er);
+        }
     };
     
     static isLoggedIn = () => {
@@ -25,5 +33,6 @@ export default class UserService {
     static SignOut = () => {
         UserService.UpdateSession(null);
         localStorage.removeItem('token');
+        localStorage.removeItem('session');
     };
 }

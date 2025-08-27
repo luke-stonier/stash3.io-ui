@@ -1,5 +1,6 @@
 import UploadPane from "../components/UploadPane";
-import {useParams} from "react-router-dom";
+import {Link, useParams} from "react-router-dom";
+import Icon from "../components/Icon";
 
 export default function BucketDetail() {
     
@@ -19,7 +20,16 @@ export default function BucketDetail() {
         <div className="h-100 w-100">
         <UploadPane bucket={bucketId}>
             <div className="container-fluid">
-                <h1 className="mb-4">Bucket Details</h1>
+                <div className="row">
+                    <div className="col-12">
+                        <div className="d-flex align-items-center justify-content-start gap-3 mb-4">
+                            <Link to={'/'} className="my-0">
+                                <Icon name={'chevron_backward'} classes="text-white display-5 my-0" />
+                            </Link>
+                            <h1 className="my-0">Bucket Details</h1>
+                        </div>
+                    </div>
+                </div>
             </div>
         </UploadPane>
         </div>
