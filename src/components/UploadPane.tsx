@@ -1,6 +1,7 @@
 // example UploadPane.tsx
 import React, {useCallback, useEffect, useState} from "react";
 import Icon from "./Icon";
+import APIWrapperService from "../services/APIWrapperService";
 
 type UploadItem = {
     key: string;
@@ -36,7 +37,7 @@ export default function UploadPane({bucket, children}: { bucket: string, childre
     const startUpload = useCallback(async (it: UploadItem) => {
         setItems(prev => prev.map(p => p === it ? {...p, status: "running"} : p));
         try {
-            await (window as any).api.upload({bucket, key: it.key, filePath: it.path});
+            APIWrapperService.UploadFileToS3(bucket, it.key, it.path);
             setItems(prev => prev.map(p => p === it ? {...p, status: "done"} : p));
         } catch {
             setItems(prev => prev.map(p => p === it ? {...p, status: "error"} : p));

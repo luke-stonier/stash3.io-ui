@@ -9,10 +9,10 @@ const { Upload } = require("@aws-sdk/lib-storage");
 const store = new Store({ name: "prefs", defaults: { region: "eu-west-1" } });
 const SERVICE = "stash3.io";
 
-async function s3ClientForUser() {
-    const account = "default";
-    const accessKeyId = await keytar.getPassword(`${SERVICE}:akid`, account);
-    const secretAccessKey = await keytar.getPassword(`${SERVICE}:secret`, account);
+async function s3ClientForUser(accountHandle) {
+    console.log("Creating S3 client for user", accountHandle);
+    const accessKeyId = await keytar.getPassword(`${SERVICE}:akid`, accountHandle);
+    const secretAccessKey = await keytar.getPassword(`${SERVICE}:secret`, accountHandle);
     const region = store.get("region") || "eu-west-1";
     if (!accessKeyId || !secretAccessKey) {
         console.error("Missing AWS credentials");
@@ -22,23 +22,23 @@ async function s3ClientForUser() {
 }
 
 // IPC handlers
-ipcMain.handle("s3:listBuckets", async () => {
-    const s3 = await s3ClientForUser();
+ipcMain.handle("s3:listBuckets", async (e, accountHandle) => {
+    const s3 = await s3ClientForUser(accountHandle);
     const { Buckets } = await s3.send(new ListBucketsCommand({}));
     return Buckets ?? [];
 });
 
-ipcMain.handle("s3:listObjects", async (_e, bucket, prefix = "") => {
-    const s3 = await s3ClientForUser();
+ipcMain.handle("s3:listObjects", async (_e, accountHandle, bucket, prefix = "") => {
+    const s3 = await s3ClientForUser(accountHandle);
     const { Contents, CommonPrefixes } = await s3.send(
         new ListObjectsV2Command({ Bucket: bucket, Prefix: prefix, Delimiter: "/" })
     );
     return { files: Contents ?? [], folders: CommonPrefixes ?? [] };
 });
 
-ipcMain.handle("s3:upload", async (e, { bucket, key, filePath }) => {
+ipcMain.handle("s3:upload", async (e, accountHandle, { bucket, key, filePath }) => {
     try {
-        const s3 = await s3ClientForUser();
+        const s3 = await s3ClientForUser(accountHandle);
         if (!s3) {
             e.sender.send("s3:uploadEnd", { key, status: false });
             return {ok: false, error: "No S3 client"};
@@ -60,8 +60,8 @@ ipcMain.handle("s3:upload", async (e, { bucket, key, filePath }) => {
     }
 });
 
-ipcMain.handle("s3:deleteObject", async (_e, bucket, key) => {
-    const s3 = await s3ClientForUser();
+ipcMain.handle("s3:deleteObject", async (_e, accountHandle, bucket, key) => {
+    const s3 = await s3ClientForUser(accountHandle);
     await s3.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
     return { ok: true };
 });

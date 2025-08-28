@@ -3,6 +3,7 @@ import HttpService from "../services/http/http-service";
 import {IconButton} from "../components/Button";
 import AwsAccount from "../Models/AwsAccount";
 import AddAccountModal from "../components/AddAccount";
+import UserService from "../services/user-service";
 
 export default function Accounts() {
     const [loading, setLoading] = useState<boolean>(true);
@@ -43,6 +44,10 @@ export default function Accounts() {
         loadAccounts();
     }, [loadAccounts]);
 
+
+    const mask = (s?: string) =>
+        !s ? "—" : `${s.slice(0, 1)}•••••${s.slice(-4)}`.toUpperCase();
+
     if (loading) {
         return <div className="d-flex flex-column align-items-center justify-content-center w-100 h-100">
             <div className="spinner-border text-warning" style={{width: 90, height: 90}} role="status">
@@ -79,11 +84,22 @@ export default function Accounts() {
                     <div onClick={() => {
                         setUpdatingAccount(account);
                         setAddingAccount(true);
+                        UserService.UpdateAWSAccount(account);
                     }} style={{cursor: 'pointer'}}
                          className="rounded-3 bg-lighter overflow-hidden mb-3 h-auto px-3 py-2">
-                        <p className="my-0">{account.name}</p>
-                        <p className="my-0">Access key: {account.awsAccessKey}</p>
-                        <p className="my-0">Secret Key: {account.awsSecretKey}</p>
+                        <p className="my-0 fs-4">{account.name}</p>
+                        <table className="table text-white table-borderless px-0 text-start w-auto">
+                            <tbody className="border-0 px-0">
+                            <tr className="px-0">
+                                <td className="ps-0 py-0">Access Key:</td>
+                                <td className="py-0">{mask(account.awsAccessKey)}</td>
+                            </tr>
+                            <tr className="border-0">
+                                <td className="ps-0 py-0">Secret Key:</td>
+                                <td className="py-0">{mask(account.awsSecretKey)}</td>
+                            </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             })

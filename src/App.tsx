@@ -19,7 +19,7 @@ function App() {
     useEffect(() => {
         const see = UserService.sessionExpiredEvent.subscribe(() => {
             setAuthenticated(false);
-            window.location.reload();
+            window.location.href = '/';
         });
         const sue = UserService.sessionUpdatedEvent.subscribe((session) => {
             setAuthenticated(session != null);

@@ -1,13 +1,28 @@
 import EventEmitter from "./event-emitter";
 import UserSession from "../Models/UserSession";
+import AwsAccount from "../Models/AwsAccount";
+import {jwtDecode} from "jwt-decode";
 
 export default class UserService {
     static currentSession: UserSession | null;
-
+    static currentAWSAccount: AwsAccount | null = null;
+    
     static sessionUpdatedEvent = new EventEmitter<UserSession>();
     static sessionExpiredEvent = new EventEmitter<void>();
     static invalidPermissionsEvent = new EventEmitter<void>();
+    static changeAWSAccountEvent = new EventEmitter<AwsAccount | null>();
 
+    static GetAWSAccount = () => {
+        if (UserService.currentAWSAccount === null) console.error("No AWS account selected.");
+        return UserService.currentAWSAccount;
+    }
+    
+    static UpdateAWSAccount = (account: AwsAccount | null) => {
+        console.log('update aws account', account);
+        UserService.currentAWSAccount = account;
+        UserService.changeAWSAccountEvent.emit(account);
+    };
+    
     static UpdateSession = (session: UserSession | null) => {
         try {
             console.log('update session', session);
@@ -23,7 +38,16 @@ export default class UserService {
     };
     
     static isLoggedIn = () => {
-        return UserService.currentSession !== null && UserService.currentSession !== undefined;
+        const localSession = localStorage.getItem('session');
+        const localToken = localStorage.getItem('token');
+        if (localSession === null || localToken === null) return false; // not logged in
+        const decodedToken = jwtDecode(localToken);
+        const exp = (decodedToken as any).exp;
+        if (Date.now() >= exp * 1000) {
+            UserService.SignOut();
+            return false;
+        }
+        return true;
     };
 
     static GetToken = () => {

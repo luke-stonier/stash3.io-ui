@@ -2,6 +2,7 @@ import Icon from "./Icon";
 import React, {useCallback, useEffect} from "react";
 import HttpService, {HttpError} from "../services/http/http-service";
 import AwsAccount from "../Models/AwsAccount";
+import APIWrapperService from "../services/APIWrapperService";
 
 class AddAccountRequest {
     name: string = '';
@@ -42,7 +43,7 @@ export default function AddAccountModal(props: AddAccountModalProps) {
             accountName: addAccountRequest.name,
         }, (resp: AddAccountResponse) => {
             console.log(resp);
-            (window as any).api.setCreds(resp.handle, addAccountRequest.accessKey, addAccountRequest.secretKey);
+            APIWrapperService.SetCredentials(resp.handle, addAccountRequest.accessKey, addAccountRequest.secretKey);
             setTimeout(() => {
                 setLoading(false);
                 props.onClose && props.onClose();
@@ -55,7 +56,7 @@ export default function AddAccountModal(props: AddAccountModalProps) {
     
     const updateAccountClickHandler = useCallback(() => {
         if (!props.account) return;
-        (window as any).api.setCreds(props.account.handle, addAccountRequest.accessKey, addAccountRequest.secretKey);
+        APIWrapperService.SetCredentials(props.account.handle, addAccountRequest.accessKey, addAccountRequest.secretKey);
         setTimeout(() => {
             setLoading(false);
             props.onClose && props.onClose();
@@ -72,7 +73,7 @@ export default function AddAccountModal(props: AddAccountModalProps) {
         HttpService.delete(`/accounts/${account.handle}`, (resp: {ok: boolean}) => {
             setLoading(false);
             if (resp.ok) {
-                (window as any).api.removeCreds(account.handle);
+                APIWrapperService.DeleteCredentials(account.handle);
                 setTimeout(() => {
                     setLoading(false);
                     props.onClose && props.onClose();

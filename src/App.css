@@ -107,7 +107,10 @@ html, body, #root {
 .btn.show:focus,
 input:focus,
 input:active:focus,
-input.show:focus{
+input.show:focus,
+select:focus,
+select:active:focus,
+select.show:focus{
     outline: none !important;
     box-shadow: none !important;
 }
