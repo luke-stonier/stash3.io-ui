@@ -3,7 +3,6 @@ import HttpService from "../services/http/http-service";
 import {IconButton} from "../components/Button";
 import AwsAccount from "../Models/AwsAccount";
 import AddAccountModal from "../components/AddAccount";
-import UserService from "../services/user-service";
 
 export default function Accounts() {
     const [loading, setLoading] = useState<boolean>(true);
@@ -84,7 +83,6 @@ export default function Accounts() {
                     <div onClick={() => {
                         setUpdatingAccount(account);
                         setAddingAccount(true);
-                        UserService.UpdateAWSAccount(account);
                     }} style={{cursor: 'pointer'}}
                          className="rounded-3 bg-lighter overflow-hidden mb-3 h-auto px-3 py-2">
                         <p className="my-0 fs-4">{account.name}</p>
