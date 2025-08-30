@@ -9,23 +9,21 @@ export default class UserService {
     
     static sessionUpdatedEvent = new EventEmitter<UserSession>();
     static sessionExpiredEvent = new EventEmitter<void>();
-    static invalidPermissionsEvent = new EventEmitter<void>();
+    static accountsUpdatedEvent = new EventEmitter<AwsAccount[]>();
     static changeAWSAccountEvent = new EventEmitter<AwsAccount | null>();
 
     static GetAWSAccount = () => {
-        if (UserService.currentAWSAccount === null) console.error("No AWS account selected.");
+        //if (UserService.currentAWSAccount === null) console.error("No AWS account selected.");
         return UserService.currentAWSAccount;
     }
     
     static UpdateAWSAccount = (account: AwsAccount | null) => {
-        console.log('update aws account', account);
         UserService.currentAWSAccount = account;
         UserService.changeAWSAccountEvent.emit(account);
     };
     
     static UpdateSession = (session: UserSession | null) => {
         try {
-            console.log('update session', session);
             UserService.currentSession = session;
             if (session !== null) {
                 localStorage.setItem('session', JSON.stringify(session));

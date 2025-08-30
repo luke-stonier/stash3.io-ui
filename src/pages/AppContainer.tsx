@@ -20,7 +20,7 @@ export default function AppContainer() {
         {id: 'uploads', name: 'Uploads', icon: 'upload'},
         {id: 'settings', name: 'Settings', icon: 'settings'},
     ];
-    const [nav, setNav] = React.useState<string>('accounts');
+    const [nav, setNav] = React.useState<string>('buckets');
     
     useEffect(() => {
         console.log("Navigation options", navigationOptions, nav);

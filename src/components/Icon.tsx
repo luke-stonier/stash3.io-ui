@@ -1,6 +1,6 @@
-export default function Icon({ classes, name, filled = false }: { classes?: string, name: string, filled?: boolean }) {
+export default function Icon({ className, name, filled = false }: { className?: string, name: string, filled?: boolean }) {
     return (
-        <span className={`${classes} material-symbols${filled ? ' filled' : ''}`}>
+        <span className={`${className} material-symbols${filled ? ' filled' : ''}`}>
             {name}
         </span>
     );

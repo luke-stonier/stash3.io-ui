@@ -52,11 +52,18 @@ export default function AccountPicker() {
     }, [addCredentialsToAccounts])
     
     useEffect(() => {
+        const aue = UserService.accountsUpdatedEvent.subscribe((accounts) => {
+           loadAccounts(); 
+        });
+        
         loadAccounts();
+        return () => {
+            UserService.accountsUpdatedEvent.unsubscribe(aue);;
+        }
     }, [loadAccounts]);
     
     return <select
-        value={selectedAccount?.id}
+        defaultValue={accounts.length === 0 ? '__N/A__' : selectedAccount?.id}
         onChange={(e) => {
             const account = accounts.find(a => a.id === e.target.value);
             if (account) selectAccount(account);
@@ -65,7 +72,7 @@ export default function AccountPicker() {
         style={{ maxWidth: 300}}
         className="ms-auto me-0 form-select bg-lighter border-warning text-white"
         aria-label="Account Selector">
-        { accounts.length === 0 && <option selected>Select an AWS account</option> }
+        { accounts.length === 0 && <option value={'__N/A__'}>Select an AWS account</option> }
         {accounts.map((a) => <option key={a.id} disabled={!isSetupAccount(a)} value={a.id}>{a.name} ({a.handle})</option>)}
     </select>;
 }

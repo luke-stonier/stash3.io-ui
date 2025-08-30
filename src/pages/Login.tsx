@@ -26,8 +26,8 @@ export default function Login() {
                 email: '',
                 password: ''
             });
-            console.log(resp);
             UserService.UpdateSession(resp);
+            window.location.href = '/buckets';
         }, (err: HttpError) => {
             setLoading(false);
             setRespError(err.error.error || 'An unknown error occurred');

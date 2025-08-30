@@ -3,22 +3,27 @@ const Store = require("electron-store");
 const keytar = require("keytar");
 const fs = require("fs");
 
-const { S3Client, ListBucketsCommand, ListObjectsV2Command, DeleteObjectCommand } = require("@aws-sdk/client-s3");
+const { S3Client, ListBucketsCommand, ListObjectsV2Command, DeleteObjectCommand, GetBucketLocationCommand } = require("@aws-sdk/client-s3");
 const { Upload } = require("@aws-sdk/lib-storage");
 
-const store = new Store({ name: "prefs", defaults: { region: "eu-west-1" } });
+const store = new Store({ name: "prefs", defaults: { region: "eu-west-2" } });
 const SERVICE = "stash3.io";
 
 async function s3ClientForUser(accountHandle) {
-    console.log("Creating S3 client for user", accountHandle);
     const accessKeyId = await keytar.getPassword(`${SERVICE}:akid`, accountHandle);
     const secretAccessKey = await keytar.getPassword(`${SERVICE}:secret`, accountHandle);
-    const region = store.get("region") || "eu-west-1";
+    const region = store.get("region") || "eu-west-2";
     if (!accessKeyId || !secretAccessKey) {
         console.error("Missing AWS credentials");
         return null;
     }
+    console.log("Creating S3 client for user", accountHandle, "region", region);
     return new S3Client({ region, credentials: { accessKeyId, secretAccessKey } });
+}
+
+async function resolveBucketRegion(client, bucket) {
+    const { LocationConstraint } = await client.send(new GetBucketLocationCommand({ Bucket: bucket }));
+    return LocationConstraint || "us-east-1";
 }
 
 // IPC handlers
@@ -29,11 +34,23 @@ ipcMain.handle("s3:listBuckets", async (e, accountHandle) => {
 });
 
 ipcMain.handle("s3:listObjects", async (_e, accountHandle, bucket, prefix = "") => {
-    const s3 = await s3ClientForUser(accountHandle);
-    const { Contents, CommonPrefixes } = await s3.send(
-        new ListObjectsV2Command({ Bucket: bucket, Prefix: prefix, Delimiter: "/" })
-    );
-    return { files: Contents ?? [], folders: CommonPrefixes ?? [] };
+    try {
+        const s3 = await s3ClientForUser(accountHandle);
+        const bucketRegion = await resolveBucketRegion(s3, bucket);
+        store.set('region', bucketRegion);
+        const bucketS3 = await s3ClientForUser(accountHandle);
+        
+        if (!bucketS3) {
+            return {files: [], folders: [], error: "No S3 client" };
+        }
+        const {Contents, CommonPrefixes} = await bucketS3.send(
+            new ListObjectsV2Command({Bucket: bucket, Prefix: prefix, Delimiter: "/"})
+        );
+        return {files: Contents ?? [], folders: CommonPrefixes ?? [], error: null};
+    } catch (err) {
+        console.error(err);
+        return {files: [], folders: [], error: err.message};
+    }
 });
 
 ipcMain.handle("s3:upload", async (e, accountHandle, { bucket, key, filePath }) => {

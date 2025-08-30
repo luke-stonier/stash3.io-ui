@@ -97,7 +97,7 @@ export default function AddAccountModal(props: AddAccountModalProps) {
                     <p className="small my-0 text-muted">AWS credentials are only stored locally</p>
                 </div>
 
-                <div onClick={props.onClose} style={{cursor: 'pointer'}}><Icon name={'close'} classes={'fs-4'}/></div>
+                <div onClick={props.onClose} style={{cursor: 'pointer'}}><Icon name={'close'} className={'fs-4'}/></div>
             </div>
 
             <div className="mt-3 position-relative">

@@ -39,7 +39,7 @@ export function IconButton(props: IconButtonProps) {
         staticClasses={`d-flex align-items-center ${props.staticClasses}`}
         disabledClasses={props.disabledClasses}
         activeClasses={props.activeClasses}>
-            <Icon name={props.icon} filled={props.filled} classes={props.isButton ? props.icon_activeColor : props.icon_inactiveColor} />
+            <Icon name={props.icon} filled={props.filled} className={props.isButton ? props.icon_activeColor : props.icon_inactiveColor} />
             {props.children}
     </Button>
 }
