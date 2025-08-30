@@ -35,5 +35,7 @@ export default class APIWrapperService {
         (window as any).api.deleteCreds(handle);
     }
     
-    
+    static GetBucketUrl = (bucket: string, region: string): string => {
+        // 
+    }
 }

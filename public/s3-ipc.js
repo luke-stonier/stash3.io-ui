@@ -26,6 +26,13 @@ async function resolveBucketRegion(client, bucket) {
     return LocationConstraint || "us-east-1";
 }
 
+async function GetClientForBucket(handle, bucket){
+    const s3 = await s3ClientForUser(accountHandle);
+    const bucketRegion = await resolveBucketRegion(s3, bucket);
+    store.set('region', bucketRegion);
+    return await s3ClientForUser(accountHandle);
+}
+
 // IPC handlers
 ipcMain.handle("s3:listBuckets", async (e, accountHandle) => {
     const s3 = await s3ClientForUser(accountHandle);
@@ -35,15 +42,12 @@ ipcMain.handle("s3:listBuckets", async (e, accountHandle) => {
 
 ipcMain.handle("s3:listObjects", async (_e, accountHandle, bucket, prefix = "") => {
     try {
-        const s3 = await s3ClientForUser(accountHandle);
-        const bucketRegion = await resolveBucketRegion(s3, bucket);
-        store.set('region', bucketRegion);
-        const bucketS3 = await s3ClientForUser(accountHandle);
+        const s3 = await GetClientForBucket(accountHandle);
         
         if (!bucketS3) {
             return {files: [], folders: [], error: "No S3 client" };
         }
-        const {Contents, CommonPrefixes} = await bucketS3.send(
+        const {Contents, CommonPrefixes} = await s3.send(
             new ListObjectsV2Command({Bucket: bucket, Prefix: prefix, Delimiter: "/"})
         );
         return {files: Contents ?? [], folders: CommonPrefixes ?? [], error: null};
@@ -81,6 +85,34 @@ ipcMain.handle("s3:deleteObject", async (_e, accountHandle, bucket, key) => {
     const s3 = await s3ClientForUser(accountHandle);
     await s3.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
     return { ok: true };
+});
+
+ipcMain.handle("s3:getObjectUrl", async (_e, accountHandle, bucket, key) => {
+    try {
+        const s3 = await GetClientForBucket(accountHandle);
+        const region = s3.config.region;
+        return {
+            url: `https://${bucket}.s3.${region}.amazonaws.com/${encodeURIComponent(key)}`,
+            error: null
+        };
+    } catch (err) {
+        console.error("[s3:getObjectUrl]", err);
+        return { url: null, error: err.message };
+    }
+});
+
+ipcMain.handle("s3:getBucketUrl", async (_e, accountHandle, bucket, key) => {
+    try {
+        const s3 = await GetClientForBucket(accountHandle);
+        const region = s3.config.region;
+        return {
+            url: `https://${bucket}.s3.${region}.amazonaws.com/`,
+            error: null
+        };
+    } catch (err) {
+        console.error("[s3:getObjectUrl]", err);
+        return { url: null, error: err.message };
+    }
 });
 
 ipcMain.handle("prefs:setRegion", (_e, region) => {

@@ -9,7 +9,8 @@ type UploadItem = {
     path: string;
     loaded: number;
     total?: number;
-    status: "queued" | "running" | "done" | "error"
+    status: "queued" | "running" | "done" | "error",
+    uploadStartTime: number
 };
 
 export default function UploadPane({children}: { children: React.ReactNode; }) {
@@ -41,14 +42,17 @@ export default function UploadPane({children}: { children: React.ReactNode; }) {
 
     const onDrop = (e: React.DragEvent) => {
         e.preventDefault();
-        const files = Array.from(e.dataTransfer.files);
+        const dt = e.dataTransfer;
+        const files = Array.from(dt.files);
         const newItems = files.map(f => ({
             key: f.name,
-            path: f.webkitRelativePath,
+            path: (window as any).api.getFilePath(f),
             loaded: 0,
             total: f.size,
-            status: "queued" as const
+            status: "queued" as const,
+            uploadStartTime: new Date().getTime()
         }));
+        console.log(newItems)
         setItems(prev => [...prev, ...newItems]);
         setPaneVisible(false);
     };
@@ -56,6 +60,7 @@ export default function UploadPane({children}: { children: React.ReactNode; }) {
     const startUpload = useCallback(async (it: UploadItem) => {
         setItems(prev => prev.map(p => p === it ? {...p, status: "running"} : p));
         try {
+            console.log("Starting upload", JSON.stringify({...it}, null, 2));
             APIWrapperService.UploadFileToS3(bucket, it.key, it.path);
             setItems(prev => prev.map(p => p === it ? {...p, status: "done"} : p));
         } catch {
@@ -123,7 +128,7 @@ export default function UploadPane({children}: { children: React.ReactNode; }) {
             {items && items.length > 0 && <div>
                 <ul className="list-unstyled text-start">
                     {items.map(it => (
-                        <li key={it.key} className="mb-2">
+                        <li key={`${it.key}_${it.uploadStartTime.toString()}`} className="mb-2">
                             {it.key} — {it.status}
                             {it.total ? (
                                 <div className={`progress mt-1`} role="progressbar"
