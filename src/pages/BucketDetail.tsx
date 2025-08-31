@@ -67,6 +67,14 @@ export default function BucketDetail() {
                             
                             <div className="flex-fill"></div>
 
+                            GetBucketUrl
+
+                            <IconButton onClick={() => {
+                                navigator.clipboard.writeText(APIWrapperService.GetBucketUrl(bucketId))
+                            }} icon={'refresh'} isButton={true} staticClasses={'btn btn-outline-warning p-2 gap-2'}>
+                                <span>Bucket URL</span>
+                            </IconButton>
+
                             <IconButton onClick={LoadItems} icon={'refresh'} isButton={true} staticClasses={'btn btn-outline-warning p-2 gap-2'}>
                                 <span>Refresh Items</span>
                             </IconButton>

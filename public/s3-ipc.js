@@ -90,6 +90,9 @@ ipcMain.handle("s3:deleteObject", async (_e, accountHandle, bucket, key) => {
 ipcMain.handle("s3:getObjectUrl", async (_e, accountHandle, bucket, key) => {
     try {
         const s3 = await GetClientForBucket(accountHandle);
+        if (!s3) {
+            return {ok: false, error: "No S3 client"};
+        }
         const region = s3.config.region;
         return {
             url: `https://${bucket}.s3.${region}.amazonaws.com/${encodeURIComponent(key)}`,
@@ -101,9 +104,12 @@ ipcMain.handle("s3:getObjectUrl", async (_e, accountHandle, bucket, key) => {
     }
 });
 
-ipcMain.handle("s3:getBucketUrl", async (_e, accountHandle, bucket, key) => {
+ipcMain.handle("s3:getBucketUrl", async (_e, accountHandle, bucket) => {
     try {
         const s3 = await GetClientForBucket(accountHandle);
+        if (!s3) {
+            return {ok: false, error: "No S3 client"};
+        }
         const region = s3.config.region;
         return {
             url: `https://${bucket}.s3.${region}.amazonaws.com/`,

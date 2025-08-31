@@ -35,7 +35,9 @@ export default class APIWrapperService {
         (window as any).api.deleteCreds(handle);
     }
     
-    static GetBucketUrl = (bucket: string, region: string): string => {
-        // 
+    static GetBucketUrl = (bucket: string) => {
+        const account = UserService.GetAWSAccount();
+        if (account === null) return null;
+        return (window as any).api.getBucketUrl(account.handle, bucket);
     }
 }
