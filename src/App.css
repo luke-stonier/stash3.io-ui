@@ -123,6 +123,12 @@ select.form-select.bg-dark{
     background-size: 16px 12px !important;
 }
 
+.dropdown-menu.bg-lighter .dropdown-item:hover,
+.dropdown-menu.bg-lighter .dropdown-item:focus {
+    background: #ff5a00 !important;
+    color: black !important;
+}
+
 p, i, span, h1, h2, h3, h4, h5, h6, label {
     color: inherit;
 }
@@ -130,4 +136,8 @@ p, i, span, h1, h2, h3, h4, h5, h6, label {
 /* hide the default caret */
 .dropdown-toggle.no-caret::after {
     display: none !important;
+}
+
+.color-inherit {
+    color: inherit !important;
 }

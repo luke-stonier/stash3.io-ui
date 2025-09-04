@@ -26,6 +26,7 @@ export default function UploadPane({children}: { children: React.ReactNode; }) {
             setBucket(res.bucket);
             setPath(res.path);
         });
+        
 
         setBucket(BucketService.currentBucket);
         setPath(BucketService.currentPath);
@@ -60,22 +61,25 @@ export default function UploadPane({children}: { children: React.ReactNode; }) {
     const startUpload = useCallback(async (it: UploadItem) => {
         setItems(prev => prev.map(p => p === it ? {...p, status: "running"} : p));
         try {
-            console.log("Starting upload", JSON.stringify({...it}, null, 2));
+            it.key = `${path}${path && !path.endsWith('/') ? '/' : ''}${it.key}`;
             APIWrapperService.UploadFileToS3(bucket, it.key, it.path);
             setItems(prev => prev.map(p => p === it ? {...p, status: "done"} : p));
         } catch {
             setItems(prev => prev.map(p => p === it ? {...p, status: "error"} : p));
         }
-    }, [bucket]);
+    }, [bucket, path]);
 
     useEffect(() => {
         (window as any).api.onUploadEnd((p: { key: string; status: boolean }) => {
-            console.log("Upload end", p);
+            BucketService.RefreshItems();
             setItems(prev => prev.map(it => it.key === p.key ? {
                 ...it,
                 status: p.status ? "done" : "error",
                 loaded: it.total ?? it.loaded
             } : it));
+            setTimeout(() => {
+                setItems(prev => prev.filter(it => it.key !== p.key || it.status !== "done"));
+            }, p.status ? 1500 : 0);
         });
 
         (window as any).api.onUploadProgress((p: { key: string; loaded: number; total?: number }) => {

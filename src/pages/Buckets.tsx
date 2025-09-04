@@ -3,6 +3,7 @@ import Bucket from "../Models/Bucket";
 import {useCallback, useEffect, useState} from "react";
 import APIWrapperService from "../services/APIWrapperService";
 import UserService from "../services/user-service";
+import BucketService from "../services/BucketService";
 
 export default function Buckets() {
     
@@ -35,6 +36,7 @@ export default function Buckets() {
             setLoading(true);
             FetchBuckets();
         });
+        
         setLoading(true);
         FetchBuckets();
 
@@ -52,13 +54,6 @@ export default function Buckets() {
     }
     
     return <div className="container-fluid px-0 d-flex flex-column align-items-stretch">
-        {/*<div className="row">*/}
-        {/*    <div className="col-6 col-sm-4">*/}
-        {/*        <IconButton onClick={FetchBuckets} icon={'add'} isButton={true} staticClasses={'btn btn-warning gap-1 justify-content-start'}>*/}
-        {/*            <span>Fetch Buckets</span>*/}
-        {/*        </IconButton>*/}
-        {/*    </div>*/}
-        {/*</div>*/}
         
         <div className={`row mt-3 ${!buckets || buckets.length === 0 ? 'flex-grow-1 flex-fill d-flex align-items-center justify-content-center' : ''}`}>
             { (!buckets || buckets.length === 0) && 

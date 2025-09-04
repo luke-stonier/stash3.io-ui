@@ -5,6 +5,20 @@ export default class BucketService {
     static currentPath: string = "";
     
     static bucketOrPathChangeEvent = new EventEmitter<{ bucket: string, path: string } | null>();
+    static bucketRefreshEvent = new EventEmitter<void>();
+    static previewItemEvent = new EventEmitter<string | null>();
+    
+    static ViewItem = (key: string) => {
+        BucketService.previewItemEvent.emit(key);
+    }
+    
+    static ClearPreview = () => {
+        BucketService.previewItemEvent.emit(null);
+    }
+    
+    static RefreshItems = () => {
+        BucketService.bucketRefreshEvent.emit();
+    }
     
     static SetBucketAndPath = (bucket: string, path: string) => {
         BucketService.currentBucket = bucket;

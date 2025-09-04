@@ -3,6 +3,7 @@ import BucketObject from "../Models/BucketObject";
 import Icon from "./Icon";
 import APIWrapperService from "../services/APIWrapperService";
 import BucketService from "../services/BucketService";
+import BucketItemRow from "./BucketItemRow";
 
 type BucketItemsProps = {
     bucketId: string;
@@ -27,7 +28,6 @@ export default function BucketItems(props: BucketItemsProps) {
     const LoadItems = useCallback((prefix: string) => {
         if (!props.bucketId) return;
         setLoading(true);
-        console.log(`Loading items for bucket=${props.bucketId} prefix="${prefix}"`);
         APIWrapperService.ListS3Objects(props.bucketId, prefix).then(resp => {
             if (resp.error !== null) {
                 console.log(resp.error);
@@ -50,7 +50,10 @@ export default function BucketItems(props: BucketItemsProps) {
                 })
                 });
                 setItems([...files, ...folders]);
-                setLoading(false);
+                
+                setTimeout(() => {
+                    setLoading(false);
+                }, 50)
             }
         });
     }, [props.bucketId, currentPrefix]);
@@ -63,6 +66,16 @@ export default function BucketItems(props: BucketItemsProps) {
     useEffect(() => {
         LoadItems(currentPrefix);
         BucketService.SetBucketAndPath(props.bucketId, currentPrefix);
+    }, [currentPrefix]);
+
+    useEffect(() => {
+        const bre = BucketService.bucketRefreshEvent.subscribe(() => {
+            LoadItems(currentPrefix);
+        });
+        
+        return () => {
+            BucketService.bucketRefreshEvent.unsubscribe(bre);
+        }
     }, [currentPrefix]);
 
     const goInto = (dirName: string) => {
@@ -80,6 +93,8 @@ export default function BucketItems(props: BucketItemsProps) {
         setCurrentPrefix(prefix);
         BucketService.SetBucketAndPath(props.bucketId, prefix);
     };
+    
+    if (loading) return <></>
     
     return <div className={'px-0'}>
 
@@ -116,18 +131,9 @@ export default function BucketItems(props: BucketItemsProps) {
 
                 if (item.key === currentPrefix && isDir) return null;
                 
-                return (
-                    <tr key={item.key} role="button">
-                        <td onClick={() => {isDir && goInto(name)}}>
-                            <div className="d-flex align-items-center gap-2">
-                                <Icon name={isDir ? "folder" : "article"} filled />
-                                <span className={isDir ? "text-warning fw-semibold" : ""}>{name}</span>
-                            </div>
-                        </td>
-                        <td>{isDir ? "—" : `${(item.size / (1024 * 1024)).toFixed(2)} MB`}</td>
-                        <td>{isDir ? '—' : item.lastModified?.toLocaleString?.() ?? "—"}</td>
-                    </tr>
-                );
+                return <React.Fragment key={item.key}>
+                    <BucketItemRow item={item} name={name} goInto={goInto} isDir={isDir} />
+                </React.Fragment>
             })}
             {directoryItems.length === 0 && (
                 <tr style={{ userSelect: "none" }}>

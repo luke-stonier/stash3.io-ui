@@ -1,25 +1,7 @@
 const { app, BrowserWindow, Menu  } = require("electron");
 const path = require("path");
-const { spawn } = require("child_process");
 require('./s3-ipc');
 
-// let svc;
-// async function startService() {
-//     svc = spawn(process.execPath, [path.join(__dirname, "..", ".api-dist", "api.js")], {
-//         stdio: ["ignore", "pipe", "pipe"],
-//         env: { ...process.env, SVC_PORT: "0" } // let the service pick a random port
-//     });
-//
-//     svc.stdout.on("data", (buf) => {
-//         const line = buf.toString();
-//         const m = line.match(/svc listening on (\d+)/);
-//         if (m) {
-//             const port = Number(m[1]);
-//             console.log("Service started on port", port);
-//             // pass port to renderer via additionalArguments or BrowserWindow.loadURL query param
-//         }
-//     });
-// }
 
 function createWindow() {
     const win = new BrowserWindow({
@@ -27,6 +9,7 @@ function createWindow() {
         height: 600,
         minWidth: 600,
         minHeight: 600,
+        icon: path.join(__dirname, 'stash3_logo.png'), // 256x256 recommended
         webPreferences: {
             contextIsolation: true,
             nodeIntegration: false,

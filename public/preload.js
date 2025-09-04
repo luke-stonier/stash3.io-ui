@@ -10,6 +10,7 @@ contextBridge.exposeInMainWorld("api", {
     listObjects: (accountHandle, bucket, prefix) => ipcRenderer.invoke("s3:listObjects", accountHandle, bucket, prefix),
     getObjectUrl: (accountHandle, bucket, key) =>
         ipcRenderer.invoke("s3:getObjectUrl", accountHandle, bucket, key),
+    createFolder: (accountHandle, bucket, prefix) => ipcRenderer.invoke("s3:createFolder", accountHandle, bucket, prefix),
     upload: (accountHandle, payload) => ipcRenderer.invoke("s3:upload", accountHandle, payload),
     onUploadProgress: (cb) => {
         const channel = "s3:uploadProgress";
@@ -24,6 +25,8 @@ contextBridge.exposeInMainWorld("api", {
         return () => ipcRenderer.removeListener(channel, handler);
     },
     deleteObject: (accountHandle, bucket, key) => ipcRenderer.invoke("s3:deleteObject", accountHandle, bucket, key),
+    getObjectHead: (accountHandle, bucket, key) => ipcRenderer.invoke("s3:getObjectHead", accountHandle, bucket, key),
+    getPreSignedUrl: (accountHandle, bucket, key, expiresIn) => ipcRenderer.invoke("s3:getPreSignedUrl", accountHandle, bucket, key, expiresIn),
     setRegion: (region) => ipcRenderer.invoke("prefs:setRegion", region),
     setCreds: (handle, akid, secret) => ipcRenderer.invoke("creds:set", handle, akid, secret),
     getCreds: (handle) => ipcRenderer.invoke("creds:get", handle),

@@ -72,7 +72,11 @@ export default function Login() {
                            ...loginRequest,
                            password: e.target.value
                        })
-                   }}/>
+                   }}
+                   onKeyDown={((e) => {
+                       if (e.key === 'Enter') loginClickHandler()
+                   })}
+            />
             <button className={`btn btn-primary w-100 ${loading ? 'opacity-50' : ''}`}
                     disabled={loading || errors().length > 0}
                     onClick={loginClickHandler}>{loading ? 'Loading...' : 'Log In'}</button>

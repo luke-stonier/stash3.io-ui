@@ -5,6 +5,7 @@ import {IconButton} from "../components/Button";
 import {Avatar} from "../components/Avatar";
 import AccountPicker from "../components/AccountPicker";
 
+
 class NavigationOption {
     id: string;
     name: string;
@@ -17,8 +18,11 @@ export default function AppContainer() {
     const navigationOptions: NavigationOption[] = [
         {id: 'accounts', name: 'Accounts', icon: 'account_circle'},
         {id: 'buckets', name: 'Buckets', icon: 'inventory_2'},
-        {id: 'uploads', name: 'Uploads', icon: 'upload'},
-        {id: 'settings', name: 'Settings', icon: 'settings'},
+        {id: 'billing', name: 'Billing', icon: 'credit_card'},
+        {id: 'account', name: 'Account', icon: 'account_circle'},
+        
+        // {id: 'uploads', name: 'Uploads', icon: 'upload'},
+        // {id: 'settings', name: 'Settings', icon: 'settings'},
     ];
     const [nav, setNav] = React.useState<string>('buckets');
     
@@ -34,14 +38,17 @@ export default function AppContainer() {
                 <div className="row flex-grow-1 h-100 overflow-hidden">
                     {/* Sidebar */}
                     <div className="col-12 col-md-3 col-lg-2 border-end border-black overflow-auto min-h-0 py-3">
-                        <div className="d-flex justify-content-center align-items-center gap-2">
-                            <img
-                                src={logo}
-                                alt="logo"
-                                className="img-fluid d-block"
-                                style={{height: "2.25rem"}}
-                            />
-                            <h1 className="h3 mb-0 fw-bold">Stash3.io</h1>
+                        <div>
+                            <div className="d-flex justify-content-center align-items-center gap-2">
+                                <img
+                                    src={logo}
+                                    alt="logo"
+                                    className="img-fluid d-block"
+                                    style={{height: "2.25rem"}}
+                                />
+                                <h1 className="h3 mb-0 fw-bold">Stash3.io</h1>
+                            </div>
+                            <p className="d-block text-center mx-auto small">v0.0.1 (BETA)</p>
                         </div>
 
                         <div className="py-2"></div>
@@ -77,7 +84,8 @@ export default function AppContainer() {
                                 <Avatar name={'Luke Stonier'}/>
                             </div>
                             
-                            <div className="mt-3 d-flex align-items-stretch justify-content-start w-100 h-100 min-h-0 px-1 mb-2" style={{overflowX: 'hidden', overflowY: 'auto'}}>
+                            <div className="mt-3 flex-column d-flex align-items-stretch justify-content-start w-100 h-100 min-h-0 px-1 mb-2" style={{overflowX: 'hidden', overflowY: 'auto'}}>
+                                {/*<p className="d-block">{window.location.href}</p>*/}
                                 <Outlet/>
                             </div>
                         </div>

@@ -98,8 +98,11 @@ export default function Register() {
                        setRegisterRequest({
                            ...registerRequest,
                            passwordRepeat: e.target.value
-                       })
-                   }}/>
+                       })}}
+                   onKeyDown={((e) => {
+                       if (e.key === 'Enter') registerClickHandler()
+                   })}
+            />
             <button className={`btn btn-primary w-100 ${loading ? 'opacity-50' : ''}`}
                     disabled={loading || errors().length > 0}
                     onClick={registerClickHandler}>{loading ? 'Loading...' : 'Sign Up'}</button>

@@ -13,10 +13,10 @@ console.log("[env] loaded from:", customEnvPath);
 
 import { DataSource } from "typeorm";
 import { User } from "./entities/User";
-import { Bucket } from "./entities/Bucket";
 import {AuthRequest} from "./types/auth";
 import {stash3RequireAuth} from "./middleware/auth";
 import {AWSAccountRef} from "./entities/AWSAccountRef";
+import stripeRouter from "./billing/stripe-controller";
 
 export const db = new DataSource({
     type: "postgres",
@@ -26,7 +26,7 @@ export const db = new DataSource({
     password: process.env.PGPASSWORD,
     database: process.env.PGDATABASE,
     ssl: process.env.PGSSL === "true" ? { rejectUnauthorized: false } : false,
-    entities: [User, Bucket, AWSAccountRef],
+    entities: [User, AWSAccountRef],
     synchronize: true,   // ✅ dev-friendly. For prod, switch to migrations.
     logging: false
 });
@@ -133,30 +133,6 @@ async function bootstrap() {
         res.json({ok: true});
     });
     
-    // BUCKETS
-    apiRouter.post("/buckets", async (req: AuthRequest, res) => {
-        if (!req.user) return res.status(401).json({error: "Unauthorized"});
-        const {bucket, region, perms} = req.body; // perms: string[]
-        const repo = db.getRepository(Bucket);
-        const grant = repo.create({
-            userId: req.user.sub,
-            bucket,
-            region,
-            perms: JSON.stringify(perms || []),
-        });
-        await repo.save(grant);
-        res.json({ok: true, grant});
-    });
-    
-    apiRouter.get("/buckets", async (req: AuthRequest, res) => {
-        if (!req.user) return res.status(401).json({error: "Unauthorized"});
-        const repo = db.getRepository(Bucket);
-        const rows = await repo.find({where: {userId: req.user.sub}});
-        // parse perms back to array for convenience
-        const grants = rows.map(r => ({...r, perms: JSON.parse(r.perms)}));
-        res.json([...grants]);
-    });
-
     
     // heartbeat
     apiRouter.get("/ping", (_req, res) => {
@@ -170,8 +146,9 @@ async function bootstrap() {
     app.use(cors());
     app.use(express.json());
     app.use("/api", apiRouter);
+    app.use("/api/billing", stripeRouter);
 
-    
+
     // startup
     const server = app.listen(PORT, "127.0.0.1", () => {
         const actualPort = (server.address() as any).port;
