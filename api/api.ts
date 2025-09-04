@@ -1,4 +1,4 @@
-﻿import express from "express";
+﻿import express, {Application} from "express";
 import bcrypt from "bcryptjs";
 import jwt, { JwtPayload, SignOptions } from "jsonwebtoken";
 import path from "path";
@@ -22,6 +22,10 @@ import {stash3RequireAuth} from "./middleware/auth";
 import {AWSAccountRef} from "./entities/AWSAccountRef";
 import stripeRouter from "./billing/stripe-controller";
 
+
+const app: Application = express();
+
+
 export const db = new DataSource({
     type: "postgres",
     host: process.env.PGHOST,
@@ -38,10 +42,8 @@ export const db = new DataSource({
 async function bootstrap() {
     await db.initialize();
     console.log("[db] connected to", db.options.database);
-
-    const app = express();
+    
     const apiRouter = express.Router();
-    const PORT = process.env.PORT ? Number(process.env.PORT) : 3001;
 
     type JwtUser = { sub: string; email: string };
 
@@ -154,6 +156,8 @@ async function bootstrap() {
 
 
     // startup
+    const PORT = process.env.PORT || 5000;
+    console.log("[api] starting on port", PORT);
     const server = app.listen(PORT, () => {
         const actualPort = (server.address() as any).port;
         console.log("api listening on", actualPort);
