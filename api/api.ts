@@ -154,9 +154,9 @@ async function bootstrap() {
 
 
     // startup
-    const server = app.listen(PORT, "127.0.0.1", () => {
+    const server = app.listen(PORT, () => {
         const actualPort = (server.address() as any).port;
-        console.log("svc listening on", actualPort);
+        console.log("api listening on", actualPort);
     });
 }
 
