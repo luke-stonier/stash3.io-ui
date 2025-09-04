@@ -37,7 +37,7 @@ async function bootstrap() {
 
     const app = express();
     const apiRouter = express.Router();
-    const PORT = process.env.SVC_PORT ? Number(process.env.SVC_PORT) : 3001;
+    const PORT = process.env.PORT ? Number(process.env.PORT) : 3001;
 
     type JwtUser = { sub: string; email: string };
 
