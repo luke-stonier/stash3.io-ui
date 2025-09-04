@@ -6,10 +6,14 @@ import "reflect-metadata";
 import dotenv from "dotenv";
 import cors from "cors";
 
-const customEnvPath = process.env.STASH3_ENV
-    || path.join(process.cwd(), ".env");  // fallback to local .env
-dotenv.config({ path: customEnvPath });
-console.log("[env] loaded from:", customEnvPath);
+if (process.env.NODE_ENV !== "production") {
+    const customEnvPath = process.env.STASH3_ENV
+        || path.join(process.cwd(), ".env");  // fallback to local .env
+    dotenv.config({path: customEnvPath});
+    console.log("[env] loaded from:", customEnvPath);
+} else {
+    console.log("[env] production mode");
+}
 
 import { DataSource } from "typeorm";
 import { User } from "./entities/User";
