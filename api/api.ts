@@ -7,7 +7,7 @@ import dotenv from "dotenv";
 import cors from "cors";
 
 const customEnvPath = process.env.STASH3_ENV
-    || path.join(process.cwd(), "api", ".env");  // fallback to local .env
+    || path.join(process.cwd(), ".env");  // fallback to local .env
 dotenv.config({ path: customEnvPath });
 console.log("[env] loaded from:", customEnvPath);
 

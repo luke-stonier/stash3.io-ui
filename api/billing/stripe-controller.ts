@@ -2,6 +2,13 @@
 import Stripe from "stripe";
 import type { Request, Response } from "express";
 import * as express from "express";
+import path from "path";
+import dotenv from "dotenv";
+
+const customEnvPath = process.env.STASH3_ENV
+    || path.join(process.cwd(), ".env");  // fallback to local .env
+dotenv.config({ path: customEnvPath });
+console.log("[env] loaded from:", customEnvPath);
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2025-08-27.basil" });
 const stripeRouter = Router();

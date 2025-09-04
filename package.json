@@ -43,7 +43,7 @@
     "react:build": "react-scripts build",
     "api:build": "tsc -p tsconfig.api.json",
     "api:watch": "tsc -p tsconfig.api.json -w",
-    "api:dev": "nodemon ./api/api.ts",
+    "api:dev": "cd ./api && npm run dev",
     "electron:build": "tsc -p tsconfig.electron.json",
     "electron:watch": "tsc -p tsconfig.electron.json -w",
     "electron:start": "cross-env ELECTRON_START_URL=http://localhost:3000 electron .",
