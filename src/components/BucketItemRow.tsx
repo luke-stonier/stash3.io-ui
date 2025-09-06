@@ -46,10 +46,6 @@ export default function BucketItemRow({isDir, name, item, goInto}: BucketItemRow
     
     const preview = async (item: BucketObject) => {
         if (isDir) return;
-        // const head = await APIWrapperService.GetObjectHead(BucketService.currentBucket, item.key)
-        // console.log(head)
-        // const preSigned = await APIWrapperService.GetPreSignedUrl(BucketService.currentBucket, item.key);
-        // console.log(preSigned)
         BucketService.ViewItem(item.key);
     }
 

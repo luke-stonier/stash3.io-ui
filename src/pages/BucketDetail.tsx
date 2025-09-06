@@ -97,6 +97,13 @@ export default function BucketDetail() {
                                 <div
                                     className="flex-fill d-none d-lg-flex align-items-center justify-content-end gap-3">
                                     <IconButton onClick={() => {
+                                        BucketService.TriggerUploadFile();
+                                    }} icon={'cloud_upload'} isButton={true}
+                                                staticClasses={'btn btn-outline-warning p-2 gap-2'}>
+                                        <span>Upload File</span>
+                                    </IconButton>
+                                    
+                                    <IconButton onClick={() => {
                                         (async () => {
                                             setCreatingFolder(true);
                                         })();

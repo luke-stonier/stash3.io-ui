@@ -4,9 +4,14 @@ export default class BucketService {
     static currentBucket: string = "";
     static currentPath: string = "";
     
+    static UploadFileTrigger = new EventEmitter<void>();
     static bucketOrPathChangeEvent = new EventEmitter<{ bucket: string, path: string } | null>();
     static bucketRefreshEvent = new EventEmitter<void>();
     static previewItemEvent = new EventEmitter<string | null>();
+    
+    static TriggerUploadFile = () => {
+        BucketService.UploadFileTrigger.emit();
+    };
     
     static ViewItem = (key: string) => {
         BucketService.previewItemEvent.emit(key);

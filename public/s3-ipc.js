@@ -128,15 +128,17 @@ ipcMain.handle("s3:upload", async (e, accountHandle, { bucket, key, filePath }) 
             contentType = "text/html";
         }
         // you can expand this mapping if you want (png → image/png, etc.)
+        
+        const body = {
+            Bucket: bucket,
+            Key: key,
+            Body: fs.createReadStream(filePath),
+            ...(contentType ? { ContentType: contentType } : {}),
+        };
 
         const upload = new Upload({
             client: s3,
-            params: {
-                Bucket: bucket,
-                Key: key,
-                Body: fs.createReadStream(filePath),
-                ...(contentType ? { ContentType: contentType } : {}),
-            },
+            params: body,
             queueSize: 4,
             leavePartsOnError: false,
         });

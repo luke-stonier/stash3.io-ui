@@ -63,6 +63,12 @@ export default function Accounts() {
 
     return <div className="container-fluid px-0 d-flex flex-column align-items-stretch">
         <div className="row">
+            <div className="col-12">
+                <h1 className="mb-0">AWS Accounts</h1>
+                <p className="text-muted">Manage your AWS accounts. <span className="small fst-italic">Account keys are only stored and used locally.</span></p>
+            </div>
+        </div>
+        <div className="row">
             <div className="col-6 col-sm-4">
                 <IconButton icon={'add'} isButton={true} staticClasses={'btn btn-warning gap-1 justify-content-start'}
                             onClick={() => setAddingAccount(true)}>

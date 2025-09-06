@@ -18,7 +18,7 @@ export default function AppContainer() {
     const navigationOptions: NavigationOption[] = [
         {id: 'accounts', name: 'Accounts', icon: 'account_circle'},
         {id: 'buckets', name: 'Buckets', icon: 'inventory_2'},
-        {id: 'billing', name: 'Billing', icon: 'credit_card'},
+        {id: 'billing', name: 'Billing', icon: 'sell'},
         {id: 'account', name: 'Account', icon: 'account_circle'},
         
         // {id: 'uploads', name: 'Uploads', icon: 'upload'},
@@ -26,10 +26,6 @@ export default function AppContainer() {
     ];
     const [nav, setNav] = React.useState<string>('buckets');
     
-    useEffect(() => {
-        console.log("Navigation options", navigationOptions, nav);
-    }, [nav])
-
     return (
         <div className="min-vh-100 d-flex flex-column bg-dark text-light">
 

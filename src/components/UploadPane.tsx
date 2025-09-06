@@ -1,5 +1,5 @@
 // example UploadPane.tsx
-import React, {useCallback, useEffect, useState} from "react";
+import React, {useCallback, useEffect, useRef, useState} from "react";
 import Icon from "./Icon";
 import APIWrapperService from "../services/APIWrapperService";
 import BucketService from "../services/BucketService";
@@ -15,6 +15,7 @@ type UploadItem = {
 
 export default function UploadPane({children}: { children: React.ReactNode; }) {
 
+    const inputRef = useRef(null);
     const [bucket, setBucket] = useState<string>("");
     const [path, setPath] = useState<string>("");
     const [items, setItems] = useState<UploadItem[]>([]);
@@ -45,6 +46,15 @@ export default function UploadPane({children}: { children: React.ReactNode; }) {
         e.preventDefault();
         const dt = e.dataTransfer;
         const files = Array.from(dt.files);
+        addFilesToStack(files);
+    };
+    
+    const onSelectFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = e.target.files ? Array.from(e.target.files) : [];
+        addFilesToStack(files);
+    }
+    
+    const addFilesToStack = (files: File[]) => {
         const newItems = files.map(f => ({
             key: f.name,
             path: (window as any).api.getFilePath(f),
@@ -53,10 +63,10 @@ export default function UploadPane({children}: { children: React.ReactNode; }) {
             status: "queued" as const,
             uploadStartTime: new Date().getTime()
         }));
-        console.log(newItems)
+        console.log("queue uploads ->", newItems);
         setItems(prev => [...prev, ...newItems]);
         setPaneVisible(false);
-    };
+    }
 
     const startUpload = useCallback(async (it: UploadItem) => {
         setItems(prev => prev.map(p => p === it ? {...p, status: "running"} : p));
@@ -97,6 +107,19 @@ export default function UploadPane({children}: { children: React.ReactNode; }) {
         if (next) startUpload(next);
     }, [items, startUpload]);
 
+    useEffect(() => {
+        const uft = BucketService.UploadFileTrigger.subscribe(() => {
+            // clicked upload button
+            if (inputRef.current) {
+                (inputRef.current as any).value = null;
+                (inputRef.current as any).click();
+            }
+        })
+        return () => {
+            BucketService.UploadFileTrigger.unsubscribe(uft);
+        }
+    }, []);
+
     return (
         <div
             className="w-100 h-100"
@@ -112,6 +135,7 @@ export default function UploadPane({children}: { children: React.ReactNode; }) {
             }}
             onDrop={onDrop}
         >
+            <input type="file" onInput={onSelectFiles} ref={inputRef} style={{ display: "none" }} />
             {paneVisible && <div
                 className="position-fixed top-0 start-0 end-0 bottom-0 p-3 rounded-3 text-center d-flex align-items-center justify-content-center flex-column"
                 style={{backgroundColor: "rgba(0, 0, 0, 0.9)"}}>

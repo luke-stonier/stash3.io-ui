@@ -8,6 +8,6 @@ export const environment: {
 	version: "0.0.1",
 	production: true,
 	protocol: "http://",
-	baseAddress: "localhost:3001/api",
+	baseAddress: "localhost:5000/api",
 	stripeKey: "",
 };
