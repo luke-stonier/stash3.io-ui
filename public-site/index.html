@@ -24,6 +24,10 @@
             --text-2: #aab0bd;
             --shadow: 0 10px 30px rgba(0, 0, 0, .45), 0 40px 90px rgba(0, 0, 0, .55);
         }
+        
+        .rounded-lg {
+            border-radius: 1rem !important;
+        }
 
         .material-symbols {
             font-family: "Material Symbols Outlined";
@@ -207,16 +211,6 @@
         }
 
         /* animated glare overlay */
-        .glare {
-            position: absolute;
-            inset: -30%;
-            background: radial-gradient(300px 220px at var(--gx, 50%) var(--gy, 20%),
-            rgba(255, 255, 255, .12), rgba(255, 255, 255, 0) 60%);
-            mix-blend-mode: screen;
-            pointer-events: none;
-            filter: blur(14px);
-            transform: translateZ(90px);
-        }
 
         @media (prefers-reduced-motion: reduce) {
             .window {
@@ -325,7 +319,7 @@
 
 
                 <a class="d-flex align-items-center justify-content-center gap-2 mt-4 text-white text-decoration-none"
-                   style="cursor: pointer">
+                   style="cursor: pointer" href="#features">
                     <small class="my-0 text-center small fst-italic">LEARN MORE ABOUT STASH3</small>
                     <span class="material-symbols small">arrow_right_alt</span>
                 </a>
@@ -347,16 +341,63 @@
     </div>
 </section>
 
-<section class="my-5">
+<section class="my-5" id="features">
     <div class="container py-5">
         <div class="row">
-            
+            <div class="col-6 col-lg-4 mb-4">
+                <div style="background: #0B0C13;"
+                     class="rounded-lg shadow d-flex flex-column align-items-center justify-content-center py-5 px-3 h-100">
+                    <img src="./assets/stash3_secure.png" class="d-block" style="max-width: 200px"/>
+                    <p class="text-center fs-5">Your credentials stay local. We never see or transmit your access
+                        keys.</p>
+                </div>
+            </div>
+            <div class="col-6 col-lg-4 mb-4">
+                <div style="background: #0B0C13;"
+                     class="rounded-lg shadow d-flex flex-column align-items-center justify-content-center py-5 px-3 h-100">
+                    <img src="./assets/stash3_previewer.png" class="d-block" style="max-width: 200px"/>
+                    <p class="text-center fs-5">Open PDFs, HTML, CSV, JSON, and media instantly. View content in-app
+                        without downloads or extra tools.</p>
+                </div>
+            </div>
+            <div class="col-6 col-lg-4 mb-4">
+                <div style="background: #0B0C13;"
+                     class="rounded-lg shadow d-flex flex-column align-items-center justify-content-center py-5 px-3 h-100">
+                    <img src="./assets/stash3_upload.png" class="d-block" style="max-width: 200px"/>
+                    <p class="text-center fs-5">Drag files and folders to start uploading. See clear progress and stay
+                        in control throughout.</p>
+                </div>
+            </div>
+            <div class="col-6 col-lg-4">
+                <div style="background: #0B0C13;"
+                     class="rounded-lg shadow d-flex flex-column align-items-center justify-content-center py-5 px-3 h-100">
+                    <img src="./assets/stash3_share.png" class="d-block" style="max-width: 200px"/>
+                    <p class="text-center fs-5">Create and share links in seconds without exposing credentials.</p>
+                </div>
+            </div>
+
+            <div class="col-6 col-lg-4">
+                <div style="background: #0B0C13;"
+                     class="rounded-lg shadow d-flex flex-column align-items-center justify-content-center py-5 px-3 h-100">
+                    <img src="./assets/stash3_bookmark.png" class="d-block" style="max-width: 200px"/>
+                    <p class="text-center fs-5">Save frequent prefixes as bookmarks. Find buckets and keys instantly
+                        with fast type-to-search.</p>
+                </div>
+            </div>
+            <div class="col-6 col-lg-4">
+                <div style="background: #0B0C13;"
+                     class="rounded-lg shadow d-flex flex-column align-items-center justify-content-center py-5 px-3 h-100">
+                    <img src="./assets/stash3_accounts.png" class="d-block" style="max-width: 200px"/>
+                    <p class="text-center fs-5">Keep profiles for prod, staging, and compatibles. Switch roles or
+                        endpoints instantly without reconfiguring.</p>
+                </div>
+            </div>
         </div>
     </div>
 </section>
 
-<section class="my-5"
-         style="background: linear-gradient(to bottom, rgba(14,18,24,0), rgba(14,18,24,1) 10%, rgba(14,18,24,1) 90%, rgba(14,18,24,0));">
+<section class="mt-5"
+         style="background: linear-gradient(to bottom, rgba(14,18,24,0), rgba(14,18,24,1) 10%, rgba(14,18,24,1) 90%);">
     <div class="container py-5">
         <div class="row py-3">
             <h3 class="display-3 text-center">Find out more</h3>
