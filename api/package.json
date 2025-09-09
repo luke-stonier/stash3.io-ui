@@ -8,7 +8,7 @@
   },
   "scripts": {
     "dev": "nodemon ./api.ts",
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json && cp ./public-site/ ./.api-dist/public-site -r",
     "start": "node ./.api-dist/api.js",
     "heroku-postbuild": "npm run build"
   },
