@@ -146,13 +146,27 @@ async function bootstrap() {
         res.json({pong: true});
     });
 
+    // ui path
+    const ui_build_path = path.join(__dirname, "/public-site");
     
     // middlewares
     app.use(stash3RequireAuth);
     app.use(cors());
+    app.use(express.static(ui_build_path, { index: false }));
     app.use(express.json());
     app.use("/api", apiRouter);
     app.use("/api/billing", stripeRouter);
+
+    // --- SPA fallback: any route NOT starting with /api -> index.html ---
+    app.get("*", (_req, _res) => {
+        if (_req.path.indexOf("/api/") > -1) {
+            _res.status(404);
+            _res.send();
+        } else {
+            _res.status(200);
+            _res.sendFile(`${ui_build_path}/index.html`);
+        }
+    });
 
 
     // startup
