@@ -174,6 +174,12 @@
             cursor: pointer;
             user-select: none;
         }
+        
+        @media only screen and (max-width: 768px) {
+            .bucket-card {
+                padding: 8px;
+            }
+        }
 
         .bucket-card svg {
             width: 56px;
@@ -241,26 +247,26 @@
 
         <div class="flex-fill"></div>
         <div class="d-flex align-items-center justify-content-end gap-2">
-            <a class="btn btn-outline-warning">Get Started</a>
+            <a href="#join" class="btn btn-outline-warning">Get Started</a>
         </div>
     </div>
 </header>
 
 <section class="container">
     <div class="row">
-        <div class="col-12 col-lg-6">
-            <div class="flex-column d-flex align-items-stretch justify-content-center h-100">
+        <div class="col-12 col-lg-6 order-1 order-lg-0">
+            <div class="flex-column d-flex align-items-stretch justify-content-center h-100 text-center text-lg-start">
                 <h1 class="title">Fast, modern S3 client for developers.</h1>
                 <p class="subtitle my-2">Browse, preview, upload, and share. Local credential storage and operations
                     advanced
                     previews, bulk
                     operations - wrapped in a sleek desktop experience.</p>
-                <p class="text-start my-0 ms-0 fs-3">COMING SOON! (SEPT 2025)</p>
+                <p class="my-0 ms-0 fs-3">COMING SOON! (SEPT 2025)</p>
             </div>
         </div>
 
         <!-- 3D interactive window -->
-        <div class="scene col-12 col-lg-6">
+        <div class="scene col-12 col-lg-6 order-0 order-lg-1">
             <div class="window" id="window3d">
                 <div class="toolbar">
                     <span class="dot"></span><span class="dot"></span><span class="dot"></span>
@@ -279,7 +285,7 @@
     </div>
 </section>
 
-<section class="my-5">
+<section class="my-5 py-3 py-lg-5">
     <div class="container">
 
         <div class="row mb-4">
@@ -331,8 +337,8 @@
 
 <section class="my-5"
          style="background: linear-gradient(to bottom, rgba(14,18,24,0), rgba(14,18,24,1) 10%, rgba(14,18,24,1) 90%, rgba(14,18,24,0));">
-    <div class="container py-5">
-        <div class="row py-3">
+    <div class="container py-5" id="join">
+        <div class="row py-3 px-4">
             <h3 class="display-3 text-center">Join the waitlist!</h3>
             <p class="text-center text-muted">Get notified when Stash3 launches and earn access to exclusive pricing
                 options when signing up.</p>
@@ -342,16 +348,20 @@
 </section>
 
 <section class="my-5" id="features">
-    <div class="container py-5">
-        <div class="row">
-            <div class="col-6 col-lg-4 mb-4">
+    <div class="container py-2 py-lg-5">
+        <div class="row px-4 mb-5">
+            <h3 class="display-3 text-center my-0">Do more with S3.</h3>
+            <p class="text-center">Reliable object management without the overhead.</p>
+        </div>
+        <div class="row px-4">
+            <div class="col-12 col-md-6 col-lg-4 mb-4">
                 <div style="background: #07070D;"
                      class="rounded-lg shadow d-flex flex-column align-items-center justify-content-center py-5 px-3 h-100">
                     <img src="./assets/updated/stash3_secure_transparent.png" class="d-block" style="max-width: 200px"/>
                     <p class="text-center fs-5">Your credentials stay local. We never see or transmit your access keys outside of the SDK.</p>
                 </div>
             </div>
-            <div class="col-6 col-lg-4 mb-4">
+            <div class="col-12 col-md-6 col-lg-4 mb-4">
                 <div style="background: #07070D;"
                      class="rounded-lg shadow d-flex flex-column align-items-center justify-content-center py-5 px-3 h-100">
                     <img src="./assets/updated/stash3_previewer_transparent.png" class="d-block" style="max-width: 200px"/>
@@ -359,7 +369,7 @@
                         without downloads or extra tools.</p>
                 </div>
             </div>
-            <div class="col-6 col-lg-4 mb-4">
+            <div class="col-12 col-md-6 col-lg-4 mb-4">
                 <div style="background: #07070D;"
                      class="rounded-lg shadow d-flex flex-column align-items-center justify-content-center py-5 px-3 h-100">
                     <img src="./assets/updated/stash3_upload_transparent.png" class="d-block" style="max-width: 200px"/>
@@ -367,7 +377,7 @@
                         in control throughout.</p>
                 </div>
             </div>
-            <div class="col-6 col-lg-4 mb-4">
+            <div class="col-12 col-md-6 col-lg-4 mb-4">
                 <div style="background: #07070D;"
                      class="rounded-lg shadow d-flex flex-column align-items-center justify-content-center py-5 px-3 h-100">
                     <img src="./assets/updated/stash3_share_transparent.png" class="d-block" style="max-width: 200px"/>
@@ -375,7 +385,7 @@
                 </div>
             </div>
 
-            <div class="col-6 col-lg-4 mb-4">
+            <div class="col-12 col-md-6 col-lg-4 mb-4">
                 <div style="background: #07070D;"
                      class="rounded-lg shadow d-flex flex-column align-items-center justify-content-center py-5 px-3 h-100">
                     <img src="./assets/updated/stash3_bookmark_transparent.png" class="d-block" style="max-width: 200px"/>
@@ -383,7 +393,7 @@
                         with fast type-to-search.</p>
                 </div>
             </div>
-            <div class="col-6 col-lg-4 mb-4">
+            <div class="col-12 col-md-6 col-lg-4 mb-4">
                 <div style="background: #07070D;"
                      class="rounded-lg shadow d-flex flex-column align-items-center justify-content-center py-5 px-3 h-100">
                     <img src="./assets/updated/stash3_accounts_transparent.png" class="d-block" style="max-width: 200px"/>
@@ -397,7 +407,7 @@
 <section class="mt-5"
          style="background: linear-gradient(to bottom, rgba(14,18,24,0), rgba(14,18,24,1) 10%, rgba(14,18,24,1) 90%);">
     <div class="container py-5">
-        <div class="row py-3">
+        <div class="row py-3 px-4">
             <h3 class="display-3 text-center">Find out more</h3>
             <p class="text-center text-muted">Get notified when Stash3 launches and earn access to exclusive pricing
                 options when signing up.</p>
@@ -418,10 +428,10 @@
         "logs-archive",
     ]
     document.querySelectorAll('.bucket-card').forEach((el, i) => {
-        //el.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="'+getComputedStyle(document.documentElement).getPropertyValue('--orange').trim()+'" stroke-width="1.6"><path d="M12 2l8 4v8l-8 4-8-4V6l8-4z"/><path d="M12 2v12"/><path d="M20 6l-8 4-8-4"/></svg>'
         el.innerHTML = `<div class="d-flex flex-column align-items-center justify-content-center">
             <h1 class="display-1 my-0 text-warning material-symbols ${i === 0 || i === 3 ? '' : 'filled'}">deployed_code</h1>
-            <p class="fs-5 my-0">${bucketNames[i]}</p>
+            <p class="text-center d-none d-lg-block fs-5 my-0">${bucketNames[i]}</p>
+            <p class="text-center d-block d-lg-none fs-6 my-0">${bucketNames[i]}</p>
         </div>`;
     });
 

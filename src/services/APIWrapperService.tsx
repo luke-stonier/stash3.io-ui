@@ -7,6 +7,11 @@ export default class APIWrapperService {
     static UploadFileToS3 = (bucket: string, key: string, path: string) => {
         const account = UserService.GetAWSAccount();
         if (account === null) return;
+        
+        // check if upload is a folder
+        
+        
+        
         (async() => {
             const resp = await (window as any).api.upload(account.handle, {bucket, key: key, filePath: path});
             BucketService.RefreshItems();
