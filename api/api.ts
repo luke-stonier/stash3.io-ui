@@ -148,6 +148,10 @@ async function bootstrap() {
 
     // ui path
     const ui_build_path = path.join(__dirname, "/public-site");
+    console.log(path);
+    console.log("[ui] serving from:", ui_build_path);
+    // log files in __dirname
+    console.log("[ui] __dirname files:", require("fs").readdirSync(__dirname));
     
     // middlewares
     app.use(stash3RequireAuth);
