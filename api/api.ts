@@ -147,10 +147,7 @@ async function bootstrap() {
     });
 
     // ui path
-    const ui_build_path = path.join(__dirname, "/public-site");
-    console.log("[ui] serving from:", ui_build_path);
-    console.log("[ui] __dirname files:", require("fs").readdirSync(__dirname));
-    
+    const ui_build_path = path.join(__dirname, "/public-site");    
     // middlewares
     app.use(stash3RequireAuth);
     app.use(cors());
@@ -173,10 +170,10 @@ async function bootstrap() {
 
     // startup
     const PORT = process.env.PORT || 5000;
-    console.log("[api] starting on port", PORT);
     const server = app.listen(PORT, () => {
         const actualPort = (server.address() as any).port;
-        console.log("api listening on", actualPort);
+        console.log("[api] started on port", actualPort);
+        console.log("[ui] serving from:", ui_build_path);
     });
 }
 

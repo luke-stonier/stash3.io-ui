@@ -49,7 +49,8 @@
     "electron:start": "cross-env ELECTRON_START_URL=http://localhost:3000 electron .",
     "dev": "concurrently \"npm:api:dev\" \"npm run react:start\" \"wait-on http://localhost:3000 && npm run electron:start\"",
     "ui": "concurrently \"npm run react:start\" \"wait-on http://localhost:3000 && npm run electron:start\"",
-    "build": "npm run react:build && npm run api:build && npm run electron:build"
+    "build": "npm run react:build && npm run api:build && npm run electron:build",
+    "log": "heroku logs --app=stash3-io --source app --tail"
   },
   "eslintConfig": {
     "extends": [
