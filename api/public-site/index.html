@@ -275,16 +275,34 @@
             align-items: center;
             justify-content: space-between;
             flex-direction: row;
+            overflow: hidden !important;
+            
+            opacity: 0;
+            max-height: 0;
         }
 
         .article-blog-item {
-            max-width: 720px;
+            /*max-width: 720px;*/
+            /*min-height: 400px ;*/
+        }
+        
+        .article-blog-item h2 {
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+        
+        .article-blog-item__img {
+            margin-right: 20px;
+        }
+        
+        .article-blog-item__blog-description {
+            font-size: 14px;
         }
 
         .article-blog-item__publish-info {
             display: none;
         }
-
+|
         footer {
             padding: 40px 28px;
             color: var(--text-2);
@@ -483,13 +501,17 @@
 </section>
 
 <section class="pt-5 bg-dark">
-    <div class="border-top border-1 pb-5"></div>
     <div class="container py-4">
-        <div id="article-content"></div>
+        <div class="row">
+            <h3 class="display-3 mb-4 text-center">Additional Information</h3>
+        </div>
+        <div class="row">
+            <div id="article-content"></div>
+        </div>
     </div>
 </section>
 
-<footer class="bg-dark">
+<footer class="bg-dark py-3">
     <div>© <span id="year"></span> Stash3.io • All Rights Reserved</div>
 </footer>
 
@@ -579,31 +601,48 @@
 </body>
 <script script async src="https://www.mydatapro.co.uk/api/v1/d3803fb2-5d23-417d-8a2d-f3e180c4d8a0"></script>
 <script async
-        src="https://www.myblogspro.com/api/integration/widget/3529c97c-2317-4604-b958-4dfc428b75be/blog-row?id=article-content&count=2"></script>
+        src="https://www.myblogspro.com/api/integration/widget/3529c97c-2317-4604-b958-4dfc428b75be/blog-row?id=article-content"></script>
 
 <script src="https://stash3.io/slick/slick.min.js"></script>
 
 <script>
     function slickifyBlogs() {
         const articleContent = document.getElementById('article-content');
+        console.log("[stash3] initializing blog carousel...", articleContent);
         if (articleContent) {
             // Wait for a short moment to ensure the blog content is loaded
             setTimeout(() => {
                 const blogItems = articleContent.querySelectorAll('.article-blog-item');
+                console.log("[stash3] found blog items:", blogItems.length);
                 if (blogItems.length > 0) {
                     // Initialize Slick Carousel
-                    $(articleContent).slick({
+                    $('#article-content .article-blog__container').slick({
                         dots: true,
                         infinite: true,
                         speed: 300,
-                        slidesToShow: 1,
+                        slidesToShow: 2,
                         adaptiveHeight: true,
                         arrows: false,
+                        autoplay: true,
+                        autoplaySpeed: 5000,
+                        responsive: [
+                            {
+                                breakpoint: 1400,
+                                settings: {
+                                    slidesToShow: 1,
+                                }
+                            }
+                        ]
                     });
+                    
+                    setTimeout(() => {
+                        document.querySelector('.article-blog__container').style.opacity = '1';
+                        document.querySelector('.article-blog__container').style.maxHeight = 'max-content';
+                    }, 10)
                 } else {
                     console.log("[stash3] No blog items found to initialize carousel.");
                 }
-            }, 1000); // Adjust timeout as necessary based on content load time
+            }, 200); // Adjust timeout as necessary based on content load time
         }
     }
 
@@ -613,7 +652,7 @@
             slickifyBlogs(el);
             clearInterval(slickElementChecker);
         }
-    }, 300);
+    }, 100);
 
 </script>
 
