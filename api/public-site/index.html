@@ -5,8 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
     <title>Stash3.io — Fast, modern S3 client</title>
     <!-- favicon -->
-    <link rel="icon" href="https://stash3.io/favicon.ico" type="image/x-icon" />
-    
+    <link rel="icon" href="https://stash3.io/favicon.ico" type="image/x-icon"/>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.js"
+            integrity="sha512-+k1pnlgt4F1H8L7t3z95o3/KO+o78INEcXTbnoJQ/F2VqDVhWoaiVml/OEHv9HsVgxUaVW+IbiZPUJQfF/YxZw=="
+            crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <meta name="description"
           content="Stash3.io is a modern S3 client for developers and teams. Browse, preview, upload and share with presigned links."/>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -16,16 +18,23 @@
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0..1,0"
           rel="stylesheet"/>
 
+    <link rel="stylesheet" type="text/css" href="https://stash3.io/slick/slick.css"/>
+    <link rel="stylesheet" type="text/css" href="https://stash3.io/slick/slick-theme.css"/>
+
     <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-5P38YWNTDW"></script>
     <script>
         window.dataLayer = window.dataLayer || [];
-        function gtag(){dataLayer.push(arguments);}
+
+        function gtag() {
+            dataLayer.push(arguments);
+        }
+
         gtag('js', new Date());
 
         gtag('config', 'G-5P38YWNTDW');
     </script>
-    
+
     <style>
         :root {
             /*--bg-url: url('assets/stash3-hero.jpg'); /* ← replace with your generated image path */
@@ -38,7 +47,7 @@
             --text-2: #aab0bd;
             --shadow: 0 10px 30px rgba(0, 0, 0, .45), 0 40px 90px rgba(0, 0, 0, .55);
         }
-        
+
         .rounded-lg {
             border-radius: 1rem !important;
         }
@@ -85,10 +94,10 @@
         /* Background image with subtle vignette + gradient overlay */
         .bg {
             position: fixed;
-            top:0;
-            bottom:0;
+            top: 0;
+            bottom: 0;
             left: 0;
-            right:0;
+            right: 0;
             inset: 0;
             height: 100dvh;
             z-index: -2;
@@ -193,7 +202,7 @@
             cursor: pointer;
             user-select: none;
         }
-        
+
         @media only screen and (max-width: 768px) {
             .bucket-card {
                 padding: 8px;
@@ -245,6 +254,35 @@
 
         .mono {
             font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace
+        }
+
+        #article-content a {
+            color: white !important;
+            font-style: italic;
+            font-size: 14px;
+        }
+
+        #article-content .article-blog-item {
+            flex-direction: row !important;
+        }
+
+        .article-blog-item__img {
+            flex-shrink: 0;
+        }
+
+        .article-blog__container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-direction: row;
+        }
+
+        .article-blog-item {
+            max-width: 720px;
+        }
+
+        .article-blog-item__publish-info {
+            display: none;
         }
 
         footer {
@@ -376,14 +414,17 @@
             <div class="col-12 col-md-6 col-lg-4 mb-4">
                 <div style="background: #07070D;"
                      class="rounded-lg shadow d-flex flex-column align-items-center justify-content-center py-5 px-3 h-100">
-                    <img src="https://stash3.io/assets/updated/stash3_secure_transparent.png" class="d-block" style="max-width: 200px"/>
-                    <p class="text-center fs-5">Your credentials stay local. We never see or transmit your access keys outside of the SDK.</p>
+                    <img src="https://stash3.io/assets/updated/stash3_secure_transparent.png" class="d-block"
+                         style="max-width: 200px"/>
+                    <p class="text-center fs-5">Your credentials stay local. We never see or transmit your access keys
+                        outside of the SDK.</p>
                 </div>
             </div>
             <div class="col-12 col-md-6 col-lg-4 mb-4">
                 <div style="background: #07070D;"
                      class="rounded-lg shadow d-flex flex-column align-items-center justify-content-center py-5 px-3 h-100">
-                    <img src="https://stash3.io/assets/updated/stash3_previewer_transparent.png" class="d-block" style="max-width: 200px"/>
+                    <img src="https://stash3.io/assets/updated/stash3_previewer_transparent.png" class="d-block"
+                         style="max-width: 200px"/>
                     <p class="text-center fs-5">Open PDFs, HTML, CSV, JSON, and media instantly. View content in-app
                         without downloads or extra tools.</p>
                 </div>
@@ -391,7 +432,8 @@
             <div class="col-12 col-md-6 col-lg-4 mb-4">
                 <div style="background: #07070D;"
                      class="rounded-lg shadow d-flex flex-column align-items-center justify-content-center py-5 px-3 h-100">
-                    <img src="https://stash3.io/assets/updated/stash3_upload_transparent.png" class="d-block" style="max-width: 200px"/>
+                    <img src="https://stash3.io/assets/updated/stash3_upload_transparent.png" class="d-block"
+                         style="max-width: 200px"/>
                     <p class="text-center fs-5">Drag files and folders to start uploading. See clear progress and stay
                         in control throughout.</p>
                 </div>
@@ -399,15 +441,18 @@
             <div class="col-12 col-md-6 col-lg-4 mb-4">
                 <div style="background: #07070D;"
                      class="rounded-lg shadow d-flex flex-column align-items-center justify-content-center py-5 px-3 h-100">
-                    <img src="https://stash3.io/assets/updated/stash3_share_transparent.png" class="d-block" style="max-width: 200px"/>
-                    <p class="text-center fs-5">Create and share expiring links in seconds without exposing sensitive credentials.</p>
+                    <img src="https://stash3.io/assets/updated/stash3_share_transparent.png" class="d-block"
+                         style="max-width: 200px"/>
+                    <p class="text-center fs-5">Create and share expiring links in seconds without exposing sensitive
+                        credentials.</p>
                 </div>
             </div>
 
             <div class="col-12 col-md-6 col-lg-4 mb-4">
                 <div style="background: #07070D;"
                      class="rounded-lg shadow d-flex flex-column align-items-center justify-content-center py-5 px-3 h-100">
-                    <img src="https://stash3.io/assets/updated/stash3_bookmark_transparent.png" class="d-block" style="max-width: 200px"/>
+                    <img src="https://stash3.io/assets/updated/stash3_bookmark_transparent.png" class="d-block"
+                         style="max-width: 200px"/>
                     <p class="text-center fs-5">Save frequent prefixes as bookmarks. Find buckets and keys instantly
                         with fast type-to-search.</p>
                 </div>
@@ -415,8 +460,10 @@
             <div class="col-12 col-md-6 col-lg-4 mb-4">
                 <div style="background: #07070D;"
                      class="rounded-lg shadow d-flex flex-column align-items-center justify-content-center py-5 px-3 h-100">
-                    <img src="https://stash3.io/assets/updated/stash3_accounts_transparent.png" class="d-block" style="max-width: 200px"/>
-                    <p class="text-center fs-5">Multiple accounts to switch roles or endpoints instantly without reconfiguring.</p>
+                    <img src="https://stash3.io/assets/updated/stash3_accounts_transparent.png" class="d-block"
+                         style="max-width: 200px"/>
+                    <p class="text-center fs-5">Multiple accounts to switch roles or endpoints instantly without
+                        reconfiguring.</p>
                 </div>
             </div>
         </div>
@@ -432,6 +479,13 @@
                 options when signing up.</p>
             <div style="max-width: 600px" class="mx-auto mdp_d3803fb2-5d23-417d-8a2d-f3e180c4d8a0"></div>
         </div>
+    </div>
+</section>
+
+<section class="pt-5 bg-dark">
+    <div class="border-top border-1 pb-5"></div>
+    <div class="container py-4">
+        <div id="article-content"></div>
     </div>
 </section>
 
@@ -524,4 +578,43 @@
 </script>
 </body>
 <script script async src="https://www.mydatapro.co.uk/api/v1/d3803fb2-5d23-417d-8a2d-f3e180c4d8a0"></script>
+<script async
+        src="https://www.myblogspro.com/api/integration/widget/3529c97c-2317-4604-b958-4dfc428b75be/blog-row?id=article-content&count=2"></script>
+
+<script src="https://stash3.io/slick/slick.min.js"></script>
+
+<script>
+    function slickifyBlogs() {
+        const articleContent = document.getElementById('article-content');
+        if (articleContent) {
+            // Wait for a short moment to ensure the blog content is loaded
+            setTimeout(() => {
+                const blogItems = articleContent.querySelectorAll('.article-blog-item');
+                if (blogItems.length > 0) {
+                    // Initialize Slick Carousel
+                    $(articleContent).slick({
+                        dots: true,
+                        infinite: true,
+                        speed: 300,
+                        slidesToShow: 1,
+                        adaptiveHeight: true,
+                        arrows: false,
+                    });
+                } else {
+                    console.log("[stash3] No blog items found to initialize carousel.");
+                }
+            }, 1000); // Adjust timeout as necessary based on content load time
+        }
+    }
+
+    const slickElementChecker = setInterval(() => {
+        const el = document.getElementsByClassName('article-blog-item');
+        if (el && el.length > 0) {
+            slickifyBlogs(el);
+            clearInterval(slickElementChecker);
+        }
+    }, 300);
+
+</script>
+
 </html>
