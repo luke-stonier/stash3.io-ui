@@ -286,9 +286,9 @@
 </header>
 
 
-<section class="pt-5 bg-dark">
+<section class="pt-5">
     <div class="container py-4">
-        <div class="row" id="article-content">
+        <div class="row" id="article-body-content">
         </div>
     </div>
 </section>
@@ -305,6 +305,17 @@
     </div>
 </section>
 
+<section class="pt-5 bg-dark">
+    <div class="container py-4">
+        <div class="row">
+            <h3 class="display-3 mb-4 text-center">Additional Information</h3>
+        </div>
+        <div class="row">
+            <div id="article-content"></div>
+        </div>
+    </div>
+</section>
+
 <footer class="bg-dark py-3">
     <div class="container">
         <div class="col-12">© <span id="year"></span> Stash3.io • All Rights Reserved</div>
@@ -312,32 +323,71 @@
 </footer>
 
 <script>
-    const bucketNames = [
-        "client-cdn",
-        "production-site",
-        "user-uploads",
-        "logs-archive",
-    ]
-    document.querySelectorAll('.bucket-card').forEach((el, i) => {
-        el.innerHTML = `<div class="d-flex flex-column align-items-center justify-content-center">
-            <h1 class="display-1 my-0 text-warning material-symbols ${i === 0 || i === 3 ? '' : 'filled'}">deployed_code</h1>
-            <p class="text-center d-none d-lg-block fs-5 my-0">${bucketNames[i]}</p>
-            <p class="text-center d-block d-lg-none fs-6 my-0">${bucketNames[i]}</p>
-        </div>`;
-    });
-
     document.getElementById('year').textContent = new Date().getFullYear();
     
     
     // add script with src: `https://www.myblogspro.com/api/integration/blog/3529c97c-2317-4604-b958-4dfc428b75be/${postHandle}?method=append&id=article-content`
     const postHandle = new URLSearchParams(window.location.search).get('post') || 'welcome-to-stash3-io';
     const script = document.createElement('script');
-    script.src = `https://www.myblogspro.com/api/integration/blog/3529c97c-2317-4604-b958-4dfc428b75be/${postHandle}?method=append&id=article-content`;
+    script.src = `https://www.myblogspro.com/api/integration/blog/3529c97c-2317-4604-b958-4dfc428b75be/${postHandle}?method=append&id=article-body-content`;
     document.body.appendChild(script);
     
 </script>
 </body>
+<script async
+        src="https://www.myblogspro.com/api/integration/widget/3529c97c-2317-4604-b958-4dfc428b75be/blog-row?id=article-content&linkType=query"></script>
 <script script async src="https://www.mydatapro.co.uk/api/v1/d3803fb2-5d23-417d-8a2d-f3e180c4d8a0"></script>
 <script src="https://stash3.io/slick/slick.min.js"></script>
+
+<script>
+    function slickifyBlogs() {
+        const articleContent = document.getElementById('article-content');
+        console.log("[stash3] initializing blog carousel...", articleContent);
+        if (articleContent) {
+            // Wait for a short moment to ensure the blog content is loaded
+            setTimeout(() => {
+                const blogItems = articleContent.querySelectorAll('.article-blog-item');
+                console.log("[stash3] found blog items:", blogItems.length);
+                if (blogItems.length > 0) {
+                    // Initialize Slick Carousel
+                    $('#article-content .article-blog__container').slick({
+                        dots: true,
+                        infinite: true,
+                        speed: 300,
+                        slidesToShow: 2,
+                        adaptiveHeight: true,
+                        arrows: false,
+                        autoplay: true,
+                        autoplaySpeed: 5000,
+                        responsive: [
+                            {
+                                breakpoint: 1400,
+                                settings: {
+                                    slidesToShow: 1,
+                                }
+                            }
+                        ]
+                    });
+
+                    setTimeout(() => {
+                        document.querySelector('.article-blog__container').style.opacity = '1';
+                        document.querySelector('.article-blog__container').style.maxHeight = 'max-content';
+                    }, 10)
+                } else {
+                    console.log("[stash3] No blog items found to initialize carousel.");
+                }
+            }, 200); // Adjust timeout as necessary based on content load time
+        }
+    }
+
+    const slickElementChecker = setInterval(() => {
+        const el = document.getElementsByClassName('article-blog-item');
+        if (el && el.length > 0) {
+            slickifyBlogs(el);
+            clearInterval(slickElementChecker);
+        }
+    }, 100);
+
+</script>
 
 </html>
