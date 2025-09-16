@@ -163,7 +163,14 @@ async function bootstrap() {
             _res.send();
         } else {
             _res.status(200);
-            _res.sendFile(`${ui_build_path}/index.html`);
+            console.log(_req.path);
+            if (_req.path === "/article") {
+                _res.sendFile(`${ui_build_path}/article.html`);
+            } else {
+                
+                // fallback (turn into spa at some point)
+                _res.sendFile(`${ui_build_path}/index.html`);
+            }
         }
     });
 
