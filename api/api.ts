@@ -165,6 +165,8 @@ async function bootstrap() {
             _res.status(200);
             if (_req.path === "/article") {
                 _res.sendFile(`${ui_build_path}/article.html`);
+            } else if (_req.path === "/sitemap" || _req.path === "/sitemap.xml") {
+                _res.sendFile(`${ui_build_path}/sitemap.xml`);
             } else {
                 // fallback (turn into spa at some point)
                 _res.sendFile(`${ui_build_path}/index.html`);

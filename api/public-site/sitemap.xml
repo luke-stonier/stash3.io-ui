@@ -1,0 +1,30 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+    <url>
+        <loc>https://stash3.io/</loc>
+        <lastmod>2025-09-16</lastmod>
+        <changefreq>daily</changefreq>
+        <priority>1.0</priority>
+    </url>
+
+    <url>
+        <loc>https://www.stash3.io/article?post=the-hidden-superpowers-of-amazon-s3-and-why-stash3-io-unlocks-them-for-developers</loc>
+        <lastmod>2025-09-16</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.8</priority>
+    </url>
+
+    <url>
+        <loc>https://www.stash3.io/article?post=how-teams-use-amazon-s3-every-day-and-why-stash3-io-makes-it-effortless</loc>
+        <lastmod>2025-09-16</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.8</priority>
+    </url>
+
+    <url>
+        <loc>https://www.stash3.io/article?post=why-amazon-s3-is-the-backbone-of-modern-storage-and-how-stash3-io-makes-it-even-better</loc>
+        <lastmod>2025-09-16</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.6</priority>
+    </url>
+</urlset>
