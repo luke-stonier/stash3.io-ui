@@ -256,11 +256,54 @@
             font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace
         }
 
-        #article-content iframe p {
+        #article-content a {
             color: white !important;
             font-style: italic;
             font-size: 14px;
         }
+
+        #article-content .article-blog-item {
+            flex-direction: row !important;
+            align-items: flex-start !important;
+        }
+
+        .article-blog-item__img {
+            flex-shrink: 0;
+        }
+
+        .article-blog__container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-direction: row;
+            overflow: hidden !important;
+
+            opacity: 0;
+            max-height: 0;
+        }
+
+        .article-blog-item {
+            /*max-width: 720px;*/
+            /*min-height: 400px ;*/
+        }
+
+        .article-blog-item h2 {
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+
+        .article-blog-item__img {
+            margin-right: 20px;
+        }
+
+        .article-blog-item__blog-description {
+            font-size: 14px;
+        }
+
+        .article-blog-item__publish-info {
+            display: none;
+        }
+        
         footer {
             padding: 40px 28px;
             color: var(--text-2);
@@ -275,8 +318,10 @@
 
 <header class="bg-dark w-100 py-2 px-3">
     <div class="container d-flex align-items-center justify-content-start gap-2">
-        <img src="https://stash3.io/assets/stash3_logo.png" alt="Stash3.io logo" style="height:48px;" class="d-block">
-        <span class="fs-4 fw-bolder">Stash3.io</span>
+        <a href="/" class="text-decoration-none d-flex align-items-center gap-2">
+            <img src="https://stash3.io/assets/stash3_logo.png" alt="Stash3.io logo" style="height:48px;" class="d-block">
+            <span class="text-white text-decoration-none fs-4 fw-bolder">Stash3.io</span>
+        </a>
 
         <div class="flex-fill"></div>
         <div class="d-flex align-items-center justify-content-end gap-2">
