@@ -7,6 +7,7 @@ type MenuAction = {
     label: string;
     onClick?: () => void;
     disabled?: boolean;
+    className?: string;
     icon?: React.ReactNode;
 };
 
@@ -65,6 +66,7 @@ export default function ContextMenu({ x, y, items, onClose }: ContextMenuProps) 
                 style={{
                     position: "fixed",
                     minWidth: 220,
+                    maxWidth: 410,
                     padding: 6,
                     borderRadius: 12,
                     pointerEvents: "auto",
@@ -100,7 +102,7 @@ export default function ContextMenu({ x, y, items, onClose }: ContextMenuProps) 
                             key={item.id}
                             role="menuitem"
                             type="button"
-                            className="dropdown-item d-flex align-items-center gap-2 text-white my-2 rounded-3"
+                            className={`dropdown-item d-flex align-items-center gap-2 text-white my-2 rounded-3 ${item.className}`}
                             onClick={() => { item.onClick?.(); onClose(); }}
                             disabled={!!item.disabled}
                             onMouseDown={(e) => e.preventDefault()}

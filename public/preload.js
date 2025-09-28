@@ -1,10 +1,42 @@
-const { contextBridge, ipcRenderer, webUtils } = require("electron");
+const {contextBridge, ipcRenderer, webUtils} = require("electron");
+const fs = require("fs");
+const path = require("path");
 
 contextBridge.exposeInMainWorld("api", {
     getFilePath: (file) => {
         return webUtils.getPathForFile(file);
     },
+    getFilesRecursive(dir, done) {
+        const allFiles = [];
     
+        function recurse(current, cb) {
+            fs.readdir(current, { withFileTypes: true }, (err, entries) => {
+                if (err) return cb(err);
+    
+                let pending = entries.length;
+                if (!pending) return cb(); // no entries, done
+    
+                entries.forEach(entry => {
+                    const fullPath = path.join(current, entry.name);
+                    if (entry.isDirectory()) {
+                        recurse(fullPath, err => {
+                            if (err) return cb(err);
+                            if (!--pending) cb();
+                        });
+                    } else {
+                        allFiles.push(fullPath);
+                        if (!--pending) cb();
+                    }
+                });
+            });
+        }
+    
+        recurse(dir, err => {
+            if (err) done?.(err);
+            else done?.(null, allFiles);
+        });
+    },
+
     // S3
     listBuckets: (accountHandle) => ipcRenderer.invoke("s3:listBuckets", accountHandle),
     listObjects: (accountHandle, bucket, prefix) => ipcRenderer.invoke("s3:listObjects", accountHandle, bucket, prefix),
@@ -31,7 +63,7 @@ contextBridge.exposeInMainWorld("api", {
     setCreds: (handle, akid, secret) => ipcRenderer.invoke("creds:set", handle, akid, secret),
     getCreds: (handle) => ipcRenderer.invoke("creds:get", handle),
     removeCreds: (handle) => ipcRenderer.invoke("creds:remove", handle),
-    
+
     // S3 Bucket Properties
     getBucketUrl: (accountHandle, bucket) =>
         ipcRenderer.invoke("s3:getBucketUrl", accountHandle, bucket),

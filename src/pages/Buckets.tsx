@@ -14,13 +14,14 @@ export default function Buckets() {
         APIWrapperService.ListS3Buckets().then((resp: { Name: string, CreationDate: Date }[]) => {
             const bucketObjs = resp.map(bucket => {
                 return {
+                    bookmarked: BucketService.IsBucketBookmarked(bucket.Name),
                     id: bucket.Name,
                     bucket: bucket.Name,
                     region: undefined,
                     creationDate: bucket.CreationDate,
                 }
             });
-            setBuckets(bucketObjs);
+            setBuckets(bucketObjs.sort((a,b) => (a.bookmarked ? 0 : 1) - (b.bookmarked ? 0 : 1) || a.bucket.localeCompare(b.bucket)));
             setLoading(false);
         }
         ).catch(err => {
@@ -37,11 +38,18 @@ export default function Buckets() {
             FetchBuckets();
         });
         
+        const bre = BucketService.bucketRefreshEvent.subscribe(() => {
+            setTimeout(() => {
+                FetchBuckets();
+            }, 100);
+        });
+        
         setLoading(true);
         FetchBuckets();
 
         return () => {
             UserService.changeAWSAccountEvent.unsubscribe(caae);
+            BucketService.bucketRefreshEvent.unsubscribe(bre);
         }
     }, [FetchBuckets])
     

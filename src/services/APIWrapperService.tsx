@@ -2,17 +2,50 @@ import UserService from "./user-service";
 import {ConfirmationService, ToastService} from "./Overlays";
 import React from "react";
 import BucketService from "./BucketService";
+import ErrnoException = NodeJS.ErrnoException;
 
 export default class APIWrapperService {
-    static UploadFileToS3 = (bucket: string, key: string, path: string) => {
+    static async UploadFileToS3 (bucket: string, key: string, path: string, meta: { fileSize: number | undefined }) {
         const account = UserService.GetAWSAccount();
         if (account === null) return;
         
-        // check if upload is a folder
-        
-        
-        
-        (async() => {
+        if (key.indexOf('.') === -1) {
+            const res =  await (window as any).api.createFolder(account.handle, bucket, key);
+            ToastService.Add({
+                title: res.ok ? "Folder Created" : "Create Folder Failed",
+                message: res.ok ? `Folder "${key}" created successfully.` : (res.error || "The folder creation failed to complete."),
+                type: res.ok ? "success" : "error",
+                duration: 3000
+            })
+            BucketService.RefreshItems();
+            
+            // ITTERATE THROUGH ALL FILES IN PATH AND UPLOAD THEM
+            await (window as any).api.getFilesRecursive(path, (err: ErrnoException, files: string[]) => {
+                if (err) {
+                    ToastService.Add({
+                        title: "Error Reading Files",
+                        message: `There was an error reading files from the folder: ${err.message}`,
+                        type: "error",
+                        duration: 5000
+                    });
+                    return;
+                }
+                files.map((file: any) => {
+                    const relativePath = file.replace(path + '/', '');
+                    const fileKey = key + '/' + relativePath;
+                    (async() => {
+                        const resp = await (window as any).api.upload(account.handle, {bucket, key: fileKey, filePath: file});
+                        BucketService.RefreshItems();
+                        ToastService.Add({
+                            title: resp.ok ? "Upload Complete" : "Upload Failed",
+                            message: resp.ok ? `File "${fileKey}" uploaded successfully.` : (resp.error || "The upload failed to complete."),
+                            type: resp.ok ? "success" : "error",
+                            duration: 3000
+                        });
+                    })();
+                }) 
+            });
+        } else {
             const resp = await (window as any).api.upload(account.handle, {bucket, key: key, filePath: path});
             BucketService.RefreshItems();
             ToastService.Add({
@@ -20,8 +53,8 @@ export default class APIWrapperService {
                 message: resp.ok ? `File "${key}" uploaded successfully.` : (resp.error || "The upload failed to complete."),
                 type: resp.ok ? "success" : "error",
                 duration: 3000
-            })
-        })();
+            });
+        }
     }
     
     static DeleteFileFromS3 = (bucket: string, key: string) => {

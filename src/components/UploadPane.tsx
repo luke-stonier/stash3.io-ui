@@ -72,7 +72,7 @@ export default function UploadPane({children}: { children: React.ReactNode; }) {
         setItems(prev => prev.map(p => p === it ? {...p, status: "running"} : p));
         try {
             it.key = `${path}${path && !path.endsWith('/') ? '/' : ''}${it.key}`;
-            APIWrapperService.UploadFileToS3(bucket, it.key, it.path);
+            await APIWrapperService.UploadFileToS3(bucket, it.key, it.path, { fileSize: it.total });
             setItems(prev => prev.map(p => p === it ? {...p, status: "done"} : p));
         } catch {
             setItems(prev => prev.map(p => p === it ? {...p, status: "error"} : p));
@@ -99,7 +99,7 @@ export default function UploadPane({children}: { children: React.ReactNode; }) {
                 total: p.total ?? it.total
             } : it));
         });
-    }, []);
+    }, [items]);
 
     useEffect(() => {
         // kick off queued uploads (simple serial; make it parallel if you want)

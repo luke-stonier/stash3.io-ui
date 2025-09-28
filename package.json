@@ -39,7 +39,7 @@
     "web-vitals": "^2.1.4"
   },
   "scripts": {
-    "react:start": "cross-env BROWSER=none react-scripts start",
+    "react:start": "npm run reset && cross-env BROWSER=none react-scripts start",
     "react:build": "react-scripts build",
     "api:build": "tsc -p tsconfig.api.json",
     "api:watch": "tsc -p tsconfig.api.json -w",
@@ -50,7 +50,8 @@
     "dev": "concurrently \"npm:api:dev\" \"npm run react:start\" \"wait-on http://localhost:3000 && npm run electron:start\"",
     "ui": "concurrently \"npm run react:start\" \"wait-on http://localhost:3000 && npm run electron:start\"",
     "build": "npm run react:build && npm run api:build && npm run electron:build",
-    "log": "heroku logs --app=stash3-io --source app --tail"
+    "log": "heroku logs --app=stash3-io --source app --tail",
+    "reset": "kill-port 3000 && kill-port 5000"
   },
   "eslintConfig": {
     "extends": [

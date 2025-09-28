@@ -2,6 +2,7 @@ const { app, BrowserWindow, Menu  } = require("electron");
 const path = require("path");
 require('./s3-ipc');
 
+// app.commandLine.appendSwitch('disable-logging');  // mutes those devtools:// errors
 
 function createWindow() {
     const win = new BrowserWindow({
@@ -12,7 +13,8 @@ function createWindow() {
         icon: path.join(__dirname, 'stash3_logo.png'), // 256x256 recommended
         webPreferences: {
             contextIsolation: true,
-            nodeIntegration: false,
+            nodeIntegration: true,
+            nodeIntegrationInWorker: true,
             preload: path.join(__dirname, 'preload.js'),
         },
     });

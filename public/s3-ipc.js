@@ -176,6 +176,12 @@ ipcMain.handle("s3:createFolder", async (_e, accountHandle, bucket, prefix) => {
                 ContentLength: 0,
             })
         );
+
+        _e.sender.send("s3:uploadEnd", {
+            key: prefix,
+            status: true
+        });
+        
         return { ok: true, error: null };
     } catch (err) {
         console.error("[s3:createFolder]", err);
@@ -188,6 +194,7 @@ ipcMain.handle("s3:createFolder", async (_e, accountHandle, bucket, prefix) => {
 ipcMain.handle("s3:deleteObject", async (_e, accountHandle, bucket, key) => {
     try {
         const s3 = await s3ClientForUser(accountHandle);
+        console.log({Bucket: bucket, Key: key});
         await s3.send(new DeleteObjectCommand({Bucket: bucket, Key: key}));
         
         // we should really try and re-fet the object list to confirm deletion

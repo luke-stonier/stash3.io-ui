@@ -12,6 +12,7 @@ import UserService from "./services/user-service";
 import Buckets from "./pages/Buckets";
 import Accounts from "./pages/Accounts";
 import  { ConfirmationDialogWrapper, ToastWrapper } from "./services/Overlays";
+import Bookmarks from "./pages/Bookmarks";
 
 function App() {
     const [authenticated, setAuthenticated] = useState(UserService.isLoggedIn());
@@ -46,6 +47,9 @@ function App() {
                             <Route path="accounts" element={<Accounts/>}/>
                             <Route path="buckets" element={<Buckets/>}/>
                             <Route path="buckets/:bucketId" element={<BucketDetail/>}/>
+
+                            <Route path="bookmarks" element={<Bookmarks/>}/>
+                            
                             {/*<Route path="uploads" element={<UploadsPage/>}/>*/}
                             {/*<Route path="settings" element={<ErrorPage/>}/>*/}
 

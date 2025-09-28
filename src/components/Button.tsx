@@ -1,10 +1,12 @@
 import Icon from "./Icon";
+import React from "react";
 
 export type ButtonProps = {
     onClick?: () => void;
     disabled?: boolean;
     children: React.ReactNode;
     staticClasses?: string;
+    iconClasses?: string;
     activeClasses?: string;
     disabledClasses?: string;
     isButton?: boolean;
@@ -39,7 +41,7 @@ export function IconButton(props: IconButtonProps) {
         staticClasses={`d-flex align-items-center ${props.staticClasses}`}
         disabledClasses={props.disabledClasses}
         activeClasses={props.activeClasses}>
-            <Icon name={props.icon} filled={props.filled} className={props.isButton ? props.icon_activeColor : props.icon_inactiveColor} />
+            <Icon name={props.icon} filled={props.filled} className={`${props.iconClasses} ${props.isButton ? props.icon_activeColor : props.icon_inactiveColor}`} />
             {props.children}
     </Button>
 }

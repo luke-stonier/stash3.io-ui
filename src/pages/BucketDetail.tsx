@@ -10,6 +10,7 @@ import CreateFolderModal from "../components/CreateFolderModal";
 import BucketService from "../services/BucketService";
 import UserService from "../services/user-service";
 import MediaViewerModal from "../components/MediaViewerModal";
+import {ToastService} from "../services/Overlays";
 
 export default function BucketDetail() {
 
@@ -88,7 +89,7 @@ export default function BucketDetail() {
                             <div className="d-flex align-items-center justify-content-between gap-3 mb-4">
                                 <IconButton icon={'arrow_back'} isButton={true}
                                             staticClasses={'btn-ghost btn-ghost-warning p-2 gap-2'}
-                                            onClick={() => navigate(-1)}>
+                                            onClick={() => navigate('/buckets')}>
                                     <span>All Buckets</span>
                                 </IconButton>
 
@@ -117,6 +118,12 @@ export default function BucketDetail() {
                                             const url = await APIWrapperService.GetBucketUrl(bucketId);
                                             if (url === null) return;
                                             await navigator.clipboard.writeText(url);
+                                            ToastService.Add({
+                                                title: 'Copied',
+                                                type: 'success',
+                                                message: 'Bucket URL copied to clipboard',
+                                                duration: 3000,
+                                            })
                                         })();
                                     }} icon={'link'} isButton={true}
                                                 staticClasses={'btn btn-outline-warning p-2 gap-2'}>
@@ -152,6 +159,12 @@ export default function BucketDetail() {
                                                     const url = await APIWrapperService.GetBucketUrl(bucketId);
                                                     if (url === null) return;
                                                     await navigator.clipboard.writeText(url);
+                                                    ToastService.Add({
+                                                        title: 'Copied',
+                                                        type: 'success',
+                                                        message: 'Bucket URL copied to clipboard',
+                                                        duration: 3000,
+                                                    })
                                                 })();
                                             }} icon={'link'} isButton={true}
                                                         staticClasses={'dropdown-item p-2 gap-2 text-white'}
@@ -179,9 +192,19 @@ export default function BucketDetail() {
                         </div>
 
                         <div className="col-12 mb-3 d-flex justify-content-between align-items-center">
-                            <div className="d-flex align-items-center gap-3">
+                            <div className="d-flex align-items-center gap-3 w-100">
                                 <Icon name={'inventory_2'} className={'display-6 text-warning'}/>
                                 <p className="my-0 d-block fs-2 fw-bolder">{bucketId}</p>
+                                
+                                <div className="flex-fill"></div>
+
+
+                                <IconButton isButton={true} icon={'bookmark'} iconClasses={'display-6'} staticClasses={'btn-ghost btn-ghost-warning display-6'}
+                                            onClick={() => console.log('home!')}>
+                                </IconButton>
+                                <IconButton isButton={true} icon={'home'} iconClasses={'display-6'} staticClasses={'btn-ghost btn-ghost-warning display-6'}
+                                    onClick={() => console.log('home!')}>
+                                </IconButton>
                             </div>
                         </div>
                     </div>

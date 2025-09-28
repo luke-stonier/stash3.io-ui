@@ -4,6 +4,7 @@ import Icon from "./Icon";
 import APIWrapperService from "../services/APIWrapperService";
 import BucketService from "../services/BucketService";
 import BucketItemRow from "./BucketItemRow";
+import {useLocation, useNavigate, useSearchParams} from "react-router-dom";
 
 type BucketItemsProps = {
     bucketId: string;
@@ -11,9 +12,14 @@ type BucketItemsProps = {
 
 export default function BucketItems(props: BucketItemsProps) {
 
+    const navigate = useNavigate();
+    const location = useLocation();
+
+    const [searchParams] = useSearchParams();
+
     const [loading, setLoading] = useState<boolean>(false);
     const [items, setItems] = useState<BucketObject[]>([]);
-    const [currentPrefix, setCurrentPrefix] = useState<string>("");
+    const [currentPrefix, setCurrentPrefix] = useState<string>(searchParams !== null && decodeURIComponent(searchParams.get("prefix") || '') || '');
 
     const directoryItems = useMemo(() => {
         const list = items.filter((i) => i.isInDirectory(currentPrefix));
@@ -66,7 +72,9 @@ export default function BucketItems(props: BucketItemsProps) {
     useEffect(() => {
         LoadItems(currentPrefix);
         BucketService.SetBucketAndPath(props.bucketId, currentPrefix);
-    }, [currentPrefix]);
+        const newUrl = `${location.pathname}?path=${encodeURIComponent(currentPrefix)}`;
+        if (newUrl !== location.pathname + location.search) navigate(newUrl);
+    }, [currentPrefix, location]);
 
     useEffect(() => {
         const bre = BucketService.bucketRefreshEvent.subscribe(() => {
