@@ -65,7 +65,7 @@ export default function BucketItems(props: BucketItemsProps) {
     }, [props.bucketId, currentPrefix]);
 
     useEffect(() => {
-        LoadItems("");
+        LoadItems(currentPrefix);
         BucketService.SetBucketAndPath(props.bucketId, "");
     }, []);
 

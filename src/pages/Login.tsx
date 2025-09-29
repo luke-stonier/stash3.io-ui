@@ -30,7 +30,7 @@ export default function Login() {
             window.location.href = '/buckets';
         }, (err: HttpError) => {
             setLoading(false);
-            setRespError(err.error.error || 'An unknown error occurred');
+            setRespError(err && err.error && err.error.error ? err.error.error : 'An unknown error occurred');
         });
     }, [loginRequest])
 

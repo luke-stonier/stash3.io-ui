@@ -16,14 +16,22 @@ export default function BucketDetail() {
 
     const navigate = useNavigate();
     const {bucketId} = useParams<{ bucketId: string }>();
-    const [loading, setLoading] = useState<boolean>(false);
+    const [loading, setLoading] = useState<boolean>(true);
     const [, setItems] = useState<BucketObject[]>([]);
     const [creatingFolder, setCreatingFolder] = useState<boolean>(false);
     const [viewingItem, setViewingItem] = useState<string | null>(null);
     const [mediaViewerOpen, setMediaViewerOpen] = useState<boolean>(false);
+    const [bookmarked, setBookmarked] = useState<boolean>(BucketService.currentPath === '' ? BucketService.IsBucketBookmarked(BucketService.currentBucket) : BucketService.IsPathBookmarked(BucketService.currentBucket, BucketService.currentPath));
+    const [bookmarkType, setBookmarkType] = useState<'bucket' | 'path'>(BucketService.currentPath === '' ? 'bucket' : 'path');
     
 
     useEffect(() => {
+        BucketService.SetBucketAndPath(bucketId || '', '');
+        setTimeout(() => {
+            setBookmarked(BucketService.currentPath === '' || BucketService.currentPath === undefined ? BucketService.IsBucketBookmarked(BucketService.currentBucket) : BucketService.IsPathBookmarked(BucketService.currentBucket, BucketService.currentPath))
+            setLoading(false);
+        }, 100)
+        
         const caae = UserService.changeAWSAccountEvent.subscribe(() => {
             setItems([]);
             BucketService.RefreshItems();
@@ -44,9 +52,23 @@ export default function BucketDetail() {
             if (item === null) setMediaViewerOpen(false);
             else setMediaViewerOpen(true);
         });
+        
+        const pce = BucketService.bucketOrPathChangeEvent.subscribe((bpc) => {
+            setBookmarked(BucketService.currentPath === '' || BucketService.currentPath === undefined ? BucketService.IsBucketBookmarked(BucketService.currentBucket) : BucketService.IsPathBookmarked(BucketService.currentBucket, BucketService.currentPath))
+            setBookmarkType(BucketService.currentPath === '' ? 'bucket' : 'path');
+        });
+        
+        const bre = BucketService.bucketRefreshEvent.subscribe(() => {
+            setTimeout(() => {
+                setBookmarked(BucketService.currentPath === '' || BucketService.currentPath === undefined ? BucketService.IsBucketBookmarked(BucketService.currentBucket) : BucketService.IsPathBookmarked(BucketService.currentBucket, BucketService.currentPath))
+                setBookmarkType(BucketService.currentPath === '' ? 'bucket' : 'path');
+            }, 100);
+        });
 
         return () => {
             BucketService.previewItemEvent.unsubscribe(pie);
+            BucketService.bucketOrPathChangeEvent.unsubscribe(pce);
+            BucketService.bucketRefreshEvent.unsubscribe(bre);
         }
     }, [])
 
@@ -198,13 +220,19 @@ export default function BucketDetail() {
                                 
                                 <div className="flex-fill"></div>
 
-
-                                <IconButton isButton={true} icon={'bookmark'} iconClasses={'display-6'} staticClasses={'btn-ghost btn-ghost-warning display-6'}
-                                            onClick={() => console.log('home!')}>
+                                
+                                <IconButton isButton={true} icon={bookmarked ? 'bookmark_added' : 'bookmark'} filled={bookmarked} iconClasses={'fs-2'} staticClasses={'btn-ghost btn-ghost-warning fs-6'}
+                                            onClick={() => {
+                                                bookmarkType === 'bucket' ?
+                                                    BucketService.ToggleBookmarkBucket(BucketService.currentBucket) :
+                                                    BucketService.ToggleBookmarkPath(BucketService.currentBucket, BucketService.currentPath);
+                                            }}>
+                                    {/*<span className={'text-white fs-6'}>Bookmark{bookmarked ? 'ed' : ''} {bookmarkType}</span>*/}
                                 </IconButton>
-                                <IconButton isButton={true} icon={'home'} iconClasses={'display-6'} staticClasses={'btn-ghost btn-ghost-warning display-6'}
+                                { bookmarkType !== 'bucket' && <IconButton isButton={true} icon={'home'} iconClasses={'fs-2'} staticClasses={'btn-ghost btn-ghost-warning fs-6'}
                                     onClick={() => console.log('home!')}>
-                                </IconButton>
+                                    {/*<span className={'text-white fs-6'}>Root</span>*/}
+                                </IconButton> }
                             </div>
                         </div>
                     </div>

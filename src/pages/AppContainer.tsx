@@ -6,6 +6,9 @@ import {Avatar} from "../components/Avatar";
 import AccountPicker from "../components/AccountPicker";
 import Icon from "../components/Icon";
 import UserService from "../services/user-service";
+import UserSession from "../Models/UserSession";
+import useGlobalShortcut from "../hooks/useGlobalShortcut";
+import SearchWidget, {SearchWidgetModal} from "../components/SearchWidget";
 
 
 class BaseNavOption {
@@ -39,6 +42,18 @@ export default function AppContainer() {
     ];
     const [nav, setNav] = React.useState<string>('buckets');
 
+    useEffect(() => {
+        const nav = location.pathname.split('/')[1];
+        if (nav) setNav(nav);
+    }, [location]);
+    
+    useGlobalShortcut([
+        { key: 'b', ctrl: true },
+        { key: 'b', meta: true },
+    ], () => {
+        navigation('/bookmarks')
+    });
+    
     const NavRow = (baseOption: NavOption) => {
         const option = baseOption as NavigationOption;
         return <IconButton key={option.name} icon={option.icon} filled={true}
@@ -57,7 +72,9 @@ export default function AppContainer() {
     
     return (
         <div className="min-vh-100 d-flex flex-column bg-dark text-light">
-
+            
+            <SearchWidgetModal />
+            
             {/* Main */}
             <main className="container-fluid flex-grow-1 overflow-hidden d-flex flex-column min-h-0">
                 <div className="row flex-grow-0 flex-grow-lg-1 h-100 overflow-hidden">
@@ -79,8 +96,7 @@ export default function AppContainer() {
 
                             <div className="d-flex d-md-none justify-content-end align-items-center gap-2 flex-grow">
                                 <AccountPicker/>
-                                {UserService.currentSession &&
-                                    <Avatar name={UserService.currentSession.user.email || ''}/>}
+                                <Avatar name={UserService.GetCurrentUserSession()?.user.email || ''}/>
                             </div>
                         </div>
 
@@ -105,18 +121,15 @@ export default function AppContainer() {
                             className="d-flex flex-column h-100 justify-content-between align-items-stretch w-100 gap-2 pt-3"
                             style={{maxHeight: '100vh'}}>
                             <div className="d-none d-md-flex justify-content-end align-items-center gap-4">
+                                {/*<SearchWidget/>*/}
                                 <AccountPicker/>
-                                {/*<div className="bg-lighter border-0 rounded-pill w-100 d-flex align-items-center justify-content-start gap-2 px-3 py-2">*/}
-                                {/*    <Icon name="search" />*/}
-                                {/*    <input className="bg-transparent text-white border-0 flex-fill" placeholder='Search buckets or files...' />*/}
-                                {/*</div>*/}
-                                <Avatar name={'Luke Stonier'}/>
+                                <Avatar name={UserService.GetCurrentUserSession()?.user.email || ''}/>
                             </div>
 
                             <div
                                 className="mt-3 flex-column d-flex align-items-stretch justify-content-start w-100 h-100 min-h-0 px-1 mb-2"
                                 style={{overflowX: 'hidden', overflowY: 'auto'}}>
-                                <span className="d-block">{location.pathname}{location.search}</span>
+                                {/*<span className="d-block">{location.pathname}{location.search}</span>*/}
                                 <Outlet/>
                             </div>
                         </div>

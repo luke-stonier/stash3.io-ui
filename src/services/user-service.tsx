@@ -35,6 +35,21 @@ export default class UserService {
         }
     };
     
+    static GetCurrentUserSession = () => {
+        if (UserService.currentSession === undefined) {
+            const localSession = localStorage.getItem('session');
+            if (localSession !== null) {
+                try {
+                    UserService.currentSession = JSON.parse(localSession) as UserSession;
+                } catch (er) {
+                    console.error('Failed to parse local session', er);
+                    UserService.currentSession = null;
+                }
+            } else UserService.currentSession = null;
+        }
+        return UserService.currentSession;
+    }
+    
     static isLoggedIn = () => {
         const localSession = localStorage.getItem('session');
         const localToken = localStorage.getItem('token');

@@ -34,8 +34,10 @@ export default function BucketItemRow({isDir, name, item, goInto}: BucketItemRow
         )
     }
 
-    const handleCopyUrl = () => {
-        navigator.clipboard.writeText(name);
+    const handleCopyUrl = async () => {
+        const url = await APIWrapperService.GetBucketUrl(BucketService.currentBucket);
+        if (url === null) return;
+        navigator.clipboard.writeText(url + item.key);
         ToastService.Add(
             {
                 title: "Copied",

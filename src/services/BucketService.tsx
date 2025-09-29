@@ -1,8 +1,9 @@
 import EventEmitter from "./event-emitter";
 
 export interface IBookmarkedItem {
+    key: string;
     type: string;
-    id: string;
+    value: string;
 }
 
 export default class BucketService {
@@ -14,13 +15,37 @@ export default class BucketService {
     static bucketRefreshEvent = new EventEmitter<void>();
     static previewItemEvent = new EventEmitter<string | null>();
     
+    static RemoveGlobalBookmark = (bookmark: IBookmarkedItem) => {
+        switch (bookmark.type) {
+            case 'bucket':
+                BucketService.ToggleBookmarkBucket(bookmark.value);
+                break;
+            case 'path':
+                const firstSlashPos = bookmark.value.indexOf('/');
+                if (firstSlashPos > -1) {
+                    const bucket = bookmark.value.substring(0, firstSlashPos);
+                    const path = bookmark.value.substring(firstSlashPos + 1);
+                    BucketService.ToggleBookmarkPath(bucket, path);
+                }
+                break;
+            case 'item':
+                const firstSlashPosItem = bookmark.value.indexOf('/');
+                if (firstSlashPosItem > -1) {
+                    const bucket = bookmark.value.substring(0, firstSlashPosItem);
+                    const itemPathAndName = bookmark.value.substring(firstSlashPosItem + 1);
+                    BucketService.ToggleBookmarkItem(bucket, itemPathAndName);
+                }
+                break;
+        }
+    }
+    
     static ToggleBookmarkBucket = (bucket: string) => {
         let bookmarks = localStorage.getItem('bookmarks');
         let bookmarkList: IBookmarkedItem[] = bookmarks ? JSON.parse(bookmarks) : [];
-        if (bookmarkList.findIndex(b => b.type === 'bucket' && b.id === bucket) > -1) {
-            bookmarkList = bookmarkList.filter(b => b.id !== bucket);
+        if (bookmarkList.findIndex(b => b.type === 'bucket' && b.value === bucket) > -1) {
+            bookmarkList = bookmarkList.filter(b => b.value !== bucket);
         } else {
-            bookmarkList.push({ type: 'bucket', id: bucket });
+            bookmarkList.push({ key: new Date().getTime().toString(), type: 'bucket', value: bucket });
         }
         localStorage.setItem('bookmarks', JSON.stringify(bookmarkList));
 
@@ -30,17 +55,17 @@ export default class BucketService {
     static IsBucketBookmarked = (bucket: string): boolean => {
         let bookmarks = localStorage.getItem('bookmarks');
         let bookmarkList: IBookmarkedItem[] = bookmarks ? JSON.parse(bookmarks) : [];
-        return bookmarkList.findIndex(b => b.type === 'bucket' && b.id === bucket) > -1;
+        return bookmarkList.findIndex(b => b.type === 'bucket' && b.value === bucket) > -1;
     }
     
     static ToggleBookmarkPath = (bucket: string, path: string) => {
         let fullPath = `${bucket}/${path}`;
         let bookmarks = localStorage.getItem('bookmarks');
         let bookmarkList: IBookmarkedItem[] = bookmarks ? JSON.parse(bookmarks) : [];
-        if (bookmarkList.findIndex(b => b.type === 'path' && b.id === fullPath) > -1) {
-            bookmarkList = bookmarkList.filter(b => b.id !== fullPath);
+        if (bookmarkList.findIndex(b => b.type === 'path' && b.value === fullPath) > -1) {
+            bookmarkList = bookmarkList.filter(b => b.value !== fullPath);
         } else {
-            bookmarkList.push({ type: 'path', id: fullPath });
+            bookmarkList.push({ key: new Date().getTime().toString(), type: 'path', value: fullPath });
         }
         localStorage.setItem('bookmarks', JSON.stringify(bookmarkList));
 
@@ -51,17 +76,17 @@ export default class BucketService {
         let fullPath = `${bucket}/${path}`;
         let bookmarks = localStorage.getItem('bookmarks');
         let bookmarkList: IBookmarkedItem[] = bookmarks ? JSON.parse(bookmarks) : [];
-        return bookmarkList.findIndex(b => b.type === 'path' && b.id === fullPath) > -1;
+        return bookmarkList.findIndex(b => b.type === 'path' && b.value === fullPath) > -1;
     }
     
     static ToggleBookmarkItem = (bucket: string, itemPathAndName: string) => {
         let fullPath = `${bucket}/${itemPathAndName}`;
         let bookmarks = localStorage.getItem('bookmarks');
         let bookmarkList: IBookmarkedItem[] = bookmarks ? JSON.parse(bookmarks) : [];
-        if (bookmarkList.findIndex(b => b.type === 'item' && b.id === fullPath) > -1) {
-            bookmarkList = bookmarkList.filter(b => b.id !== fullPath);
+        if (bookmarkList.findIndex(b => b.type === 'item' && b.value === fullPath) > -1) {
+            bookmarkList = bookmarkList.filter(b => b.value !== fullPath);
         } else {
-            bookmarkList.push({ type: 'item', id: fullPath });
+            bookmarkList.push({ key: new Date().getTime().toString(), type: 'item', value: fullPath });
         }
         localStorage.setItem('bookmarks', JSON.stringify(bookmarkList));
 
@@ -72,12 +97,12 @@ export default class BucketService {
         let fullPath = `${bucket}/${itemPathAndName}`;
         let bookmarks = localStorage.getItem('bookmarks');
         let bookmarkList: IBookmarkedItem[] = bookmarks ? JSON.parse(bookmarks) : [];
-        return bookmarkList.findIndex(b => b.type === 'item' && b.id === fullPath) > -1;
+        return bookmarkList.findIndex(b => b.type === 'item' && b.value === fullPath) > -1;
     }
     
     static GetAllBookmarks = (): IBookmarkedItem[] => {
         let bookmarks = localStorage.getItem('bookmarks');
-        return bookmarks ? JSON.parse(bookmarks) : [];
+        return bookmarks ? JSON.parse(bookmarks).sort((a: { key: string },b: { key: string}) => Number.parseInt(b.key) - Number.parseInt(a.key)) : [];
     }
     
     static TriggerUploadFile = () => {
@@ -85,6 +110,7 @@ export default class BucketService {
     };
     
     static ViewItem = (key: string) => {
+        console.log(key)
         BucketService.previewItemEvent.emit(key);
     }
     
