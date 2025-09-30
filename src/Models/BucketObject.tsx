@@ -8,8 +8,10 @@
     public lastModified: Date = new Date(0);
     public size: number = 0;
     public storageClass: string = "";
-
+    
     public isDirectory = () => this.key.endsWith("/") && this.size === 0;
+
+    public folder: boolean = this.isDirectory();
 
     public isInDirectory = (prefix: string) => {
         const norm = normalizePrefix(prefix); // "" or "path/"

@@ -65,6 +65,8 @@ export default function BucketItems(props: BucketItemsProps) {
     }, [props.bucketId, currentPrefix]);
 
     useEffect(() => {
+        console.log("items mounted, loading items for bucket", props.bucketId, "prefix", currentPrefix);
+        
         LoadItems(currentPrefix);
         BucketService.SetBucketAndPath(props.bucketId, "");
     }, []);
