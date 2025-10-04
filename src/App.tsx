@@ -1,7 +1,7 @@
 import React, {useEffect, useState} from 'react';
 import './App.css';
 import './assets/bootstrap.css';
-import {HashRouter, Route, Routes, Navigate} from "react-router-dom";
+import {HashRouter, Route, Routes, Navigate, useLocation} from "react-router-dom";
 import AppContainer from "./pages/AppContainer";
 import ErrorPage from "./pages/ErrorPage";
 import UploadsPage from "./pages/Uploads";
@@ -16,8 +16,8 @@ import Bookmarks from "./pages/Bookmarks";
 
 function App() {
     const [authenticated, setAuthenticated] = useState(UserService.isLoggedIn());
-
-    useEffect(() => {        
+    
+    useEffect(() => {
         const see = UserService.sessionExpiredEvent.subscribe(() => {
             setAuthenticated(false);
             window.location.href = '/';
@@ -54,7 +54,7 @@ function App() {
                             {/*<Route path="settings" element={<ErrorPage/>}/>*/}
 
 
-                            <Route path="*" element={<ErrorPage/>}/>
+                            <Route path="*" element={<ErrorPage authenticatedRoutes />}/>
                         </Route>
                         :
                         <Route>

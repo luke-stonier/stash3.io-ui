@@ -13,7 +13,7 @@ interface ISearchResult {
     bucket: string;
     path?: string;
     name: string;
-    
+
     route: string;
     origin: string;
 }
@@ -27,6 +27,21 @@ export default function SearchWidget(props: { showCloseButton?: boolean, onClose
     const [showResults, setShowResults] = useState(false);
     const [results, setResults] = useState<ISearchResult[]>([]);
     const [searchError, setSearchError] = useState<string | null>(null);
+
+    const [activeIndex, setActiveIndex] = useState<number>(-1); // -1 = input focused / none selected
+    const resultRefs = useRef<(HTMLElement | null)[]>([]);
+
+    useEffect(() => {
+        setActiveIndex(results.length ? 0 : -1);
+    }, [results]);
+
+    // Ensure the active item is visible when it changes
+    useEffect(() => {
+        if (activeIndex >= 0) {
+            const el = resultRefs.current[activeIndex];
+            if (el) el.scrollIntoView({block: "nearest"});
+        }
+    }, [activeIndex]);
 
     const inputClickHandler = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -49,8 +64,6 @@ export default function SearchWidget(props: { showCloseButton?: boolean, onClose
         const filteredBookmarks = bookmarks.filter(b =>
             filterMethod(debouncedSearch, b.value)
         );
-        
-        console.log('bookmarks->', filteredBookmarks);
 
         const mappedBookmarks: ISearchResult[] = filteredBookmarks.map(b => {
             return {
@@ -59,7 +72,7 @@ export default function SearchWidget(props: { showCloseButton?: boolean, onClose
                 path: b.type === 'path' ? b.value.split('/')[0] : b.value,
                 name: b.value,
                 origin: 'bookmark',
-                route: '',
+                route: b.value,
             } as ISearchResult;
         });
 
@@ -68,7 +81,7 @@ export default function SearchWidget(props: { showCloseButton?: boolean, onClose
                 const filteredObjects = objects.filter(o =>
                     filterMethod(debouncedSearch, o.key)
                 );
-                
+
                 const mappedObjects: ISearchResult[] = filteredObjects.map(o => {
                     return {
                         type: o.isDirectory() ? 'path' : 'item',
@@ -87,30 +100,45 @@ export default function SearchWidget(props: { showCloseButton?: boolean, onClose
                 }
 
                 const finalRes = [...mappedBookmarks, ...mappedObjects];
-                console.log('end results->', finalRes);
+
+                // sort results by origin, then by type (bucket, path, item), then by name
+                // bookmark -> bucket -> path -> item -> name
+                finalRes.sort((a, b) => {
+                    if (a.origin !== b.origin) {
+                        if (a.origin === 'bookmark') return -1;
+                        if (b.origin === 'bookmark') return 1;
+                        if (a.origin === 'location') return -1;
+                        if (b.origin === 'location') return 1;
+                        return 0;
+                    }
+                    if (a.type !== b.type) {
+                        const typeOrder = {'bucket': 1, 'path': 2, 'item': 3};
+                        return (typeOrder as any)[a.type] - (typeOrder as any)[b.type];
+                    }
+                    return a.name.localeCompare(b.name);
+                });
+
                 setResults(finalRes);
                 setShowResults(true);
             }
         );
     }, [debouncedSearch]);
-    
+
     const filterMethod = (search: string, item: string) => {
         if (item.toLowerCase().includes(search.toLowerCase())) return true;
-        
+
         const cleanedSearch = search.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
         const cleanedItem = item.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
         return cleanedItem.includes(cleanedSearch)
     }
 
     const gotoResult = (result: ISearchResult) => {
-        
-        console.log(result);
-        
+        let bucket = '';
+        let path = '';
+        let itemName = '';
+
         if (result.origin === 'bookmark') {
             const firstSlashPos = result.route.indexOf('/');
-            let bucket = '';
-            let path = '';
-            let itemName = '';
             if (firstSlashPos > -1) {
                 bucket = result.route.substring(0, firstSlashPos);
                 path = result.route.substring(firstSlashPos + 1);
@@ -126,20 +154,21 @@ export default function SearchWidget(props: { showCloseButton?: boolean, onClose
                     }
                 }
 
-            } else {
-                bucket = result.route;
             }
-
+            
             // switch on bookmark type
             switch (result.type) {
                 case 'bucket':
-                    navigate(`/buckets/${bucket}`);
+                    navigate(`/buckets/${result.bucket}`);
+                    BucketService.SetBucketAndPath(result.bucket, '');
                     break;
                 case 'path':
-                    navigate(`/buckets/${bucket}?prefix=${encodeURIComponent(path)}`);
+                    navigate(`/buckets/${result.bucket}?prefix=${encodeURIComponent(path)}`);
+                    BucketService.SetBucketAndPath(result.bucket, path || '');
                     break;
                 case 'item':
-                    navigate(`/buckets/${bucket}?prefix=${encodeURIComponent(path)}/`);
+                    navigate(`/buckets/${result.bucket}?prefix=${encodeURIComponent(path)}/`);
+                    BucketService.SetBucketAndPath(result.bucket, path);
                     setTimeout(() => {
                         BucketService.ViewItem(path + '/' + itemName);
                     }, 500);
@@ -150,50 +179,145 @@ export default function SearchWidget(props: { showCloseButton?: boolean, onClose
                     break;
             }
         } else {
-            // check if item or folder
-            // then we navigate to that folder, and if item, we open the viewer
-            const url = `/buckets/${result.bucket}?prefix=${encodeURIComponent(result.path || '')}`
-            console.log(url);
-            navigate(url);
-            BucketService.SetBucketAndPath(result.bucket, result.path || '');
-            if (result.type === 'item') {
-                setTimeout(() => {
-                    BucketService.ViewItem(result.path || '');
-                }, 500);
+            const firstSlashPos = result.route.indexOf('/');
+            if (firstSlashPos > -1) {
+                path = result.route.substring(0, firstSlashPos);
+                path += "/" + result.route.substring(firstSlashPos + 1);
+
+                if (result.type === 'item') {
+                    const lastSlashPos = path.lastIndexOf('/');
+                    if (lastSlashPos > -1) {
+                        itemName = path.substring(lastSlashPos + 1);
+                        path = path.substring(0, lastSlashPos);
+                    } else {
+                        itemName = path;
+                        path = '';
+                    }
+                }
+
             }
             
+            if (result.type === 'item') {
+                const url = `/buckets/${result.bucket}?prefix=${encodeURIComponent(path || '')}/`
+                navigate(url);
+                setTimeout(() => {
+                    BucketService.ViewItem(path + '/' + itemName);
+                }, 500);
+            } else {
+                const url = `/buckets/${result.bucket}?prefix=${encodeURIComponent(path || '')}`
+                navigate(url);
+                BucketService.SetBucketAndPath(result.bucket, result.path || '');
+            }
+
             setSearchError(null);
             setResults([])
             props.onClose && props.onClose();
         }
     }
-    
-    const RenderResults = useMemo(() => {
+
+    // KEYBOARD HANDLERS
+
+    // Keyboard handling when typing in the input
+    const onInputKeyDown: React.KeyboardEventHandler<HTMLInputElement> = (e) => {
+        if (!showResults) return;
         
-        return <div key={"searchWidget_renderResult"} className="d-flex flex-column gap-3">
+        switch (e.key) {
+            case "ArrowDown":
+                e.preventDefault();
+                if (results.length) setActiveIndex((i) => (i + 1) % results.length);
+                break;
+            case "ArrowUp":
+                e.preventDefault();
+                if (results.length) {
+                    setActiveIndex((i) => (i <= 0 ? results.length - 1 : i - 1));
+                }
+                break;
+            case "Enter":
+                if (activeIndex >= 0 && results[activeIndex]) {
+                    e.preventDefault();
+                    gotoResult(results[activeIndex]);
+                }
+                break;
+            case "Escape":
+                e.preventDefault();
+                if (props.onClose) props.onClose();
+                break;
+        }
+    };
+
+    // Keyboard handling when the list container has focus
+    const onListKeyDown: React.KeyboardEventHandler<HTMLDivElement> = (e) => {
+        switch (e.key) {
+            case "ArrowDown":
+                e.preventDefault();
+                if (results.length) setActiveIndex((i) => (i + 1) % results.length);
+                break;
+            case "ArrowUp":
+                e.preventDefault();
+                if (results.length) setActiveIndex((i) => (i <= 0 ? results.length - 1 : i - 1));
+                break;
+            case "Home":
+                e.preventDefault();
+                if (results.length) setActiveIndex(0);
+                break;
+            case "End":
+                e.preventDefault();
+                if (results.length) setActiveIndex(results.length - 1);
+                break;
+            case "Enter":
+                if (activeIndex >= 0 && results[activeIndex]) {
+                    e.preventDefault();
+                    gotoResult(results[activeIndex]);
+                }
+                break;
+            case "Escape":
+                e.preventDefault();
+                if (props.onClose) props.onClose();
+                break;
+        }
+    };
+
+    //
+
+    const RenderResults = useMemo(() => {
+
+        return <div key={"searchWidget_renderResult"} className="d-flex flex-column gap-3"
+                    role="listbox"
+                    aria-activedescendant={activeIndex >= 0 ? `result-${activeIndex}` : undefined}>
             {
-                results.map((r, idx) => <>
-                    <Button key={idx} staticClasses="d-flex flex-column btn-ghost btn-ghost-warning w-100"
-                            onClick={() => gotoResult(r)}
-                    >
-                        <div className="w-100 d-flex justify-content-between gap-3 mb-0" style={{fontSize: 12}}>
-                            <small>{ r.origin === 'bookmark' ? r.path : r.path?.replace(r.name, '').replace('//', '/') }</small>
-                            <small>{ r.origin } result</small>
-                        </div>
-                        <div className="w-100 d-flex align-items-center gap-2">
-                            <Icon className={''}
-                                  name={r.type === 'bucket' ? 'deployed_code' : r.type === 'path' ? 'arrow_split' : 'contract'}/>
-                            <div className="text-truncate">{r.name || r.path}</div>
-                        </div>
-                    </Button>
-                    
-                    { idx < results.length - 1 && <hr className="my-0 text-secondary opacity-10" /> }
-                </>)
+                results.map((r, idx) =>
+                    <div key={`frag-${idx}`}
+                        onMouseEnter={() => {
+                                setActiveIndex(idx)
+                        }}>
+                        <Button staticClasses={`d-flex flex-column w-100 ${idx === activeIndex ? 'btn btn-light' : 'btn-ghost btn-ghost-light'}`}
+                                onClick={() => gotoResult(r)}
+
+                                id={`result-${idx}`}
+                                ref={(el) => {
+                                    resultRefs.current[idx] = el as HTMLElement | null;
+                                }}
+                        >
+                            {/*<div className="w-100 d-flex justify-content-between gap-3 mb-0" style={{fontSize: 12}}>*/}
+                            {/*    <small>{ r.origin === 'bookmark' ? r.path : r.path?.replace(r.name, '').replace('//', '/') }</small>*/}
+                            {/*    <small>{ r.origin } result</small>*/}
+                            {/*</div>*/}
+                            <div className="w-100 d-flex align-items-center gap-2">
+                                <Icon className={''}
+                                      name={r.type === 'bucket' ? 'deployed_code' : r.type === 'path' ? 'arrow_split' : 'contract'}/>
+                                <p className="my-0 fs-6 flex-fill text-start lh-sm">{r.name || r.path}</p>
+
+                                {r.origin === 'bookmark' && <Icon className={'text-warning'} filled name={'bookmark'}/>}
+                            </div>
+                        </Button>
+
+                        {idx < results.length - 1 && <hr className="my-0 text-secondary opacity-10"/>}
+                    </div>)
             }
         </div>;
-        
-    }, [results]);
-    
+
+    }, [results, activeIndex]);
+
     const RenderNoResults = () => {
         return <div className="text-center text-secondary">No results found</div>
     }
@@ -201,10 +325,11 @@ export default function SearchWidget(props: { showCloseButton?: boolean, onClose
     return <div onClick={inputClickHandler} className="w-100 position-relative">
 
         <div className="d-flex flex-column align-items-stretch">
-        {props.showCloseButton && <div className="d-flex align-self-end mb-1 me-2" style={{cursor: 'pointer', userSelect: 'none'}}
-                                       onClick={() => props.onClose && props.onClose()}>
-            <small className="text-warning">Close</small>
-        </div>}
+            {props.showCloseButton &&
+                <div className="d-flex align-self-end mb-1 me-2" style={{cursor: 'pointer', userSelect: 'none'}}
+                     onClick={() => props.onClose && props.onClose()}>
+                    <small className="text-warning">Close</small>
+                </div>}
             <div
                 style={{
                     borderTopRightRadius: rounding,
@@ -217,7 +342,11 @@ export default function SearchWidget(props: { showCloseButton?: boolean, onClose
                 <input ref={inputElementRef} className="bg-transparent text-white border-0 flex-fill"
                        placeholder='Search buckets or files...'
                        value={searchInput} onChange={(e) => setSearchInput(e.target.value)}
-                />
+                       onKeyDown={onInputKeyDown}
+                       aria-controls="results-list"
+                       aria-autocomplete="list"
+                       role="combobox"
+                       aria-expanded={showResults}                />
                 {props.showCloseButton && <div className="d-flex" style={{cursor: 'pointer', userSelect: 'none'}}
                                                onClick={() => setSearchInput('')}><Icon name="close"/></div>}
             </div>
@@ -229,9 +358,11 @@ export default function SearchWidget(props: { showCloseButton?: boolean, onClose
                      overflowY: 'auto',
                      borderBottomRightRadius: rounding,
                      borderBottomLeftRadius: rounding,
-                 }}>
-                { results.length > 0 ? RenderResults : RenderNoResults() }
-                { searchError && <div className="text-center text-secondary">{searchError}</div> }
+                 }}
+                 tabIndex={0}
+                 onKeyDown={onListKeyDown}>
+                {results.length > 0 ? RenderResults : RenderNoResults()}
+                {searchError && <div className="mt-3 text-center text-secondary">{searchError}</div>}
             </div>
         }
     </div>;
@@ -257,7 +388,7 @@ export function SearchWidgetModal() {
     return <div
         className="position-absolute d-flex align-items-stretch justify-content-center top-0 end-0 start-0 bottom-0"
         style={{backgroundColor: 'rgba(0,0,0,0.7)', zIndex: 1050}} onClick={() => setModalActive(false)}>
-        <div className="position-absolute p-5  w-100" style={{maxWidth: 600, top: '25%' }}>
+        <div className="position-absolute p-5  w-100" style={{maxWidth: 600, top: '25%'}}>
             <SearchWidget showCloseButton onClose={() => setModalActive(false)}/>
         </div>
     </div>;

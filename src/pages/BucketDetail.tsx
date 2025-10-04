@@ -1,5 +1,5 @@
 import UploadPane from "../components/UploadPane";
-import {useNavigate, useParams} from "react-router-dom";
+import {useNavigate, useParams, useSearchParams} from "react-router-dom";
 import Icon from "../components/Icon";
 import {IconButton} from "../components/Button";
 import BucketItems from "../components/BucketItems";
@@ -16,17 +16,20 @@ export default function BucketDetail() {
 
     const navigate = useNavigate();
     const {bucketId} = useParams<{ bucketId: string }>();
+    const [searchParams] = useSearchParams();
+
     const [loading, setLoading] = useState<boolean>(true);
     const [, setItems] = useState<BucketObject[]>([]);
     const [creatingFolder, setCreatingFolder] = useState<boolean>(false);
     const [viewingItem, setViewingItem] = useState<string | null>(null);
     const [mediaViewerOpen, setMediaViewerOpen] = useState<boolean>(false);
+    const [currentPrefix] = useState<string>(searchParams !== null && decodeURIComponent(searchParams.get("prefix") || '') || '');
     const [bookmarked, setBookmarked] = useState<boolean>(BucketService.currentPath === '' ? BucketService.IsBucketBookmarked(BucketService.currentBucket) : BucketService.IsPathBookmarked(BucketService.currentBucket, BucketService.currentPath));
     const [bookmarkType, setBookmarkType] = useState<'bucket' | 'path'>(BucketService.currentPath === '' ? 'bucket' : 'path');
     
 
     useEffect(() => {
-        BucketService.SetBucketAndPath(bucketId || '', '');
+        BucketService.SetBucketAndPath(bucketId || '', currentPrefix);
         setTimeout(() => {
             setBookmarked(BucketService.currentPath === '' || BucketService.currentPath === undefined ? BucketService.IsBucketBookmarked(BucketService.currentBucket) : BucketService.IsPathBookmarked(BucketService.currentBucket, BucketService.currentPath))
             setLoading(false);
@@ -53,7 +56,10 @@ export default function BucketDetail() {
             else setMediaViewerOpen(true);
         });
         
-        const pce = BucketService.bucketOrPathChangeEvent.subscribe((bpc) => {
+        const pce = BucketService.bucketOrPathChangeEvent.subscribe((bpc: { bucket: string, path: string} | null) => {
+            if (bpc === null) return;
+            if (bpc.bucket === bucketId) return;
+            if (bpc.path === currentPrefix) return;
             setBookmarked(BucketService.currentPath === '' || BucketService.currentPath === undefined ? BucketService.IsBucketBookmarked(BucketService.currentBucket) : BucketService.IsPathBookmarked(BucketService.currentBucket, BucketService.currentPath))
             setBookmarkType(BucketService.currentPath === '' ? 'bucket' : 'path');
         });

@@ -65,8 +65,6 @@ export default function BucketItems(props: BucketItemsProps) {
     }, [props.bucketId, currentPrefix]);
 
     useEffect(() => {
-        console.log("items mounted, loading items for bucket", props.bucketId, "prefix", currentPrefix);
-        
         LoadItems(currentPrefix);
         BucketService.SetBucketAndPath(props.bucketId, "");
     }, []);
@@ -83,8 +81,16 @@ export default function BucketItems(props: BucketItemsProps) {
             LoadItems(currentPrefix);
         });
         
+        const bpce = BucketService.bucketOrPathChangeEvent.subscribe((_: { bucket: string, path: string} | null) => {
+            if (_ === null) return;
+            if (props.bucketId !== _.bucket) return;
+            if (currentPrefix === _.path) return;
+            setCurrentPrefix(_.path);
+        });
+        
         return () => {
             BucketService.bucketRefreshEvent.unsubscribe(bre);
+            BucketService.bucketOrPathChangeEvent.unsubscribe(bpce);
         }
     }, [currentPrefix]);
 
