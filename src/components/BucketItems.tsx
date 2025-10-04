@@ -1,4 +1,4 @@
-﻿import React, {useCallback, useEffect, useMemo, useState} from "react";
+import React, {useCallback, useEffect, useMemo, useState} from "react";
 import BucketObject from "../Models/BucketObject";
 import Icon from "./Icon";
 import APIWrapperService from "../services/APIWrapperService";
@@ -19,7 +19,7 @@ export default function BucketItems(props: BucketItemsProps) {
 
     const [loading, setLoading] = useState<boolean>(false);
     const [items, setItems] = useState<BucketObject[]>([]);
-    const [currentPrefix, setCurrentPrefix] = useState<string>(searchParams !== null && decodeURIComponent(searchParams.get("prefix") || '') || '');
+    const [currentPrefix, setCurrentPrefix] = useState<string>((searchParams !== null && decodeURIComponent(searchParams.get("prefix") || '')) || '');
 
     const directoryItems = useMemo(() => {
         const list = items.filter((i) => i.isInDirectory(currentPrefix));
@@ -62,19 +62,19 @@ export default function BucketItems(props: BucketItemsProps) {
                 }, 50)
             }
         });
-    }, [props.bucketId, currentPrefix]);
+    }, [props.bucketId]);
 
     useEffect(() => {
         LoadItems(currentPrefix);
         BucketService.SetBucketAndPath(props.bucketId, "");
-    }, []);
+    }, [LoadItems, currentPrefix, props.bucketId]);
 
     useEffect(() => {
         LoadItems(currentPrefix);
         BucketService.SetBucketAndPath(props.bucketId, currentPrefix);
-        const newUrl = `${location.pathname}?path=${encodeURIComponent(currentPrefix)}`;
+        const newUrl = `${location.pathname}?prefix=${encodeURIComponent(currentPrefix)}`;
         if (newUrl !== location.pathname + location.search) navigate(newUrl);
-    }, [currentPrefix, location]);
+    }, [currentPrefix, location, LoadItems, props.bucketId, navigate]);
 
     useEffect(() => {
         const bre = BucketService.bucketRefreshEvent.subscribe(() => {
@@ -92,7 +92,7 @@ export default function BucketItems(props: BucketItemsProps) {
             BucketService.bucketRefreshEvent.unsubscribe(bre);
             BucketService.bucketOrPathChangeEvent.unsubscribe(bpce);
         }
-    }, [currentPrefix]);
+    }, [currentPrefix, LoadItems, props.bucketId]);
 
     const goInto = (dirName: string) => {
         const prefix = currentPrefix ? `${trimSlash(currentPrefix)}/${dirName}/` : `${dirName}/`

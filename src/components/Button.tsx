@@ -35,13 +35,6 @@ export type IconButtonProps = ButtonProps & {
     iconFirst?: boolean;
 }
 
-// Helper to set both internal and forwarded refs
-function setBothRefs<T>(innerRef: React.RefObject<T>, outerRef: React.Ref<T> | undefined, value: T) {
-    (innerRef as any).current = value;
-    if (typeof outerRef === "function") outerRef(value);
-    else if (outerRef && typeof outerRef === "object") (outerRef as any).current = value;
-}
-
 export const Button = React.forwardRef<HTMLButtonElement | HTMLDivElement, ButtonProps>(
     ({ isButton = true, staticClasses = 'btn-ghost btn-ghost-warning', ...props }, ref) => {
 

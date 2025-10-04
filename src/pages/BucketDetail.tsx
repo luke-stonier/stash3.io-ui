@@ -11,6 +11,7 @@ import BucketService from "../services/BucketService";
 import UserService from "../services/user-service";
 import MediaViewerModal from "../components/MediaViewerModal";
 import {ToastService} from "../services/Overlays";
+import useGlobalShortcut from "../hooks/useGlobalShortcut";
 
 export default function BucketDetail() {
 
@@ -23,13 +24,16 @@ export default function BucketDetail() {
     const [creatingFolder, setCreatingFolder] = useState<boolean>(false);
     const [viewingItem, setViewingItem] = useState<string | null>(null);
     const [mediaViewerOpen, setMediaViewerOpen] = useState<boolean>(false);
-    const [currentPrefix] = useState<string>(searchParams !== null && decodeURIComponent(searchParams.get("prefix") || '') || '');
+    const [currentPrefix] = useState<string>((searchParams !== null && decodeURIComponent(searchParams.get("prefix") || '')) || '');
     const [bookmarked, setBookmarked] = useState<boolean>(BucketService.currentPath === '' ? BucketService.IsBucketBookmarked(BucketService.currentBucket) : BucketService.IsPathBookmarked(BucketService.currentBucket, BucketService.currentPath));
     const [bookmarkType, setBookmarkType] = useState<'bucket' | 'path'>(BucketService.currentPath === '' ? 'bucket' : 'path');
-    
+
 
     useEffect(() => {
         BucketService.SetBucketAndPath(bucketId || '', currentPrefix);
+    }, [bucketId, currentPrefix]);
+    
+    useEffect(() => {
         setTimeout(() => {
             setBookmarked(BucketService.currentPath === '' || BucketService.currentPath === undefined ? BucketService.IsBucketBookmarked(BucketService.currentBucket) : BucketService.IsPathBookmarked(BucketService.currentBucket, BucketService.currentPath))
             setLoading(false);
@@ -76,7 +80,9 @@ export default function BucketDetail() {
             BucketService.bucketOrPathChangeEvent.unsubscribe(pce);
             BucketService.bucketRefreshEvent.unsubscribe(bre);
         }
-    }, [])
+    }, [bucketId, currentPrefix])
+
+    useGlobalShortcut([{key: 'escape'}], () => setMediaViewerOpen(false));
 
     if (!bucketId) {
         return (

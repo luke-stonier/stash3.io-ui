@@ -108,13 +108,13 @@ export default class BucketService {
     }
     
     static GetCurrentObjects = (callback: (error: string | undefined, objects: BucketObject[]) => void) => {
-        // check if currentBucket and currentPath are set
-        if (BucketService.currentBucket === "") { callback("No Bucket Results", []); return; }
+        if (window.location.hash.indexOf("/buckets/") === -1) { callback("", []); return; }
+        if (BucketService.currentBucket === "") { callback("", []); return; }
 
         APIWrapperService.ListS3Objects(BucketService.currentBucket, BucketService.currentPath).then(resp => {
             if (resp.error !== null) {
                 console.log(resp.error);
-                callback(undefined, [])
+                callback(resp.error, [])
             } else {
                 const files = resp.files.map(f => { return new BucketObject({
                     etag: f.ETag ?? "",

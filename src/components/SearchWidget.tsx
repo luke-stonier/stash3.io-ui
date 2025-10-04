@@ -1,14 +1,20 @@
-﻿import Icon from "./Icon";
+import Icon from "./Icon";
 import useGlobalShortcut from "../hooks/useGlobalShortcut";
-import React, {useEffect, useMemo, useRef, useState} from "react";
-import BucketService, {IBookmarkedItem} from "../services/BucketService";
+import React, {useCallback, useEffect, useMemo, useRef, useState} from "react";
+import BucketService from "../services/BucketService";
 import BucketObject from "../Models/BucketObject";
 import {useDebounce} from "../hooks/useDebounce";
-import Bucket from "../Models/Bucket";
 import {Button} from "./Button";
 import {useNavigate} from "react-router-dom";
 
+interface ISearchResultGroup {
+    groupName: string;
+    results: ISearchResult[];
+    resultCount: number;
+}
+
 interface ISearchResult {
+    id: number;
     type: 'bucket' | 'path' | 'item';
     bucket: string;
     path?: string;
@@ -25,15 +31,21 @@ export default function SearchWidget(props: { showCloseButton?: boolean, onClose
     const inputElementRef = useRef(null);
     const [searchInput, setSearchInput] = useState('');
     const [showResults, setShowResults] = useState(false);
-    const [results, setResults] = useState<ISearchResult[]>([]);
+    const [results, setResults] = useState<ISearchResultGroup[]>([]);
+    const [resultLength, setResultLength] = useState(0);
     const [searchError, setSearchError] = useState<string | null>(null);
 
     const [activeIndex, setActiveIndex] = useState<number>(-1); // -1 = input focused / none selected
     const resultRefs = useRef<(HTMLElement | null)[]>([]);
 
     useEffect(() => {
-        setActiveIndex(results.length ? 0 : -1);
-    }, [results]);
+        setResults([]);
+    }, []);
+
+    useEffect(() => {
+        setActiveIndex(resultLength ? 0 : -1);
+        setResultLength(results.map(r => r.resultCount).reduce((a, b) => a + b, 0));
+    }, [results, resultLength]);
 
     // Ensure the active item is visible when it changes
     useEffect(() => {
@@ -64,16 +76,21 @@ export default function SearchWidget(props: { showCloseButton?: boolean, onClose
         const filteredBookmarks = bookmarks.filter(b =>
             filterMethod(debouncedSearch, b.value)
         );
+        let index = 0;
 
         const mappedBookmarks: ISearchResult[] = filteredBookmarks.map(b => {
-            return {
+            const resp = {
                 type: b.type,
                 bucket: b.type === 'bucket' ? b.value : b.value.split('/')[0],
                 path: b.type === 'path' ? b.value.split('/')[0] : b.value,
                 name: b.value,
                 origin: 'bookmark',
                 route: b.value,
+                id: index
             } as ISearchResult;
+
+            index++;
+            return resp;
         });
 
         BucketService.GetCurrentObjects(
@@ -83,27 +100,21 @@ export default function SearchWidget(props: { showCloseButton?: boolean, onClose
                 );
 
                 const mappedObjects: ISearchResult[] = filteredObjects.map(o => {
-                    return {
+                    const resp = {
                         type: o.isDirectory() ? 'path' : 'item',
                         bucket: BucketService.currentBucket,
                         path: o.key,
                         name: o.displayName(BucketService.currentPath),
                         origin: searchInput === '' ? 'location' : 'search',
-                        route: o.key
+                        route: o.key,
+                        id: index
                     } as ISearchResult;
+
+                    index++;
+                    return resp;
                 });
-
-                if (error) {
-                    setSearchError(error);
-                } else {
-                    setSearchError(null);
-                }
-
-                const finalRes = [...mappedBookmarks, ...mappedObjects];
-
-                // sort results by origin, then by type (bucket, path, item), then by name
-                // bookmark -> bucket -> path -> item -> name
-                finalRes.sort((a, b) => {
+                
+                mappedObjects.sort((a, b) => {
                     if (a.origin !== b.origin) {
                         if (a.origin === 'bookmark') return -1;
                         if (b.origin === 'bookmark') return 1;
@@ -118,11 +129,22 @@ export default function SearchWidget(props: { showCloseButton?: boolean, onClose
                     return a.name.localeCompare(b.name);
                 });
 
+                if (error) {
+                    setSearchError(error);
+                } else {
+                    setSearchError(null);
+                }
+
+                const finalRes = [
+                    {groupName: 'Bookmarks', results: mappedBookmarks, resultCount: mappedBookmarks.length},
+                    {groupName: 'Current Location', results: mappedObjects, resultCount: mappedObjects.length},
+                ];
+
                 setResults(finalRes);
                 setShowResults(true);
             }
         );
-    }, [debouncedSearch]);
+    }, [debouncedSearch, searchInput]);
 
     const filterMethod = (search: string, item: string) => {
         if (item.toLowerCase().includes(search.toLowerCase())) return true;
@@ -132,15 +154,15 @@ export default function SearchWidget(props: { showCloseButton?: boolean, onClose
         return cleanedItem.includes(cleanedSearch)
     }
 
-    const gotoResult = (result: ISearchResult) => {
-        let bucket = '';
+    const gotoResult = useCallback((result: ISearchResult | null) => {
+        if (!result) return;
+        
         let path = '';
         let itemName = '';
 
         if (result.origin === 'bookmark') {
             const firstSlashPos = result.route.indexOf('/');
             if (firstSlashPos > -1) {
-                bucket = result.route.substring(0, firstSlashPos);
                 path = result.route.substring(firstSlashPos + 1);
 
                 if (result.type === 'item') {
@@ -155,7 +177,7 @@ export default function SearchWidget(props: { showCloseButton?: boolean, onClose
                 }
 
             }
-            
+
             // switch on bookmark type
             switch (result.type) {
                 case 'bucket':
@@ -168,7 +190,7 @@ export default function SearchWidget(props: { showCloseButton?: boolean, onClose
                     break;
                 case 'item':
                     navigate(`/buckets/${result.bucket}?prefix=${encodeURIComponent(path)}/`);
-                    BucketService.SetBucketAndPath(result.bucket, path);
+                    BucketService.SetBucketAndPath(result.bucket, path + "/");
                     setTimeout(() => {
                         BucketService.ViewItem(path + '/' + itemName);
                     }, 500);
@@ -196,46 +218,48 @@ export default function SearchWidget(props: { showCloseButton?: boolean, onClose
                 }
 
             }
-            
+
             if (result.type === 'item') {
                 const url = `/buckets/${result.bucket}?prefix=${encodeURIComponent(path || '')}/`
+                BucketService.SetBucketAndPath(result.bucket, path + '/');
                 navigate(url);
+                console.log(url);
                 setTimeout(() => {
                     BucketService.ViewItem(path + '/' + itemName);
                 }, 500);
             } else {
                 const url = `/buckets/${result.bucket}?prefix=${encodeURIComponent(path || '')}`
+                BucketService.SetBucketAndPath(result.bucket, path || '');
                 navigate(url);
-                BucketService.SetBucketAndPath(result.bucket, result.path || '');
             }
-
-            setSearchError(null);
-            setResults([])
-            props.onClose && props.onClose();
         }
-    }
+
+        setSearchError(null);
+        setResults([])
+        props.onClose && props.onClose();
+    }, [navigate, props]);
 
     // KEYBOARD HANDLERS
 
     // Keyboard handling when typing in the input
     const onInputKeyDown: React.KeyboardEventHandler<HTMLInputElement> = (e) => {
         if (!showResults) return;
-        
+
         switch (e.key) {
             case "ArrowDown":
                 e.preventDefault();
-                if (results.length) setActiveIndex((i) => (i + 1) % results.length);
+                if (resultLength) setActiveIndex((i) => (i + 1) % resultLength);
                 break;
             case "ArrowUp":
                 e.preventDefault();
-                if (results.length) {
-                    setActiveIndex((i) => (i <= 0 ? results.length - 1 : i - 1));
+                if (resultLength) {
+                    setActiveIndex((i) => (i <= 0 ? resultLength - 1 : i - 1));
                 }
                 break;
             case "Enter":
-                if (activeIndex >= 0 && results[activeIndex]) {
+                if (activeIndex >= 0) {
                     e.preventDefault();
-                    gotoResult(results[activeIndex]);
+                    gotoResult(getResultByIndex(activeIndex));
                 }
                 break;
             case "Escape":
@@ -250,24 +274,24 @@ export default function SearchWidget(props: { showCloseButton?: boolean, onClose
         switch (e.key) {
             case "ArrowDown":
                 e.preventDefault();
-                if (results.length) setActiveIndex((i) => (i + 1) % results.length);
+                if (resultLength) setActiveIndex((i) => (i + 1) % resultLength);
                 break;
             case "ArrowUp":
                 e.preventDefault();
-                if (results.length) setActiveIndex((i) => (i <= 0 ? results.length - 1 : i - 1));
+                if (resultLength) setActiveIndex((i) => (i <= 0 ? resultLength - 1 : i - 1));
                 break;
             case "Home":
                 e.preventDefault();
-                if (results.length) setActiveIndex(0);
+                if (resultLength) setActiveIndex(0);
                 break;
             case "End":
                 e.preventDefault();
-                if (results.length) setActiveIndex(results.length - 1);
+                if (resultLength) setActiveIndex(resultLength - 1);
                 break;
             case "Enter":
-                if (activeIndex >= 0 && results[activeIndex]) {
+                if (activeIndex >= 0) {
                     e.preventDefault();
-                    gotoResult(results[activeIndex]);
+                    gotoResult(getResultByIndex(activeIndex));
                 }
                 break;
             case "Escape":
@@ -276,47 +300,61 @@ export default function SearchWidget(props: { showCloseButton?: boolean, onClose
                 break;
         }
     };
+    
+    const getResultByIndex = (index: number): ISearchResult | null => {
+        for (const group of results) {
+            for (const item of group.results) {
+                if (item.id === index) return item;
+            }
+        }
+        return null;
+    }
 
     //
 
+    const ResultItem = useCallback(({result, idx}: { result: ISearchResult, idx: number }) => {
+        return <div onMouseEnter={() => {
+            setActiveIndex(idx)
+        }}>
+            <Button
+                staticClasses={`d-flex flex-column w-100 btn-ghost btn-ghost-light ${idx === activeIndex ? 'active' : ''}`}
+                onClick={() => gotoResult(result)}
+                id={`result-${idx}`}
+                ref={(el) => {
+                    resultRefs.current[idx] = el as HTMLElement | null;
+                }}
+            >
+                <div className="w-100 d-flex align-items-center gap-2">
+                    <Icon className={''}
+                          name={result.type === 'bucket' ? 'deployed_code' : result.type === 'path' ? 'arrow_split' : 'contract'}/>
+                    <p className="my-0 fs-6 flex-fill text-start lh-sm">{result.name || result.path}</p>
+
+                    {result.origin === 'bookmark' && <Icon className={'text-warning'} filled name={'bookmark'}/>}
+                </div>
+            </Button>
+        </div>
+    }, [activeIndex, gotoResult]);
+
     const RenderResults = useMemo(() => {
 
-        return <div key={"searchWidget_renderResult"} className="d-flex flex-column gap-3"
-                    role="listbox"
-                    aria-activedescendant={activeIndex >= 0 ? `result-${activeIndex}` : undefined}>
+        return <div key={"searchWidget_renderResult"} className="d-flex flex-column"
+                    role="listbox">
             {
                 results.map((r, idx) =>
-                    <div key={`frag-${idx}`}
-                        onMouseEnter={() => {
-                                setActiveIndex(idx)
-                        }}>
-                        <Button staticClasses={`d-flex flex-column w-100 ${idx === activeIndex ? 'btn btn-light' : 'btn-ghost btn-ghost-light'}`}
-                                onClick={() => gotoResult(r)}
-
-                                id={`result-${idx}`}
-                                ref={(el) => {
-                                    resultRefs.current[idx] = el as HTMLElement | null;
-                                }}
-                        >
-                            {/*<div className="w-100 d-flex justify-content-between gap-3 mb-0" style={{fontSize: 12}}>*/}
-                            {/*    <small>{ r.origin === 'bookmark' ? r.path : r.path?.replace(r.name, '').replace('//', '/') }</small>*/}
-                            {/*    <small>{ r.origin } result</small>*/}
-                            {/*</div>*/}
-                            <div className="w-100 d-flex align-items-center gap-2">
-                                <Icon className={''}
-                                      name={r.type === 'bucket' ? 'deployed_code' : r.type === 'path' ? 'arrow_split' : 'contract'}/>
-                                <p className="my-0 fs-6 flex-fill text-start lh-sm">{r.name || r.path}</p>
-
-                                {r.origin === 'bookmark' && <Icon className={'text-warning'} filled name={'bookmark'}/>}
-                            </div>
-                        </Button>
-
-                        {idx < results.length - 1 && <hr className="my-0 text-secondary opacity-10"/>}
-                    </div>)
+                    <div key={'search_group_' + r.groupName} className={`mb-4 ${r.resultCount > 0 ? '' : 'd-none'}`}>
+                        <div className={'d-flex align-items-center justify-content-between mb-2'}><span>{r.groupName}</span><span className="text-muted small">({r.resultCount})</span></div>
+                        {r.results.map((item, i) =>
+                            <div key={item.id + "_result_group_" + r.groupName}>
+                                {ResultItem({ result: item, idx: item.id })}
+                                <hr className="my-2 text-secondary opacity-10"/>
+                            </div>)
+                        }
+                    </div>
+                )
             }
         </div>;
 
-    }, [results, activeIndex]);
+    }, [results, ResultItem]);
 
     const RenderNoResults = () => {
         return <div className="text-center text-secondary">No results found</div>
@@ -340,13 +378,13 @@ export default function SearchWidget(props: { showCloseButton?: boolean, onClose
                 className="bg-lighter border-0 w-100 d-flex align-items-center justify-content-start gap-2 px-3 py-2 overflow-hidden">
                 <Icon name="search"/>
                 <input ref={inputElementRef} className="bg-transparent text-white border-0 flex-fill"
-                       placeholder='Search buckets or files...'
+                       placeholder={'Search buckets or files...'}
                        value={searchInput} onChange={(e) => setSearchInput(e.target.value)}
                        onKeyDown={onInputKeyDown}
                        aria-controls="results-list"
                        aria-autocomplete="list"
                        role="combobox"
-                       aria-expanded={showResults}                />
+                       aria-expanded={showResults}/>
                 {props.showCloseButton && <div className="d-flex" style={{cursor: 'pointer', userSelect: 'none'}}
                                                onClick={() => setSearchInput('')}><Icon name="close"/></div>}
             </div>
@@ -361,7 +399,7 @@ export default function SearchWidget(props: { showCloseButton?: boolean, onClose
                  }}
                  tabIndex={0}
                  onKeyDown={onListKeyDown}>
-                {results.length > 0 ? RenderResults : RenderNoResults()}
+                {resultLength > 0 ? RenderResults : RenderNoResults()}
                 {searchError && <div className="mt-3 text-center text-secondary">{searchError}</div>}
             </div>
         }

@@ -1,10 +1,9 @@
 import React, {useEffect, useState} from 'react';
 import './App.css';
 import './assets/bootstrap.css';
-import {HashRouter, Route, Routes, Navigate, useLocation} from "react-router-dom";
+import {HashRouter, Route, Routes, Navigate} from "react-router-dom";
 import AppContainer from "./pages/AppContainer";
 import ErrorPage from "./pages/ErrorPage";
-import UploadsPage from "./pages/Uploads";
 import BucketDetail from "./pages/BucketDetail";
 import Register from './pages/Register';
 import Login from "./pages/Login";

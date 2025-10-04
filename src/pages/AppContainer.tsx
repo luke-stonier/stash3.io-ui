@@ -4,11 +4,9 @@ import {Outlet, useLocation, useNavigate} from "react-router-dom";
 import {IconButton} from "../components/Button";
 import {Avatar} from "../components/Avatar";
 import AccountPicker from "../components/AccountPicker";
-import Icon from "../components/Icon";
 import UserService from "../services/user-service";
-import UserSession from "../Models/UserSession";
 import useGlobalShortcut from "../hooks/useGlobalShortcut";
-import SearchWidget, {SearchWidgetModal} from "../components/SearchWidget";
+import {SearchWidgetModal} from "../components/SearchWidget";
 
 
 class BaseNavOption {
@@ -129,7 +127,7 @@ export default function AppContainer() {
                             <div
                                 className="mt-3 flex-column d-flex align-items-stretch justify-content-start w-100 h-100 min-h-0 px-1 mb-2"
                                 style={{overflowX: 'hidden', overflowY: 'auto'}}>
-                                <span className="d-block">{location.pathname}{location.search}</span>
+                                {/*<span className="d-block">{location.pathname}{location.search}</span>*/}
                                 <Outlet/>
                             </div>
                         </div>

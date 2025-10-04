@@ -1,4 +1,4 @@
-﻿import Icon from "./Icon";
+import Icon from "./Icon";
 import React, {useEffect} from "react";
 import {useContextMenu} from "../hooks/useContextMenu";
 import {MenuItem} from "./ContextMenu";
@@ -99,7 +99,7 @@ export default function BucketItemRow({isDir, name, item, goInto}: BucketItemRow
         return () => {
             BucketService.bucketRefreshEvent.unsubscribe(BRE);
         }
-    }, []);
+    }, [isDir, item.key]);
     
     const fileSize = () => {
         if (isDir) return '—';
@@ -123,10 +123,10 @@ export default function BucketItemRow({isDir, name, item, goInto}: BucketItemRow
             }}
         >
             <td>
-                <div className="d-flex align-items-center gap-2">
+                <div className="d-flex align-items-start gap-2 py-1" style={{ maxHeight: 35, overflow: 'hidden' }}>
                     { bookmarked ? <Icon className={'text-warning'} name={'bookmark_check'} filled/> :  null}
                     <Icon name={isDir ? "folder" : "article"} filled/>
-                    <span className={isDir ? "text-warning fw-semibold" : ""}>{name}</span>
+                    <span className={`my-0 lh-1 ${isDir ? "text-warning fw-semibold" : ""}`}>{name}</span>
                 </div>
             </td>
             <td>{fileSize()}</td>

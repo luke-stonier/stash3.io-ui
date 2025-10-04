@@ -10995,6 +10995,7 @@ textarea.form-control-lg {
 .btn-ghost-primary {
     color: var(--bs-primary);
 }
+.btn-ghost-primary.active,
 .btn-ghost-primary:hover,
 .btn-ghost-primary:focus {
     background-color: var(--bs-primary);
@@ -11004,6 +11005,7 @@ textarea.form-control-lg {
 .btn-ghost-warning {
     color: var(--bs-warning);
 }
+.btn-ghost-warning.active,
 .btn-ghost-warning:hover,
 .btn-ghost-warning:focus {
     background-color: var(--bs-warning);
@@ -11013,6 +11015,7 @@ textarea.form-control-lg {
 .btn-ghost-success {
     color: var(--bs-success);
 }
+.btn-ghost-success.active,
 .btn-ghost-success:hover,
 .btn-ghost-success:focus {
     background-color: var(--bs-success);
@@ -11022,6 +11025,7 @@ textarea.form-control-lg {
 .btn-ghost-danger {
     color: var(--bs-danger);
 }
+.btn-ghost-danger.active,
 .btn-ghost-danger:hover,
 .btn-ghost-danger:focus {
     background-color: var(--bs-danger);
@@ -11031,6 +11035,7 @@ textarea.form-control-lg {
 .btn-ghost-info {
     color: var(--bs-info);
 }
+.btn-ghost-info.active,
 .btn-ghost-info:hover,
 .btn-ghost-info:focus {
     background-color: var(--bs-info);
@@ -11040,6 +11045,7 @@ textarea.form-control-lg {
 .btn-ghost-dark {
     color: var(--bs-dark);
 }
+.btn-ghost-dark.active,
 .btn-ghost-dark:hover,
 .btn-ghost-dark:focus {
     background-color: var(--bs-dark);
@@ -11049,6 +11055,7 @@ textarea.form-control-lg {
 .btn-ghost-light {
     color: var(--bs-light);
 }
+.btn-ghost-light.active,
 .btn-ghost-light:hover,
 .btn-ghost-light:focus {
     background-color: var(--bs-light);
