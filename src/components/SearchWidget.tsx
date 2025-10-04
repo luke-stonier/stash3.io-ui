@@ -68,9 +68,9 @@ export default function SearchWidget(props: { showCloseButton?: boolean, onClose
     }, [])
 
     const debouncedSearch = useDebounce(searchInput, 300);
-
+    
     useEffect(() => {
-        setResults([])
+        setResults([]);
 
         const bookmarks = BucketService.GetAllBookmarks();
         const filteredBookmarks = bookmarks.filter(b =>
@@ -140,11 +140,13 @@ export default function SearchWidget(props: { showCloseButton?: boolean, onClose
                     {groupName: 'Current Location', results: mappedObjects, resultCount: mappedObjects.length},
                 ];
 
+                
                 setResults(finalRes);
                 setShowResults(true);
             }
         );
-    }, [debouncedSearch, searchInput]);
+    // eslint-disable-next-line
+    }, [debouncedSearch]);
 
     const filterMethod = (search: string, item: string) => {
         if (item.toLowerCase().includes(search.toLowerCase())) return true;
@@ -312,30 +314,29 @@ export default function SearchWidget(props: { showCloseButton?: boolean, onClose
 
     //
 
-    const ResultItem = useCallback(({result, idx}: { result: ISearchResult, idx: number }) => {
-        return <div onMouseEnter={() => {
-            setActiveIndex(idx)
-        }}>
-            <Button
-                staticClasses={`d-flex flex-column w-100 btn-ghost btn-ghost-light ${idx === activeIndex ? 'active' : ''}`}
-                onClick={() => gotoResult(result)}
-                id={`result-${idx}`}
-                ref={(el) => {
-                    resultRefs.current[idx] = el as HTMLElement | null;
-                }}
-            >
-                <div className="w-100 d-flex align-items-center gap-2">
-                    <Icon className={''}
-                          name={result.type === 'bucket' ? 'deployed_code' : result.type === 'path' ? 'arrow_split' : 'contract'}/>
-                    <p className="my-0 fs-6 flex-fill text-start lh-sm">{result.name || result.path}</p>
-
-                    {result.origin === 'bookmark' && <Icon className={'text-warning'} filled name={'bookmark'}/>}
-                </div>
-            </Button>
-        </div>
-    }, [activeIndex, gotoResult]);
-
     const RenderResults = useMemo(() => {
+        const ResultItem = ({result, idx}: { result: ISearchResult, idx: number }) => {
+            return <div onMouseEnter={() => {
+                setActiveIndex(idx)
+            }}>
+                <Button
+                    staticClasses={`d-flex flex-column w-100 btn-ghost btn-ghost-light ${idx === activeIndex ? 'active' : ''}`}
+                    onClick={() => gotoResult(result)}
+                    id={`result-${idx}`}
+                    ref={(el) => {
+                        resultRefs.current[idx] = el as HTMLElement | null;
+                    }}
+                >
+                    <div className="w-100 d-flex align-items-center gap-2">
+                        <Icon className={''}
+                              name={result.type === 'bucket' ? 'deployed_code' : result.type === 'path' ? 'arrow_split' : 'contract'}/>
+                        <p className="my-0 fs-6 flex-fill text-start lh-sm">{result.name || result.path}</p>
+
+                        {result.origin === 'bookmark' && <Icon className={'text-warning'} filled name={'bookmark'}/>}
+                    </div>
+                </Button>
+            </div>
+        }
 
         return <div key={"searchWidget_renderResult"} className="d-flex flex-column"
                     role="listbox">
@@ -354,7 +355,7 @@ export default function SearchWidget(props: { showCloseButton?: boolean, onClose
             }
         </div>;
 
-    }, [results, ResultItem]);
+    }, [results, activeIndex, gotoResult]);
 
     const RenderNoResults = () => {
         return <div className="text-center text-secondary">No results found</div>
