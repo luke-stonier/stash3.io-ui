@@ -30,7 +30,7 @@ export default class APIWrapperService {
                     });
                     return;
                 }
-                files.map((file: any) => {
+                files.forEach((file: any) => {
                     const relativePath = file.replace(path + '/', '');
                     const fileKey = key + '/' + relativePath;
                     (async() => {

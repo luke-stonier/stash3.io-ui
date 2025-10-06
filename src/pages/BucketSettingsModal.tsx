@@ -1,4 +1,4 @@
-﻿import Icon from "../components/Icon";
+import Icon from "../components/Icon";
 import React from "react";
 
 type BucketSettingsProps = {
