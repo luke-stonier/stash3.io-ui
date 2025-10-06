@@ -3,7 +3,7 @@ const Store = require("electron-store");
 const keytar = require("keytar");
 const fs = require("fs");
 
-const { S3Client, ListBucketsCommand, ListObjectsV2Command, DeleteObjectCommand, PutObjectCommand, GetBucketLocationCommand, GetObjectCommand, HeadObjectCommand } = require("@aws-sdk/client-s3");
+const { S3Client, ListBucketsCommand, ListObjectsV2Command, DeleteObjectCommand, PutObjectCommand, GetBucketLocationCommand, GetObjectCommand, HeadObjectCommand, GetBucketCorsCommand, PutBucketCorsCommand, GetBucketPolicyCommand, PutBucketPolicyCommand, } = require("@aws-sdk/client-s3");
 const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
 const { Upload } = require("@aws-sdk/lib-storage");
 
@@ -11,6 +11,10 @@ const store = new Store({ name: "prefs", defaults: { region: "eu-west-2" } });
 const SERVICE = "stash3.io";
 
 const clientCache = new Map();
+
+async function ensureDirForFile(filePath) {
+    await fsp.mkdir(path.dirname(filePath), { recursive: true });
+}
 
 async function s3ClientForUser(accountHandle) {
     try {
@@ -277,6 +281,118 @@ ipcMain.handle("s3:getBucketUrl", async (_e, accountHandle, bucket) => {
     } catch (err) {
         console.error("[s3:getObjectUrl]", err);
         return { url: null, error: err.message };
+    }
+});
+
+ipcMain.handle('s3:downloadAll', async (_e, accountHandle, bucket, destDir) => {
+    try {
+        const s3 = await GetClientForBucket(accountHandle, bucket);
+        if (!s3) return { ok: false, error: 'No S3 client' };
+
+        let ContinuationToken = undefined;
+        let count = 0;
+        let bytes = 0;
+
+        do {
+            const page = await s3.send(new ListObjectsV2Command({ Bucket: bucket, ContinuationToken }));
+            const items = page.Contents || [];
+
+            // Sequential to keep it simple/reliable (can add concurrency later)
+            for (const obj of items) {
+                if (!obj.Key) continue;
+                const keyPath = path.join(destDir, obj.Key);
+                await ensureDirForFile(keyPath);
+
+                const { Body } = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: obj.Key }));
+                await streamPipeline(Body, fs.createWriteStream(keyPath));
+                count += 1;
+                bytes += obj.Size || 0;
+            }
+
+            ContinuationToken = page.IsTruncated ? page.NextContinuationToken : undefined;
+        } while (ContinuationToken);
+
+        return { ok: true, count, bytes, error: null };
+    } catch (err) {
+        console.error('[s3:downloadAll]', err);
+        return { ok: false, error: err.message };
+    }
+});
+
+ipcMain.handle('s3:getCors', async (_e, accountHandle, bucket) => {
+    try {
+        const s3 = await GetClientForBucket(accountHandle, bucket);
+        if (!s3) return { ok: false, error: 'No S3 client' };
+
+        try {
+            const res = await s3.send(new GetBucketCorsCommand({ Bucket: bucket }));
+            return { ok: true, rules: res.CORSRules || [], error: null };
+        } catch (err) {
+            // If no CORS config set, AWS throws NoSuchCORSConfiguration
+            if (err?.name === 'NoSuchCORSConfiguration' || err?.$metadata?.httpStatusCode === 404) {
+                return { ok: true, rules: [], error: null };
+            }
+            throw err;
+        }
+    } catch (err) {
+        console.error('[s3:getCors]', err);
+        return { ok: false, error: err.message };
+    }
+});
+
+ipcMain.handle('s3:saveCors', async (_e, accountHandle, bucket, corsRules /* array */) => {
+    try {
+        const s3 = await GetClientForBucket(accountHandle, bucket);
+        if (!s3) return { ok: false, error: 'No S3 client' };
+
+        await s3.send(
+            new PutBucketCorsCommand({
+                Bucket: bucket,
+                CORSConfiguration: { CORSRules: corsRules || [] },
+            })
+        );
+
+        return { ok: true, error: null };
+    } catch (err) {
+        console.error('[s3:saveCors]', err);
+        return { ok: false, error: err.message };
+    }
+});
+
+ipcMain.handle('s3:getBucketPolicy', async (_e, accountHandle, bucket) => {
+    try {
+        const s3 = await GetClientForBucket(accountHandle, bucket);
+        if (!s3) return { ok: false, error: 'No S3 client' };
+
+        try {
+            const res = await s3.send(new GetBucketPolicyCommand({ Bucket: bucket }));
+            // res.Policy is a JSON string when present
+            return { ok: true, policy: res.Policy ?? null, error: null };
+        } catch (err) {
+            // If no policy exists, S3 may return NoSuchBucketPolicy / 404
+            if (err?.name === 'NoSuchBucketPolicy' || err?.$metadata?.httpStatusCode === 404) {
+                return { ok: true, policy: null, error: null };
+            }
+            throw err;
+        }
+    } catch (err) {
+        console.error('[s3:getBucketPolicy]', err);
+        return { ok: false, error: err.message };
+    }
+});
+
+ipcMain.handle('s3:saveBucketPolicy', async (_e, accountHandle, bucket, policy) => {
+    try {
+        const s3 = await GetClientForBucket(accountHandle, bucket);
+        if (!s3) return { ok: false, error: 'No S3 client' };
+
+        const policyString = typeof policy === 'string' ? policy : JSON.stringify(policy);
+        await s3.send(new PutBucketPolicyCommand({ Bucket: bucket, Policy: policyString }));
+
+        return { ok: true, error: null };
+    } catch (err) {
+        console.error('[s3:saveBucketPolicy]', err);
+        return { ok: false, error: err.message };
     }
 });
 

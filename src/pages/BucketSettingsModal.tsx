@@ -1,5 +1,8 @@
 import Icon from "../components/Icon";
 import React from "react";
+import DownloadAllFiles from "../components/Settings/DownloadAllFiles";
+import CorsConfiguration from "../components/Settings/CorsConfiguration";
+import BucketPolicyConfiguration from "../components/Settings/BucketPolicyConfiguration";
 
 type BucketSettingsProps = {
     bucketId: string;
@@ -7,8 +10,53 @@ type BucketSettingsProps = {
 }
 
 export function BucketSettings() {
-    return <div>
-        <p>hi</p>
+    
+    const settings = [
+        {
+            title: "Download All Files",
+            description: "Download all files in this bucket as a ZIP archive.",
+            component: <DownloadAllFiles />
+        },
+        {
+            title: "Bucket Policy Configuration",
+            description: "Configure policy rules for this bucket.",
+            component: <BucketPolicyConfiguration />
+        },
+        {
+            title: "Edit CORS Configuration",
+            description: "Configure Cross-Origin Resource Sharing (CORS) rules for this bucket.",
+            component: <CorsConfiguration />
+        },
+        {
+            title: "Public Access Block Configuration",
+            description: "Manage public access settings for this bucket to enhance security.",
+            component: <div>PABC Component</div>
+        }
+    ]
+    
+    return <div className="accordion" id="settings-accordion">
+        {
+            settings.map((setting, index) => {
+                const headingId = `heading-${index}`;
+                const collapseId = `collapse-${index}`;
+                return <div className="accordion-item bg-dark border-0 mb-2" key={index}>
+                        <h2 className="accordion-header" id={headingId}>
+                            <button className="accordion-button bg-dark text-white collapsed" type="button"
+                                    data-bs-toggle="collapse"
+                                    data-bs-target={`#${collapseId}`} aria-expanded="false" aria-controls={collapseId}>
+                                {setting.title}
+                            </button>
+                        </h2>
+                        <div id={collapseId} className="bg-lighter border-start border-bottom border-end border-dark border-2 rounded-bottom overflow-hidden shadow-lg accordion-collapse collapse" aria-labelledby={headingId}
+                             data-bs-parent="#settings-accordion">
+                            <div className="accordion-body text-white">
+                                <p className="text-muted">{setting.description}</p>
+                                {setting.component}
+                            </div>
+                        </div>
+                    </div>;
+            })
+        }
     </div>
 }
 

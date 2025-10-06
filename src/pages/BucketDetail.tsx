@@ -85,6 +85,12 @@ export default function BucketDetail() {
         }
     }, [bucketId, currentPrefix])
 
+    const closeDropdown = () => {
+        const el = document.getElementById('action-dropdown');
+        const bs = (window as any).bootstrap;
+        if (el && bs?.Dropdown) bs.Dropdown.getOrCreateInstance(el).hide();
+    };
+
     useGlobalShortcut([{key: 'escape'}], () => setMediaViewerOpen(false));
 
     if (!bucketId) {
@@ -179,14 +185,15 @@ export default function BucketDetail() {
 
                                 <div className="d-block d-lg-none dropdown bg-dark">
                                     <button className="d-flex align-items-center justify-content-center gap-2 btn btn-outline-warning dropdown-toggle" type="button"
-                                            id="dropdownMenu2" data-bs-toggle="dropdown" aria-expanded="false">
+                                            id="action-dropdown" data-bs-toggle="dropdown" aria-expanded="false">
                                         <Icon name={'menu'} className={''} />
                                         Actions
                                     </button>
-                                    <ul className="dropdown-menu bg-lighter text-white" aria-labelledby="dropdownMenu2">
+                                    <ul className="dropdown-menu bg-lighter text-white" aria-labelledby="action-dropdown">
                                         <li>
                                             <IconButton onClick={() => {
                                                 (async () => {
+                                                    closeDropdown();
                                                     setCreatingFolder(true);
                                                 })();
                                             }} icon={'folder'} isButton={true}
@@ -196,6 +203,7 @@ export default function BucketDetail() {
                                         </li>
                                         <li>
                                             <IconButton onClick={() => {
+                                                closeDropdown();
                                                 (async () => {
                                                     const url = await APIWrapperService.GetBucketUrl(bucketId);
                                                     if (url === null) return;
@@ -216,6 +224,7 @@ export default function BucketDetail() {
                                         
                                         <li>
                                             <IconButton onClick={() => {
+                                                closeDropdown();
                                                 setUpdatingSettings(true);
                                             }} icon={'tune'} isButton={true}
                                                         staticClasses={'dropdown-item p-2 gap-2 text-white'}

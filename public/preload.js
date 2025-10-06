@@ -59,6 +59,13 @@ contextBridge.exposeInMainWorld("api", {
     deleteObject: (accountHandle, bucket, key) => ipcRenderer.invoke("s3:deleteObject", accountHandle, bucket, key),
     getObjectHead: (accountHandle, bucket, key) => ipcRenderer.invoke("s3:getObjectHead", accountHandle, bucket, key),
     getPreSignedUrl: (accountHandle, bucket, key, expiresIn) => ipcRenderer.invoke("s3:getPreSignedUrl", accountHandle, bucket, key, expiresIn),
+
+    downloadAll: (accountHandle, bucket, destDir) => ipcRenderer.invoke("s3:downloadAll", accountHandle, bucket, destDir),
+    getCors: (accountHandle, bucket) => ipcRenderer.invoke("s3:getCors", accountHandle, bucket),
+    saveCors: (accountHandle, bucket, corsRules) => ipcRenderer.invoke("s3:saveCors", accountHandle, bucket, corsRules),
+    getBucketPolicy: (accountHandle, bucket) => ipcRenderer.invoke("s3:getBucketPolicy", accountHandle, bucket),
+    saveBucketPolicy: (accountHandle, bucket, policy) => ipcRenderer.invoke("s3:saveBucketPolicy", accountHandle, bucket, policy),
+
     setRegion: (region) => ipcRenderer.invoke("prefs:setRegion", region),
     setCreds: (handle, akid, secret) => ipcRenderer.invoke("creds:set", handle, akid, secret),
     getCreds: (handle) => ipcRenderer.invoke("creds:get", handle),

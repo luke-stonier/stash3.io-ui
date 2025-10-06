@@ -4,6 +4,21 @@ import React from "react";
 import BucketService from "./BucketService";
 import ErrnoException = NodeJS.ErrnoException;
 
+export type DownloadAllResult = { ok: boolean; count?: number; bytes?: number; error?: string | null };
+export type GetCorsResult = { ok: boolean; rules?: Array<any>; error?: string | null };
+export type SaveCorsResult = { ok: boolean; error?: string | null };
+export type GetBucketPolicyResult = { ok: boolean; policy?: string | null; error?: string | null };
+export type SaveBucketPolicyResult = { ok: boolean; error?: string | null };
+
+// Optional: a light CORS rule type if you want it strongly typed
+export type S3CorsRule = {
+    AllowedHeaders?: string[];
+    AllowedMethods: string[];
+    AllowedOrigins: string[];
+    ExposeHeaders?: string[];
+    MaxAgeSeconds?: number;
+};
+
 export default class APIWrapperService {
     static async UploadFileToS3 (bucket: string, key: string, path: string, meta: { fileSize: number | undefined }) {
         const account = UserService.GetAWSAccount();
@@ -137,6 +152,39 @@ export default class APIWrapperService {
     static DeleteCredentials = (handle: string) => {
         (window as any).api.deleteCreds(handle);
     }
+
+    static DownloadAll = async (bucket: string, destDir: string): Promise<DownloadAllResult> => {
+        const account = UserService.GetAWSAccount();
+        if (account === null) return Promise.resolve({ ok: false, error: 'No account selected' });
+        return (window as any).api.downloadAll(account.handle, bucket, destDir);
+    };
+
+    static GetCors = async (bucket: string): Promise<GetCorsResult> => {
+        const account = UserService.GetAWSAccount();
+        if (account === null) return Promise.resolve({ ok: false, error: 'No account selected' });
+        return (window as any).api.getCors(account.handle, bucket);
+    };
+
+    static SaveCors = async (bucket: string, corsRules: S3CorsRule[]): Promise<SaveCorsResult> => {
+        const account = UserService.GetAWSAccount();
+        if (account === null) return Promise.resolve({ ok: false, error: 'No account selected' });
+        return (window as any).api.saveCors(account.handle, bucket, corsRules);
+    };
+
+    static GetBucketPolicy = async (bucket: string): Promise<GetBucketPolicyResult> => {
+        const account = UserService.GetAWSAccount();
+        if (account === null) return Promise.resolve({ ok: false, error: 'No account selected' });
+        return (window as any).api.getBucketPolicy(account.handle, bucket);
+    };
+    
+    static SaveBucketPolicy = async (
+        bucket: string,
+        policy: string | Record<string, unknown>
+    ): Promise<SaveBucketPolicyResult> => {
+        const account = UserService.GetAWSAccount();
+        if (account === null) return Promise.resolve({ ok: false, error: 'No account selected' });
+        return (window as any).api.saveBucketPolicy(account.handle, bucket, policy);
+    };
 
     static async GetBucketUrl(bucket: string): Promise<string | null> {
         const account = UserService.GetAWSAccount();
