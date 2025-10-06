@@ -44,6 +44,7 @@ export const Button = React.forwardRef<HTMLButtonElement | HTMLDivElement, Butto
                     ref={ref as React.Ref<HTMLButtonElement>}
                     onClick={(e) => {
                         e.stopPropagation();
+                        (e.currentTarget as HTMLButtonElement).blur();
                         props.onClick?.();
                     }}
                     disabled={props.disabled}

@@ -12,6 +12,7 @@ import UserService from "../services/user-service";
 import MediaViewerModal from "../components/MediaViewerModal";
 import {ToastService} from "../services/Overlays";
 import useGlobalShortcut from "../hooks/useGlobalShortcut";
+import BucketSettingsModal from "./BucketSettingsModal";
 
 export default function BucketDetail() {
 
@@ -22,6 +23,7 @@ export default function BucketDetail() {
     const [loading, setLoading] = useState<boolean>(true);
     const [, setItems] = useState<BucketObject[]>([]);
     const [creatingFolder, setCreatingFolder] = useState<boolean>(false);
+    const [updatingSettings, setUpdatingSettings] = useState<boolean>(false);
     const [viewingItem, setViewingItem] = useState<string | null>(null);
     const [mediaViewerOpen, setMediaViewerOpen] = useState<boolean>(false);
     const [currentPrefix] = useState<string>((searchParams !== null && decodeURIComponent(searchParams.get("prefix") || '')) || '');
@@ -30,6 +32,8 @@ export default function BucketDetail() {
 
 
     useEffect(() => {
+        setBookmarked(BucketService.currentPath === '' || BucketService.currentPath === undefined ? BucketService.IsBucketBookmarked(BucketService.currentBucket) : BucketService.IsPathBookmarked(BucketService.currentBucket, BucketService.currentPath))
+        setBookmarkType(BucketService.currentPath === '' ? 'bucket' : 'path');
         BucketService.SetBucketAndPath(bucketId || '', currentPrefix);
     }, [bucketId, currentPrefix]);
     
@@ -62,8 +66,7 @@ export default function BucketDetail() {
         
         const pce = BucketService.bucketOrPathChangeEvent.subscribe((bpc: { bucket: string, path: string} | null) => {
             if (bpc === null) return;
-            if (bpc.bucket === bucketId) return;
-            if (bpc.path === currentPrefix) return;
+            if (bpc.bucket !== bucketId) return;
             setBookmarked(BucketService.currentPath === '' || BucketService.currentPath === undefined ? BucketService.IsBucketBookmarked(BucketService.currentBucket) : BucketService.IsPathBookmarked(BucketService.currentBucket, BucketService.currentPath))
             setBookmarkType(BucketService.currentPath === '' ? 'bucket' : 'path');
         });
@@ -107,13 +110,14 @@ export default function BucketDetail() {
         <div className="h-100 w-100">
 
             { mediaViewerOpen && viewingItem && <MediaViewerModal bucket={BucketService.currentBucket} objectKey={viewingItem} onClose={() => setMediaViewerOpen(false)} /> }
-
-            {creatingFolder && <div className="row">
-                <CreateFolderModal bucket={bucketId} currentPath={BucketService.currentPath} onClose={() => {
-                    setCreatingFolder(false);
-                    //
-                }}/>
-            </div>
+            { updatingSettings && <BucketSettingsModal bucketId={bucketId} onClose={() => setUpdatingSettings(false)} /> }
+            {
+                creatingFolder && <div className="row">
+                    <CreateFolderModal bucket={bucketId} currentPath={BucketService.currentPath} onClose={() => {
+                        setCreatingFolder(false);
+                        //
+                    }}/>
+                </div>
             }
 
             <UploadPane>
@@ -164,9 +168,12 @@ export default function BucketDetail() {
                                         <span>Bucket URL</span>
                                     </IconButton>
 
-                                    <IconButton onClick={BucketService.RefreshItems} icon={'refresh'} isButton={true}
+                                    <IconButton icon={'tune'} filled isButton={true}
+                                                onClick={() => {
+                                                    setUpdatingSettings(true);
+                                                }}
                                                 staticClasses={'btn btn-outline-warning p-2 gap-2'}>
-                                        <span>Refresh Items</span>
+                                        <span>Settings</span>
                                     </IconButton>
                                 </div>
 
@@ -206,43 +213,43 @@ export default function BucketDetail() {
                                                 <span>Bucket URL</span>
                                             </IconButton>
                                         </li>
+                                        
                                         <li>
-                                            <IconButton onClick={BucketService.RefreshItems} icon={'refresh'} isButton={true}
-                                                        staticClasses={'dropdown-item p-2 gap-2 text-white'}>
-                                                <span>Refresh Items</span>
+                                            <IconButton onClick={() => {
+                                                setUpdatingSettings(true);
+                                            }} icon={'tune'} isButton={true}
+                                                        staticClasses={'dropdown-item p-2 gap-2 text-white'}
+                                            >
+                                                <span>Settings</span>
                                             </IconButton>
                                         </li>
                                     </ul>
                                 </div>
-
-                                {/*<IconButton icon={'settings'} filled={true} isButton={true}*/}
-                                {/*            onClick={() => {*/}
-                                {/*                */}
-                                {/*            }}*/}
-                                {/*            staticClasses={'btn btn-outline-warning p-2 gap-2'}>*/}
-                                {/*    <span>Settings</span>*/}
-                                {/*</IconButton>*/}
                             </div>
                         </div>
 
                         <div className="col-12 mb-3 d-flex justify-content-between align-items-center">
-                            <div className="d-flex align-items-center gap-3 w-100">
+                            <div className="d-flex align-items-center gap-2 w-100">
                                 <Icon name={'inventory_2'} className={'display-6 text-warning'}/>
                                 <p className="my-0 d-block fs-2 fw-bolder">{bucketId}</p>
                                 
                                 <div className="flex-fill"></div>
 
-                                
+                                <IconButton onClick={BucketService.RefreshItems} icon={'refresh'} isButton={true}
+                                            staticClasses={'btn-ghost btn-ghost-warning'} iconClasses={'fs-2'}>
+                                </IconButton>
                                 <IconButton isButton={true} icon={bookmarked ? 'bookmark_added' : 'bookmark'} filled={bookmarked} iconClasses={'fs-2'} staticClasses={'btn-ghost btn-ghost-warning fs-6'}
                                             onClick={() => {
                                                 bookmarkType === 'bucket' ?
                                                     BucketService.ToggleBookmarkBucket(BucketService.currentBucket) :
                                                     BucketService.ToggleBookmarkPath(BucketService.currentBucket, BucketService.currentPath);
                                             }}>
-                                    {/*<span className={'text-white fs-6'}>Bookmark{bookmarked ? 'ed' : ''} {bookmarkType}</span>*/}
                                 </IconButton>
                                 { bookmarkType !== 'bucket' && <IconButton isButton={true} icon={'home'} iconClasses={'fs-2'} staticClasses={'btn-ghost btn-ghost-warning fs-6'}
-                                    onClick={() => console.log('home!')}>
+                                    onClick={() => {
+                                        BucketService.SetBucketAndPath(BucketService.currentBucket, '');
+                                        navigate(`/buckets/${bucketId}`);
+                                    }}>
                                     {/*<span className={'text-white fs-6'}>Root</span>*/}
                                 </IconButton> }
                             </div>

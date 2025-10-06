@@ -123,10 +123,10 @@ export default function BucketItemRow({isDir, name, item, goInto}: BucketItemRow
             }}
         >
             <td>
-                <div className="d-flex align-items-start gap-2 py-1" style={{ maxHeight: 35, overflow: 'hidden' }}>
+                <div className="d-flex align-items-center gap-2 py-1">
                     { bookmarked ? <Icon className={'text-warning'} name={'bookmark_check'} filled/> :  null}
                     <Icon name={isDir ? "folder" : "article"} filled/>
-                    <span className={`my-0 lh-1 ${isDir ? "text-warning fw-semibold" : ""}`}>{name}</span>
+                    <span className={`my-0 lh-sm text-truncate ${isDir ? "text-warning fw-semibold" : ""}`}>{name}</span>
                 </div>
             </td>
             <td>{fileSize()}</td>

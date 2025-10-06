@@ -4,7 +4,8 @@ import Icon from "./Icon";
 import APIWrapperService from "../services/APIWrapperService";
 import BucketService from "../services/BucketService";
 import BucketItemRow from "./BucketItemRow";
-import {useLocation, useNavigate, useSearchParams} from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams} from "react-router-dom";
+import BucketBreadcrumbs from "./BucketBreadcrumbs";
 
 type BucketItemsProps = {
     bucketId: string;
@@ -39,24 +40,26 @@ export default function BucketItems(props: BucketItemsProps) {
                 console.log(resp.error);
                 setLoading(false);
             } else {
-                const files = resp.files.map(f => { return new BucketObject({
-                    etag: f.ETag ?? "",
-                    key: f.Key ?? "",
-                    lastModified: f.LastModified ? new Date(f.LastModified) : new Date(0),
-                    size: f.Size ?? 0,
-                    storageClass: f.StorageClass ?? "",
+                const files = resp.files.map(f => {
+                    return new BucketObject({
+                        etag: f.ETag ?? "",
+                        key: f.Key ?? "",
+                        lastModified: f.LastModified ? new Date(f.LastModified) : new Date(0),
+                        size: f.Size ?? 0,
+                        storageClass: f.StorageClass ?? "",
+                    })
                 })
-                })
-                const folders = resp.folders.map(f => { return new BucketObject({
-                    etag: "",
-                    key: f.Prefix ?? "",
-                    lastModified: new Date(0),
-                    size: 0,
-                    storageClass: "",
-                })
+                const folders = resp.folders.map(f => {
+                    return new BucketObject({
+                        etag: "",
+                        key: f.Prefix ?? "",
+                        lastModified: new Date(0),
+                        size: 0,
+                        storageClass: "",
+                    })
                 });
                 setItems([...files, ...folders]);
-                
+
                 setTimeout(() => {
                     setLoading(false);
                 }, 50)
@@ -80,14 +83,14 @@ export default function BucketItems(props: BucketItemsProps) {
         const bre = BucketService.bucketRefreshEvent.subscribe(() => {
             LoadItems(currentPrefix);
         });
-        
-        const bpce = BucketService.bucketOrPathChangeEvent.subscribe((_: { bucket: string, path: string} | null) => {
+
+        const bpce = BucketService.bucketOrPathChangeEvent.subscribe((_: { bucket: string, path: string } | null) => {
             if (_ === null) return;
             if (props.bucketId !== _.bucket) return;
             if (currentPrefix === _.path) return;
             setCurrentPrefix(_.path);
         });
-        
+
         return () => {
             BucketService.bucketRefreshEvent.unsubscribe(bre);
             BucketService.bucketOrPathChangeEvent.unsubscribe(bpce);
@@ -109,19 +112,21 @@ export default function BucketItems(props: BucketItemsProps) {
         setCurrentPrefix(prefix);
         BucketService.SetBucketAndPath(props.bucketId, prefix);
     };
-    
-    if (loading) return <></>
-    
-    return <div className={'px-0'}>
 
-        <div className="d-flex align-items-center gap-2 my-2">
-            <span className="text-secondary small">{currentPrefix || "(root)"}</span>
-        </div>
+    if (loading) return <></>
+
+    return <div className={'px-0'}>
+        
+        <BucketBreadcrumbs bucketId={props.bucketId} path={currentPrefix} onChange={(newPath: string) => {
+            console.log('[BucketItems] Breadcrumbs changed path to:', newPath);
+            setCurrentPrefix(newPath);
+            BucketService.SetBucketAndPath(props.bucketId, newPath);
+        }}/>
 
         <table className="table table-dark table-hover">
             <thead>
             <tr>
-                <th scope="col" style={{ width: '60%' }}>File Name</th>
+                <th scope="col" style={{width: '60%'}}>File Name</th>
                 <th scope="col">Size</th>
                 <th scope="col">Last Modified</th>
                 {/*<th scope="col">Status</th>*/}
@@ -129,10 +134,12 @@ export default function BucketItems(props: BucketItemsProps) {
             </thead>
             <tbody>
 
-            { canGoUp && <tr role="button">
-                <td onClick={() => {canGoUp && goUp()}}>
-                    <div className="d-flex align-items-center gap-2" style={{ userSelect: "none" }}>
-                        <Icon name={'folder'} />
+            {canGoUp && <tr role="button">
+                <td onClick={() => {
+                    canGoUp && goUp()
+                }}>
+                    <div className="d-flex align-items-center gap-2" style={{userSelect: "none"}}>
+                        <Icon name={'folder'}/>
                         <span className={"text-warning fw-semibold"}>..</span>
                     </div>
                 </td>
@@ -140,20 +147,20 @@ export default function BucketItems(props: BucketItemsProps) {
                 <td>{'—'}</td>
             </tr>
             }
-            
+
             {directoryItems.map((item) => {
                 const name = item.displayName(currentPrefix);
                 const isDir = item.isDirectory();
 
                 if (item.key === currentPrefix && isDir) return null;
-                
+
                 return <React.Fragment key={item.key}>
-                    <BucketItemRow item={item} name={name} goInto={goInto} isDir={isDir} />
+                    <BucketItemRow item={item} name={name} goInto={goInto} isDir={isDir}/>
                 </React.Fragment>
             })}
             {directoryItems.length === 0 && (
-                <tr style={{ userSelect: "none" }}>
-                    <td colSpan={3} className="text-center text-secondary py-4" style={{ userSelect: "none" }}>
+                <tr style={{userSelect: "none"}}>
+                    <td colSpan={3} className="text-center text-secondary py-4" style={{userSelect: "none"}}>
                         Empty folder. Drop files here to upload.
                     </td>
                 </tr>

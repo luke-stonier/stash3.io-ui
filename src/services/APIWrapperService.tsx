@@ -148,7 +148,6 @@ export default class APIWrapperService {
                 console.error("GetBucketUrl error:", error);
                 return null;
             }
-            console.log("url", url);
             return url;
         } catch (err) {
             console.error("GetBucketUrl exception:", err);

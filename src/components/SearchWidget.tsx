@@ -68,7 +68,7 @@ export default function SearchWidget(props: { showCloseButton?: boolean, onClose
     }, [])
 
     const debouncedSearch = useDebounce(searchInput, 300);
-    
+
     useEffect(() => {
         setResults([]);
 
@@ -77,6 +77,25 @@ export default function SearchWidget(props: { showCloseButton?: boolean, onClose
             filterMethod(debouncedSearch, b.value)
         );
         let index = 0;
+
+        const currentPath = "./" + BucketService.currentPath;
+        const upPath = currentPath === './' ? '' : currentPath.split('/').slice(0, -2).join('/') + '/';
+        const safeUpPath = upPath.startsWith('./') ? upPath.substring(2) : upPath;
+
+        const pathActions: ISearchResult[] = []
+        if (BucketService.currentPath !== '' && searchInput === '') {
+            pathActions.push({
+                id: index,
+                type: 'path',
+                bucket: BucketService.currentBucket,
+                path: safeUpPath,
+                name: 'up to ' + (safeUpPath || '(root)'),
+                origin: 'action',
+                route: safeUpPath,
+            })
+            
+            index++;
+        }
 
         const mappedBookmarks: ISearchResult[] = filteredBookmarks.map(b => {
             const resp = {
@@ -96,7 +115,7 @@ export default function SearchWidget(props: { showCloseButton?: boolean, onClose
         BucketService.GetCurrentObjects(
             (error: string | undefined, objects: BucketObject[]) => {
                 const filteredObjects = objects.filter(o =>
-                    filterMethod(debouncedSearch, o.key)
+                    filterMethod(debouncedSearch, o.key) && o.key !== BucketService.currentPath
                 );
 
                 const mappedObjects: ISearchResult[] = filteredObjects.map(o => {
@@ -113,7 +132,7 @@ export default function SearchWidget(props: { showCloseButton?: boolean, onClose
                     index++;
                     return resp;
                 });
-                
+
                 mappedObjects.sort((a, b) => {
                     if (a.origin !== b.origin) {
                         if (a.origin === 'bookmark') return -1;
@@ -136,16 +155,17 @@ export default function SearchWidget(props: { showCloseButton?: boolean, onClose
                 }
 
                 const finalRes = [
+                    {groupName: 'Actions', results: pathActions, resultCount: pathActions.length},
                     {groupName: 'Bookmarks', results: mappedBookmarks, resultCount: mappedBookmarks.length},
                     {groupName: 'Current Location', results: mappedObjects, resultCount: mappedObjects.length},
                 ];
 
-                
+
                 setResults(finalRes);
                 setShowResults(true);
             }
         );
-    // eslint-disable-next-line
+        // eslint-disable-next-line
     }, [debouncedSearch]);
 
     const filterMethod = (search: string, item: string) => {
@@ -158,7 +178,7 @@ export default function SearchWidget(props: { showCloseButton?: boolean, onClose
 
     const gotoResult = useCallback((result: ISearchResult | null) => {
         if (!result) return;
-        
+
         let path = '';
         let itemName = '';
 
@@ -302,7 +322,7 @@ export default function SearchWidget(props: { showCloseButton?: boolean, onClose
                 break;
         }
     };
-    
+
     const getResultByIndex = (index: number): ISearchResult | null => {
         for (const group of results) {
             for (const item of group.results) {
@@ -343,10 +363,11 @@ export default function SearchWidget(props: { showCloseButton?: boolean, onClose
             {
                 results.map((r, idx) =>
                     <div key={'search_group_' + r.groupName} className={`mb-4 ${r.resultCount > 0 ? '' : 'd-none'}`}>
-                        <div className={'d-flex align-items-center justify-content-between mb-2'}><span>{r.groupName}</span><span className="text-muted small">({r.resultCount})</span></div>
+                        <div className={'d-flex align-items-center justify-content-between mb-2'}>
+                            <span>{r.groupName}</span><span className="text-muted small">({r.resultCount})</span></div>
                         {r.results.map((item, i) =>
                             <div key={item.id + "_result_group_" + r.groupName}>
-                                {ResultItem({ result: item, idx: item.id })}
+                                {ResultItem({result: item, idx: item.id})}
                                 <hr className="my-2 text-secondary opacity-10"/>
                             </div>)
                         }
@@ -365,9 +386,9 @@ export default function SearchWidget(props: { showCloseButton?: boolean, onClose
 
         <div className="d-flex flex-column align-items-stretch">
             {props.showCloseButton &&
-                <div className="d-flex align-self-end mb-1 me-2" style={{cursor: 'pointer', userSelect: 'none'}}
+                <div className="d-flex align-self-end align-items-center gap-1 mb-1 me-2" style={{cursor: 'pointer', userSelect: 'none'}}
                      onClick={() => props.onClose && props.onClose()}>
-                    <small className="text-warning">Close</small>
+                    <small className="fs-6 text-warning">Close</small>
                 </div>}
             <div
                 style={{
@@ -387,7 +408,7 @@ export default function SearchWidget(props: { showCloseButton?: boolean, onClose
                        role="combobox"
                        aria-expanded={showResults}/>
                 {props.showCloseButton && <div className="d-flex" style={{cursor: 'pointer', userSelect: 'none'}}
-                                               onClick={() => setSearchInput('')}><Icon name="close"/></div>}
+                                               onClick={() => setSearchInput('')}><Icon className={'fs-6'} name="cancel"/></div>}
             </div>
         </div>
         {showResults &&
@@ -426,7 +447,7 @@ export function SearchWidgetModal() {
 
     return <div
         className="position-absolute d-flex align-items-stretch justify-content-center top-0 end-0 start-0 bottom-0"
-        style={{backgroundColor: 'rgba(0,0,0,0.7)', zIndex: 1050}} onClick={() => setModalActive(false)}>
+        style={{backgroundColor: 'rgba(0,0,0,0.9)', zIndex: 1050}} onClick={() => setModalActive(false)}>
         <div className="position-absolute p-5  w-100" style={{maxWidth: 600, top: '25%'}}>
             <SearchWidget showCloseButton onClose={() => setModalActive(false)}/>
         </div>

@@ -12,7 +12,7 @@ export default function ErrorPage({authenticatedRoutes = false}: { authenticated
                 <h1 className="display-1">403</h1>
                 <p className="lead">Access Denied</p>
                 <p className="text-muted mb-0">You must be logged in to access this page.</p>
-                <small className="text-muted fst-italic my-4">{location.pathname}{location.search}</small>
+                <small className="text-muted fst-italic my-4 text-center w-75">{location.pathname}{location.search}</small>
                 <Link className="text-white" to="/">Back to Login</Link>
             </div>
         );
@@ -25,7 +25,7 @@ export default function ErrorPage({authenticatedRoutes = false}: { authenticated
                 <h1 className="display-1">404</h1>
                 <p className="lead">Page Not Found</p>
                 <p className="text-muted mb-0">The page you are looking for does not exist.</p>
-                <small className="text-muted fst-italic my-4">{location.pathname}{location.search}</small>
+                <small className="text-muted fst-italic my-4 text-center w-75">{location.pathname}{location.search}</small>
                 <Link className="text-white" to="/">Back to Login</Link>
             </div>
         );
@@ -37,7 +37,7 @@ export default function ErrorPage({authenticatedRoutes = false}: { authenticated
             <h1 className="display-1">404</h1>
             <p className="lead">Page Not Found</p>
             <p className="text-muted mb-0">The page you are looking for does not exist.</p>
-            <small className="text-muted fst-italic my-4">{location.pathname}{location.search}</small>
+            <small className="text-muted fst-italic my-4 text-center w-75">{location.pathname}{location.search}</small>
             <Link className="text-white" to="/">Back Home</Link>
         </div>
     );
