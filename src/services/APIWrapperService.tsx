@@ -10,13 +10,30 @@ export type SaveCorsResult = { ok: boolean; error?: string | null };
 export type GetBucketPolicyResult = { ok: boolean; policy?: string | null; error?: string | null };
 export type SaveBucketPolicyResult = { ok: boolean; error?: string | null };
 
-// Optional: a light CORS rule type if you want it strongly typed
 export type S3CorsRule = {
     AllowedHeaders?: string[];
     AllowedMethods: string[];
     AllowedOrigins: string[];
     ExposeHeaders?: string[];
     MaxAgeSeconds?: number;
+};
+
+export type PublicAccessBlockConfig = {
+    BlockPublicAcls?: boolean;
+    IgnorePublicAcls?: boolean;
+    BlockPublicPolicy?: boolean;
+    RestrictPublicBuckets?: boolean;
+};
+
+export type GetPublicAccessBlockResult = {
+    ok: boolean;
+    config?: PublicAccessBlockConfig | null;
+    error?: string | null;
+};
+
+export type SavePublicAccessBlockResult = {
+    ok: boolean;
+    error?: string | null;
 };
 
 export default class APIWrapperService {
@@ -184,6 +201,23 @@ export default class APIWrapperService {
         const account = UserService.GetAWSAccount();
         if (account === null) return Promise.resolve({ ok: false, error: 'No account selected' });
         return (window as any).api.saveBucketPolicy(account.handle, bucket, policy);
+    };
+
+    static GetPublicAccessBlock = async (
+        bucket: string
+    ): Promise<GetPublicAccessBlockResult> => {
+        const account = UserService.GetAWSAccount();
+        if (account === null) return Promise.resolve({ ok: false, error: 'No account selected' });
+        return (window as any).api.getPublicAccessBlock(account.handle, bucket);
+    };
+
+    static SavePublicAccessBlock = async (
+        bucket: string,
+        config: PublicAccessBlockConfig
+    ): Promise<SavePublicAccessBlockResult> => {
+        const account = UserService.GetAWSAccount();
+        if (account === null) return Promise.resolve({ ok: false, error: 'No account selected' });
+        return (window as any).api.savePublicAccessBlock(account.handle, bucket, config);
     };
 
     static async GetBucketUrl(bucket: string): Promise<string | null> {

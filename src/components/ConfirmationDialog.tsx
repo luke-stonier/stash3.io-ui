@@ -1,4 +1,3 @@
-﻿import Icon from "./Icon";
 import React from "react";
 
 export type ConfirmationDialogProps = {

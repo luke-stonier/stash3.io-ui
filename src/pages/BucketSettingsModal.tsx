@@ -3,6 +3,7 @@ import React from "react";
 import DownloadAllFiles from "../components/Settings/DownloadAllFiles";
 import CorsConfiguration from "../components/Settings/CorsConfiguration";
 import BucketPolicyConfiguration from "../components/Settings/BucketPolicyConfiguration";
+import PublicAccessBlockConfiguration from "../components/Settings/PublicAccessBlockConfiguration";
 
 type BucketSettingsProps = {
     bucketId: string;
@@ -30,7 +31,7 @@ export function BucketSettings() {
         {
             title: "Public Access Block Configuration",
             description: "Manage public access settings for this bucket to enhance security.",
-            component: <div>PABC Component</div>
+            component: <PublicAccessBlockConfiguration />
         }
     ]
     

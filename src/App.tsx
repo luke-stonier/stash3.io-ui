@@ -18,10 +18,12 @@ function App() {
     
     useEffect(() => {
         const see = UserService.sessionExpiredEvent.subscribe(() => {
+            console.log("Session expired, logging out...");
             setAuthenticated(false);
             window.location.href = '/';
         });
         const sue = UserService.sessionUpdatedEvent.subscribe((session) => {
+            console.log("Session updated...", session);
             setAuthenticated(session != null);
         });
 

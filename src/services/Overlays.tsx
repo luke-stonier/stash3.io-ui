@@ -1,4 +1,4 @@
-﻿import ConfirmationDialog, {ConfirmationDialogProps} from "../components/ConfirmationDialog";
+import ConfirmationDialog, {ConfirmationDialogProps} from "../components/ConfirmationDialog";
 import React, {useEffect} from "react";
 import EventEmitter from "./event-emitter";
 import Icon from "../components/Icon";

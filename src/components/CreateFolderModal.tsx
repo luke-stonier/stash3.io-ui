@@ -1,4 +1,4 @@
-﻿import React, {useCallback} from "react";
+import React, {useCallback} from "react";
 import Icon from "./Icon";
 import APIWrapperService from "../services/APIWrapperService";
 
@@ -11,13 +11,15 @@ export default function CreateFolderModal(props: CreateFolderModalProps) {
     const [folderName, setFolderName] = React.useState<string>('');
     
     const createFolder = useCallback(async () => {
+        setLoading(true);
         const folderCreateResp = await APIWrapperService.CreateFolder(props.bucket, folderName);
+        setLoading(false);
         if (!folderCreateResp.ok) {
             setRespError(`Failed to create folder. ${folderCreateResp.error}`);
         } else {
             props.onClose();
         }
-    }, [folderName]);
+    }, [folderName, props]);
 
     return <div onClick={props.onClose} className="position-absolute d-flex align-items-center justify-content-center"
                 style={{top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0,0,0,0.5)'}}>

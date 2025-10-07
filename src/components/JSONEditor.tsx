@@ -1,4 +1,4 @@
-﻿import React, {useEffect, useMemo, useRef, useState} from "react";
+import React, {useEffect, useMemo, useRef, useState} from "react";
 
 export type JsonEditorProps = {
     /** Any JSON-serializable value */
@@ -64,15 +64,6 @@ export default function JsonEditor({
         }
     };
 
-    const isValidJson = (str: string) => {
-        try {
-            JSON.parse(str);
-            return true;
-        } catch {
-            return false;
-        }
-    };
-
     return (
         <div className={`mb-3 ${className ?? ""}`}>
 
@@ -99,17 +90,3 @@ export default function JsonEditor({
         </div>
     );
 }
-
-/**
- * Usage:
- *
- * <JsonEditor
- *   value={{
- *     AllowedHeaders: ["*"],
- *     AllowedMethods: ["GET", "POST"],
- *     AllowedOrigins: ["*"],
- *   }}
- *   indent={2}
- *   onTextChange={(raw) => console.log(raw)}
- * />
- */

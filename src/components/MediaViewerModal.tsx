@@ -1,6 +1,6 @@
-﻿import React, {useEffect} from 'react';
+import React, {useEffect} from 'react';
 import Icon from "./Icon";
-import {BinaryFallback, AudioViewer, CodeViewer, CsvViewer, HtmlViewer, ImageViewer, JsonViewer, MarkdownViewer, PdfViewer, TextViewer, VideoViewer} from "./Viewers/viewers";
+import {BinaryFallback, AudioViewer, CodeViewer, CsvViewer, HtmlViewer, ImageViewer, JsonViewer, PdfViewer, TextViewer, VideoViewer} from "./Viewers/viewers";
 import APIWrapperService from "../services/APIWrapperService";
 
 export type ViewerKind =

@@ -5,7 +5,6 @@ import Icon from "../components/Icon";
 import {useNavigate} from "react-router-dom";
 import {IconButton} from "../components/Button";
 import {ConfirmationService} from "../services/Overlays";
-import Bookmark from "../Models/Bookmark";
 
 export default function Bookmarks() {
 
@@ -120,7 +119,7 @@ export default function Bookmarks() {
             onClose: (status: boolean) => {
                 if (!status) return;
                 
-                const bookmarksToDelete = selectedBookmarkIds.map(id => {
+                selectedBookmarkIds.forEach((id: string, idx: number) => {
                     const index = parseInt(id.replace('bookmark-', ''));
                     const bookmark = bookmarks[index];
                     BucketService.RemoveGlobalBookmark(bookmark);

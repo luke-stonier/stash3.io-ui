@@ -53,7 +53,7 @@ export default function BucketSelector({bucket, altStyle = false}: { bucket: Buc
         return () => {
             BucketService.bucketRefreshEvent.unsubscribe(bre);
         }
-    }, [])
+    }, [bucket])
 
     const content = <div className="ratio ratio-1x1 position-relative">
         {

@@ -1,19 +1,34 @@
-﻿const { ipcMain } = require("electron");
+﻿const {ipcMain} = require("electron");
 const Store = require("electron-store");
 const keytar = require("keytar");
 const fs = require("fs");
 
-const { S3Client, ListBucketsCommand, ListObjectsV2Command, DeleteObjectCommand, PutObjectCommand, GetBucketLocationCommand, GetObjectCommand, HeadObjectCommand, GetBucketCorsCommand, PutBucketCorsCommand, GetBucketPolicyCommand, PutBucketPolicyCommand, } = require("@aws-sdk/client-s3");
-const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
-const { Upload } = require("@aws-sdk/lib-storage");
+const {
+    S3Client,
+    ListBucketsCommand,
+    ListObjectsV2Command,
+    DeleteObjectCommand,
+    PutObjectCommand,
+    GetBucketLocationCommand,
+    GetObjectCommand,
+    HeadObjectCommand,
+    GetBucketCorsCommand,
+    PutBucketCorsCommand,
+    GetBucketPolicyCommand,
+    PutBucketPolicyCommand,
+    GetPublicAccessBlockCommand,
+    PutPublicAccessBlockCommand
+} = require("@aws-sdk/client-s3");
+const {getSignedUrl} = require("@aws-sdk/s3-request-presigner");
+const {Upload} = require("@aws-sdk/lib-storage");
 
-const store = new Store({ name: "prefs", defaults: { region: "eu-west-2" } });
+const store = new Store({name: "prefs", defaults: {region: "eu-west-2"}});
 const SERVICE = "stash3.io";
 
 const clientCache = new Map();
 
 async function ensureDirForFile(filePath) {
-    await fsp.mkdir(path.dirname(filePath), { recursive: true });
+    await fsp.mkdir(path.dirname(filePath), {recursive: true});
 }
 
 async function s3ClientForUser(accountHandle) {
@@ -26,7 +41,7 @@ async function s3ClientForUser(accountHandle) {
             if (cachedClient) return cachedClient;
             clientCache.delete(`${region}_${accountHandle}`); // cleanup
         }
-        
+
         const accessKeyId = await keytar.getPassword(`${SERVICE}:akid`, accountHandle);
         const secretAccessKey = await keytar.getPassword(`${SERVICE}:secret`, accountHandle);
         if (!accessKeyId || !secretAccessKey) {
@@ -57,7 +72,7 @@ async function resolveBucketRegion(client, bucket) {
     }
 }
 
-async function GetClientForBucket(accountHandle, bucket){
+async function GetClientForBucket(accountHandle, bucket) {
     try {
         const s3 = await s3ClientForUser(accountHandle);
         const bucketRegion = await resolveBucketRegion(s3, bucket);
@@ -72,16 +87,16 @@ async function GetClientForBucket(accountHandle, bucket){
 // IPC handlers
 ipcMain.handle("s3:listBuckets", async (e, accountHandle) => {
     const s3 = await s3ClientForUser(accountHandle);
-    const { Buckets } = await s3.send(new ListBucketsCommand({}));
+    const {Buckets} = await s3.send(new ListBucketsCommand({}));
     return Buckets ?? [];
 });
 
 ipcMain.handle("s3:listObjects", async (_e, accountHandle, bucket, prefix = "") => {
     try {
         const s3 = await GetClientForBucket(accountHandle, bucket);
-        
+
         if (!s3) {
-            return {files: [], folders: [], error: "No S3 client" };
+            return {files: [], folders: [], error: "No S3 client"};
         }
         const {Contents, CommonPrefixes} = await s3.send(
             new ListObjectsV2Command({Bucket: bucket, Prefix: prefix, Delimiter: "/"})
@@ -93,12 +108,12 @@ ipcMain.handle("s3:listObjects", async (_e, accountHandle, bucket, prefix = "") 
     }
 });
 
-ipcMain.handle("s3:upload", async (e, accountHandle, { bucket, key, filePath }) => {
+ipcMain.handle("s3:upload", async (e, accountHandle, {bucket, key, filePath}) => {
     try {
         const s3 = await s3ClientForUser(accountHandle);
         if (!s3) {
-            e.sender.send("s3:uploadEnd", { key, status: false });
-            return { ok: false, error: "No S3 client" };
+            e.sender.send("s3:uploadEnd", {key, status: false});
+            return {ok: false, error: "No S3 client"};
         }
 
         // derive content type from extension
@@ -132,12 +147,12 @@ ipcMain.handle("s3:upload", async (e, accountHandle, { bucket, key, filePath }) 
             contentType = "text/html";
         }
         // you can expand this mapping if you want (png → image/png, etc.)
-        
+
         const body = {
             Bucket: bucket,
             Key: key,
             Body: fs.createReadStream(filePath),
-            ...(contentType ? { ContentType: contentType } : {}),
+            ...(contentType ? {ContentType: contentType} : {}),
         };
 
         const upload = new Upload({
@@ -155,15 +170,15 @@ ipcMain.handle("s3:upload", async (e, accountHandle, { bucket, key, filePath }) 
                     total: p.total,
                 });
             } else {
-                e.sender.send("s3:uploadEnd", { key, status: true });
+                e.sender.send("s3:uploadEnd", {key, status: true});
             }
         });
 
         await upload.done();
-        return { ok: true };
+        return {ok: true};
     } catch (err) {
-        e.sender.send("s3:uploadEnd", { key, status: false });
-        return { ok: false, error: err.message };
+        e.sender.send("s3:uploadEnd", {key, status: false});
+        return {ok: false, error: err.message};
     }
 });
 
@@ -185,14 +200,13 @@ ipcMain.handle("s3:createFolder", async (_e, accountHandle, bucket, prefix) => {
             key: prefix,
             status: true
         });
-        
-        return { ok: true, error: null };
+
+        return {ok: true, error: null};
     } catch (err) {
         console.error("[s3:createFolder]", err);
-        return { ok: false, error: err.message };
+        return {ok: false, error: err.message};
     }
 });
-
 
 
 ipcMain.handle("s3:deleteObject", async (_e, accountHandle, bucket, key) => {
@@ -200,12 +214,11 @@ ipcMain.handle("s3:deleteObject", async (_e, accountHandle, bucket, key) => {
         const s3 = await s3ClientForUser(accountHandle);
         console.log({Bucket: bucket, Key: key});
         await s3.send(new DeleteObjectCommand({Bucket: bucket, Key: key}));
-        
+
         // we should really try and re-fet the object list to confirm deletion
-        
-        
-        
-        return { ok: true, error: null };
+
+
+        return {ok: true, error: null};
     } catch (err) {
         console.error("[s3:deleteObject]", err);
         return {ok: false, error: err.message};
@@ -231,7 +244,7 @@ ipcMain.handle("s3:getObjectHead", async (_e, accountHandle, bucket, key) => {
         };
     } catch (err) {
         console.error("[s3:getObjectHead]", err);
-        return { ok: false, error: err.message };
+        return {ok: false, error: err.message};
     }
 });
 
@@ -243,10 +256,10 @@ ipcMain.handle("s3:getPreSignedUrl", async (_e, accountHandle, bucket, key, expi
         }
         const cmd = new GetObjectCommand({Bucket: bucket, Key: key});
         const signedUrl = await getSignedUrl(s3, cmd, {expiresIn});
-        return { ok: true, error: null, url: signedUrl };
+        return {ok: true, error: null, url: signedUrl};
     } catch (err) {
         console.error("[s3:getPreSignedUrl]", err);
-        return { ok: false, error: err.message };
+        return {ok: false, error: err.message};
     }
 })
 
@@ -263,7 +276,7 @@ ipcMain.handle("s3:getObjectUrl", async (_e, accountHandle, bucket, key) => {
         };
     } catch (err) {
         console.error("[s3:getObjectUrl]", err);
-        return { url: null, error: err.message };
+        return {url: null, error: err.message};
     }
 });
 
@@ -280,21 +293,21 @@ ipcMain.handle("s3:getBucketUrl", async (_e, accountHandle, bucket) => {
         };
     } catch (err) {
         console.error("[s3:getObjectUrl]", err);
-        return { url: null, error: err.message };
+        return {url: null, error: err.message};
     }
 });
 
 ipcMain.handle('s3:downloadAll', async (_e, accountHandle, bucket, destDir) => {
     try {
         const s3 = await GetClientForBucket(accountHandle, bucket);
-        if (!s3) return { ok: false, error: 'No S3 client' };
+        if (!s3) return {ok: false, error: 'No S3 client'};
 
         let ContinuationToken = undefined;
         let count = 0;
         let bytes = 0;
 
         do {
-            const page = await s3.send(new ListObjectsV2Command({ Bucket: bucket, ContinuationToken }));
+            const page = await s3.send(new ListObjectsV2Command({Bucket: bucket, ContinuationToken}));
             const items = page.Contents || [];
 
             // Sequential to keep it simple/reliable (can add concurrency later)
@@ -303,7 +316,7 @@ ipcMain.handle('s3:downloadAll', async (_e, accountHandle, bucket, destDir) => {
                 const keyPath = path.join(destDir, obj.Key);
                 await ensureDirForFile(keyPath);
 
-                const { Body } = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: obj.Key }));
+                const {Body} = await s3.send(new GetObjectCommand({Bucket: bucket, Key: obj.Key}));
                 await streamPipeline(Body, fs.createWriteStream(keyPath));
                 count += 1;
                 bytes += obj.Size || 0;
@@ -312,112 +325,156 @@ ipcMain.handle('s3:downloadAll', async (_e, accountHandle, bucket, destDir) => {
             ContinuationToken = page.IsTruncated ? page.NextContinuationToken : undefined;
         } while (ContinuationToken);
 
-        return { ok: true, count, bytes, error: null };
+        return {ok: true, count, bytes, error: null};
     } catch (err) {
         console.error('[s3:downloadAll]', err);
-        return { ok: false, error: err.message };
+        return {ok: false, error: err.message};
     }
 });
 
 ipcMain.handle('s3:getCors', async (_e, accountHandle, bucket) => {
     try {
         const s3 = await GetClientForBucket(accountHandle, bucket);
-        if (!s3) return { ok: false, error: 'No S3 client' };
+        if (!s3) return {ok: false, error: 'No S3 client'};
 
         try {
-            const res = await s3.send(new GetBucketCorsCommand({ Bucket: bucket }));
-            return { ok: true, rules: res.CORSRules || [], error: null };
+            const res = await s3.send(new GetBucketCorsCommand({Bucket: bucket}));
+            return {ok: true, rules: res.CORSRules || [], error: null};
         } catch (err) {
             // If no CORS config set, AWS throws NoSuchCORSConfiguration
             if (err?.name === 'NoSuchCORSConfiguration' || err?.$metadata?.httpStatusCode === 404) {
-                return { ok: true, rules: [], error: null };
+                return {ok: true, rules: [], error: null};
             }
             throw err;
         }
     } catch (err) {
         console.error('[s3:getCors]', err);
-        return { ok: false, error: err.message };
+        return {ok: false, error: err.message};
     }
 });
 
 ipcMain.handle('s3:saveCors', async (_e, accountHandle, bucket, corsRules /* array */) => {
     try {
         const s3 = await GetClientForBucket(accountHandle, bucket);
-        if (!s3) return { ok: false, error: 'No S3 client' };
+        if (!s3) return {ok: false, error: 'No S3 client'};
 
         await s3.send(
             new PutBucketCorsCommand({
                 Bucket: bucket,
-                CORSConfiguration: { CORSRules: corsRules || [] },
+                CORSConfiguration: {CORSRules: corsRules || []},
             })
         );
 
-        return { ok: true, error: null };
+        return {ok: true, error: null};
     } catch (err) {
         console.error('[s3:saveCors]', err);
-        return { ok: false, error: err.message };
+        return {ok: false, error: err.message};
     }
 });
 
 ipcMain.handle('s3:getBucketPolicy', async (_e, accountHandle, bucket) => {
     try {
         const s3 = await GetClientForBucket(accountHandle, bucket);
-        if (!s3) return { ok: false, error: 'No S3 client' };
+        if (!s3) return {ok: false, error: 'No S3 client'};
 
         try {
-            const res = await s3.send(new GetBucketPolicyCommand({ Bucket: bucket }));
+            const res = await s3.send(new GetBucketPolicyCommand({Bucket: bucket}));
             // res.Policy is a JSON string when present
-            return { ok: true, policy: res.Policy ?? null, error: null };
+            return {ok: true, policy: res.Policy ?? null, error: null};
         } catch (err) {
             // If no policy exists, S3 may return NoSuchBucketPolicy / 404
             if (err?.name === 'NoSuchBucketPolicy' || err?.$metadata?.httpStatusCode === 404) {
-                return { ok: true, policy: null, error: null };
+                return {ok: true, policy: null, error: null};
             }
             throw err;
         }
     } catch (err) {
         console.error('[s3:getBucketPolicy]', err);
-        return { ok: false, error: err.message };
+        return {ok: false, error: err.message};
     }
 });
 
 ipcMain.handle('s3:saveBucketPolicy', async (_e, accountHandle, bucket, policy) => {
     try {
         const s3 = await GetClientForBucket(accountHandle, bucket);
-        if (!s3) return { ok: false, error: 'No S3 client' };
+        if (!s3) return {ok: false, error: 'No S3 client'};
 
         const policyString = typeof policy === 'string' ? policy : JSON.stringify(policy);
-        await s3.send(new PutBucketPolicyCommand({ Bucket: bucket, Policy: policyString }));
+        await s3.send(new PutBucketPolicyCommand({Bucket: bucket, Policy: policyString}));
+
+        return {ok: true, error: null};
+    } catch (err) {
+        console.error('[s3:saveBucketPolicy]', err);
+        return {ok: false, error: err.message};
+    }
+});
+
+ipcMain.handle('s3:getPublicAccessBlock', async (_e, accountHandle, bucket) => {
+    try {
+        const s3 = await GetClientForBucket(accountHandle, bucket);
+        if (!s3) return { ok: false, error: 'No S3 client' };
+
+        try {
+            const res = await s3.send(new GetPublicAccessBlockCommand({ Bucket: bucket }));
+            return {
+                ok: true,
+                config: res.PublicAccessBlockConfiguration ?? null,
+                error: null,
+            };
+        } catch (err) {
+            // When not set, S3 returns NoSuchPublicAccessBlockConfiguration / 404
+            if (err?.name === 'NoSuchPublicAccessBlockConfiguration' || err?.$metadata?.httpStatusCode === 404) {
+                return { ok: true, config: null, error: null };
+            }
+            throw err;
+        }
+    } catch (err) {
+        console.error('[s3:getPublicAccessBlock]', err);
+        return { ok: false, error: err.message };
+    }
+});
+
+ipcMain.handle('s3:savePublicAccessBlock', async (_e, accountHandle, bucket, config) => {
+    try {
+        const s3 = await GetClientForBucket(accountHandle, bucket);
+        if (!s3) return { ok: false, error: 'No S3 client' };
+
+        // Expecting config shape:
+        // { BlockPublicAcls: boolean, IgnorePublicAcls: boolean, BlockPublicPolicy: boolean, RestrictPublicBuckets: boolean }
+        await s3.send(new PutPublicAccessBlockCommand({
+            Bucket: bucket,
+            PublicAccessBlockConfiguration: config || {},
+        }));
 
         return { ok: true, error: null };
     } catch (err) {
-        console.error('[s3:saveBucketPolicy]', err);
+        console.error('[s3:savePublicAccessBlock]', err);
         return { ok: false, error: err.message };
     }
 });
 
 ipcMain.handle("prefs:setRegion", (_e, region) => {
     store.set("region", region);
-    return { ok: true };
+    return {ok: true};
 });
 
 ipcMain.handle("creds:set", async (_e, accountHandle, accessKeyId, secretAccessKey) => {
     await keytar.setPassword(`${SERVICE}:akid`, accountHandle, accessKeyId);
     await keytar.setPassword(`${SERVICE}:secret`, accountHandle, secretAccessKey);
-    return { ok: true };
+    return {ok: true};
 });
 
 ipcMain.handle("creds:get", async (_e, accountHandle) => {
     const accessKeyId = await keytar.getPassword(`${SERVICE}:akid`, accountHandle);
     const secretAccessKey = await keytar.getPassword(`${SERVICE}:secret`, accountHandle);
     if (!accessKeyId || !secretAccessKey) {
-        return { ok: false, error: "No credentials found" };
+        return {ok: false, error: "No credentials found"};
     }
-    return { ok: true, accessKeyId, secretAccessKey };
+    return {ok: true, accessKeyId, secretAccessKey};
 });
 
 ipcMain.handle("creds:remove", async (_e, accountHandle) => {
     await keytar.deletePassword(`${SERVICE}:akid`, accountHandle);
     await keytar.deletePassword(`${SERVICE}:secret`, accountHandle);
-    return { ok: true };
+    return {ok: true};
 });

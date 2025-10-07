@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useLayoutEffect, useRef } from "react";
+import React, { useEffect, useLayoutEffect, useRef } from "react";
 
 type MenuSeparator = { type: "title" | "separator", data?: string };
 

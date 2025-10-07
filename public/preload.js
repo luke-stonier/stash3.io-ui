@@ -65,6 +65,8 @@ contextBridge.exposeInMainWorld("api", {
     saveCors: (accountHandle, bucket, corsRules) => ipcRenderer.invoke("s3:saveCors", accountHandle, bucket, corsRules),
     getBucketPolicy: (accountHandle, bucket) => ipcRenderer.invoke("s3:getBucketPolicy", accountHandle, bucket),
     saveBucketPolicy: (accountHandle, bucket, policy) => ipcRenderer.invoke("s3:saveBucketPolicy", accountHandle, bucket, policy),
+    getPublicAccessBlock: (accountHandle, bucket) => ipcRenderer.invoke('s3:getPublicAccessBlock', accountHandle, bucket),
+    savePublicAccessBlock: (accountHandle, bucket, config) => ipcRenderer.invoke('s3:savePublicAccessBlock', accountHandle, bucket, config),
 
     setRegion: (region) => ipcRenderer.invoke("prefs:setRegion", region),
     setCreds: (handle, akid, secret) => ipcRenderer.invoke("creds:set", handle, akid, secret),

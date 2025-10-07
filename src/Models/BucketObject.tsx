@@ -1,4 +1,4 @@
-﻿export default class BucketObject {
+export default class BucketObject {
     constructor(init?: Partial<BucketObject>) {
         Object.assign(this, init);
     }
@@ -43,20 +43,4 @@ function normalizePrefix(p: string) {
     // root: "", otherwise ensure a single trailing slash and no leading slash
     if (!p) return "";
     return p.replace(/^\/+/, "").replace(/\/+$/, "") + "/";
-}
-
-function extractFoldersFromKeys(keys: string[], prefix: string): string[] {
-    const norm = prefix ? prefix.replace(/\/+$/, "") + "/" : "";
-    const folders = new Set<string>();
-
-    for (const key of keys) {
-        if (!key.startsWith(norm)) continue;
-        const rest = key.slice(norm.length);
-        const first = rest.split("/")[0];
-        if (first && rest.includes("/")) {
-            folders.add(norm + first + "/");
-        }
-    }
-
-    return Array.from(folders);
 }

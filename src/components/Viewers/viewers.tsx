@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Editor from "@monaco-editor/react";
 import { marked } from "marked";
 
@@ -296,6 +296,7 @@ export const JsonViewer = ({ url }: { url: string }) => {
 // viewers/HtmlViewer.tsx
 export const HtmlViewer = ({ url, sandbox = true }: { url: string; sandbox?: boolean }) => (
     <iframe
+        title={'stash3-html-viewer'}
         src={url}
         className="w-100 bg-white"
         style={{ height: "80vh" }}
