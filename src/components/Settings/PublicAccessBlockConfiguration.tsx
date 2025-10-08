@@ -7,6 +7,7 @@ import Icon from "../Icon";
 import toFriendlyName from "../../helpers/ToFriendlyName";
 
 export default function PublicAccessBlockConfiguration() {
+    const [saving, setSaving] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const [originalAccessPolicy, setOriginalAccessPolicy] = useState<PublicAccessBlockConfig | null>(null);
     const [accessPolicy, setAccessPolicy] = useState<PublicAccessBlockConfig | null>(null);
@@ -17,6 +18,7 @@ export default function PublicAccessBlockConfiguration() {
         (async () => {
             const res = await APIWrapperService.GetPublicAccessBlock(BucketService.currentBucket);
             setLoading(false);
+            setSaving(null);
             if (res.ok && res.config) {
                 setAccessPolicy(res.config);
                 setOriginalAccessPolicy(res.config);
@@ -29,8 +31,22 @@ export default function PublicAccessBlockConfiguration() {
     }, [])
 
     useEffect(() => {
+        if (accessPolicy === null || originalAccessPolicy === null) return;
         if (JSON.stringify(originalAccessPolicy) === JSON.stringify(accessPolicy)) return;
-        console.log("PUBLIC Access Block Configuration", accessPolicy);
+        setTimeout(() => {
+            (async () => {
+                const res = await APIWrapperService.SavePublicAccessBlock(BucketService.currentBucket, accessPolicy)
+                if (!res.ok) {
+                    setError("Failed to save Public Access Block configuration.");
+                    setAccessPolicy(originalAccessPolicy);
+                } else {
+                    setError(null);
+                    setAccessPolicy(accessPolicy);
+                    setOriginalAccessPolicy(accessPolicy);
+                }
+                setSaving(null);
+            })();
+        }, 200);
     }, [accessPolicy, originalAccessPolicy]);
 
     if (loading) {
@@ -51,26 +67,37 @@ export default function PublicAccessBlockConfiguration() {
                 .map(([k, val], index) => (
                     <div key={`accessPolicy_${String(k)}_${index}`} className="mb-2">
                         <button
+                            disabled={saving !== null}
                             type="button"
-                            onClick={() =>
+                            onClick={() => {
+                                if (saving) return;
+                                setSaving(k);
                                 setAccessPolicy(prev => {
                                     if (!prev) return prev; // or return {} if you want to reset instead
-                                    return { ...prev, [k]: !prev[k] };
+                                    return {...prev, [k]: !prev[k]};
                                 })
-                            }
-                            className="bg-transparent border-0 p-0 m-0 d-flex align-items-center justify-content-start gap-2"
+                            }}
+                            className={`bg-transparent border-0 p-0 m-0 d-flex align-items-center justify-content-start gap-2 ${saving === null ? '' :  'opacity-25'}`}
                         >
-                            <Icon
-                                className={`fs-2 my-0 ${val ? 'text-warning' : 'text-white'}`}
-                                name={val ? 'check_circle' : 'circle'}
-                                filled={val}
-                            />
+                            {
+                                saving === k ?
+                                    <div className="spinner-grow text-warning" style={{ width: 30, height: 30 }}
+                                         role="status">
+                                        <span className="visually-hidden">Loading...</span>
+                                    </div>
+                                    :
+                                    <Icon
+                                        style={{ width: 30, height: 30 }}
+                                        className={`fs-2 my-0 ${val ? 'text-warning' : 'text-white'}`}
+                                        name={val ? 'check_circle' : 'circle'}
+                                        filled={val}/>
+                            }
                             <p className="d-block fs-6 my-0 text-white">{toFriendlyName(String(k))}</p>
                         </button>
                     </div>
                 ))}
 
-            { error !== null && <div className="alert alert-danger" role="alert">{error}</div> }
+            {error !== null && <div className="alert alert-danger" role="alert">{error}</div>}
         </div>
     </div>
 }

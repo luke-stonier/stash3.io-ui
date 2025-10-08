@@ -12,6 +12,8 @@ import Buckets from "./pages/Buckets";
 import Accounts from "./pages/Accounts";
 import  { ConfirmationDialogWrapper, ToastWrapper } from "./services/Overlays";
 import Bookmarks from "./pages/Bookmarks";
+import UserAccountPage from "./pages/UserAccountPage";
+import BillingPage from "./pages/BillingPage";
 
 function App() {
     const [authenticated, setAuthenticated] = useState(UserService.isLoggedIn());
@@ -48,12 +50,9 @@ function App() {
                             <Route path="accounts" element={<Accounts/>}/>
                             <Route path="buckets" element={<Buckets/>}/>
                             <Route path="buckets/:bucketId" element={<BucketDetail/>}/>
-
                             <Route path="bookmarks" element={<Bookmarks/>}/>
-                            
-                            {/*<Route path="uploads" element={<UploadsPage/>}/>*/}
-                            {/*<Route path="settings" element={<ErrorPage/>}/>*/}
-
+                            <Route path="user" element={<UserAccountPage />} />
+                            <Route path="billing" element={<BillingPage/>}/>
 
                             <Route path="*" element={<ErrorPage authenticatedRoutes />}/>
                         </Route>

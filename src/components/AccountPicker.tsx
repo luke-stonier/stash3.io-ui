@@ -2,9 +2,12 @@ import {useCallback, useEffect, useState} from "react";
 import AwsAccount from "../Models/AwsAccount";
 import HttpService from "../services/http/http-service";
 import UserService from "../services/user-service";
+import {useNavigate} from "react-router-dom";
+import {ToastService} from "../services/Overlays";
 
 export default function AccountPicker() {
     
+    const navigate = useNavigate();
     const [loading, setLoading] = useState<boolean>(true);
     const [selectedAccount, setSelectedAccount] = useState<AwsAccount | null>(UserService.GetAWSAccount());
     const [accounts, setAccounts] = useState<AwsAccount[]>([]);
@@ -16,7 +19,15 @@ export default function AccountPicker() {
     const selectAccount = useCallback((account: AwsAccount) => {
         UserService.UpdateAWSAccount(account);
         setSelectedAccount(account);
-    }, []);
+        navigate('/buckets');
+        ToastService.Add({
+            id: 'account-switched',
+            title: 'Account switched',
+            message: `Switched to account ${account.name} (${account.handle})`,
+            type: 'info',
+            duration: 3000
+        })
+    }, [navigate]);
 
     const addCredentialsToAccounts = useCallback((_accounts: AwsAccount[]) => {
         (async () => {
