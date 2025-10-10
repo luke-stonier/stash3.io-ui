@@ -58,6 +58,7 @@ export function ToastWrapper() {
                             <strong className="me-auto">{c.title}</strong>
                             { c.time && <small className="text-muted me-2 my-0">{c.time.toLocaleTimeString()}</small> }
                             <button type="button" className="bg-transparent p-0 border-0 my-0" onClick={() => {
+                                c.id && ToastService.Remove(c.id);
                             }}>
                                 <Icon name={'close'} className={'text-white lh-sm small'}/>
                             </button>
@@ -105,6 +106,11 @@ export class ToastService {
     static Add = (props: Toast) => {
         props.id = `toast-dialog-${Date.now()}`;
         props.time = new Date();
+        
+        if (ToastService.components.findIndex((c: Toast, index: number) => c.id === props.id) > -1) {
+            return;
+        }
+        
         ToastService.components.push({...props});
         ToastService.stackChangeEvent.emit();
         

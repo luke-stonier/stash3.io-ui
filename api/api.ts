@@ -21,6 +21,7 @@ import {AuthRequest} from "./types/auth";
 import {stash3RequireAuth} from "./middleware/auth";
 import {AWSAccountRef} from "./entities/AWSAccountRef";
 import stripeRouter from "./billing/stripe-controller";
+import {UserPurchasePlan} from "./entities/UserBilling";
 
 
 const app: Application = express();
@@ -34,7 +35,7 @@ export const db = new DataSource({
     password: process.env.PGPASSWORD,
     database: process.env.PGDATABASE,
     ssl: process.env.PGSSL === "true" ? { rejectUnauthorized: false } : false,
-    entities: [User, AWSAccountRef],
+    entities: [User, AWSAccountRef, UserPurchasePlan],
     synchronize: true,   // ✅ dev-friendly. For prod, switch to migrations.
     logging: false
 });
@@ -49,7 +50,7 @@ async function bootstrap() {
 
     function signToken(payload: JwtUser, ttl: string = "12h") {
         const secret: jwt.Secret = process.env.JWT_SECRET as string; // ensure it's defined
-        const options: SignOptions = { expiresIn: "12h" };
+        const options: SignOptions = { expiresIn: '1 week' }; // 12hr
 
         return jwt.sign(payload, secret, options);
     }
@@ -154,7 +155,7 @@ async function bootstrap() {
     app.use(express.static(ui_build_path, { index: false }));
     app.use(express.json());
     app.use("/api", apiRouter);
-    app.use("/api/billing", stripeRouter);
+    app.use("/api/stripe", stripeRouter);
 
     // --- SPA fallback: any route NOT starting with /api -> index.html ---
     app.get("*", (_req, _res) => {
