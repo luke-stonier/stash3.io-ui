@@ -22,6 +22,7 @@ import {stash3RequireAuth} from "./middleware/auth";
 import {AWSAccountRef} from "./entities/AWSAccountRef";
 import stripeRouter from "./billing/stripe-controller";
 import {UserPurchasePlan} from "./entities/UserBilling";
+import billingRouter from "./billing/billing-controller";
 
 
 const app: Application = express();
@@ -155,6 +156,7 @@ async function bootstrap() {
     app.use(express.static(ui_build_path, { index: false }));
     app.use(express.json());
     app.use("/api", apiRouter);
+    app.use("/api/billing", billingRouter);
     app.use("/api/stripe", stripeRouter);
 
     // --- SPA fallback: any route NOT starting with /api -> index.html ---
