@@ -55,7 +55,8 @@ stripeRouter.post("/checkout/sessions", async (req: AuthRequest, res) => {
             return res.status(403).json({error: "Forbidden: accountId does not match user"});
         }
         
-        const returnUrl = req.headers.host && req.headers.host.indexOf('localhost') > -1 ? `http://${req.body.host}` : '';
+        var returnUrl = req.headers.host && req.headers.host.indexOf('localhost') > -1 ? `http://${req.body.host}` : '';
+        if (!returnUrl) returnUrl = ''
         const isSubscription = tier !== "personal";
 
         const userRepo = db.getRepository(User);
@@ -75,14 +76,12 @@ stripeRouter.post("/checkout/sessions", async (req: AuthRequest, res) => {
         }
 
         const session = await stripe.checkout.sessions.create({
+            ui_mode: "embedded",
             mode: isSubscription ? "subscription" : "payment",
             line_items: [{price: PRICES[tier as keyof typeof PRICES], quantity: 1}],
-            success_url: `${returnUrl}/billing/success?session_id={CHECKOUT_SESSION_ID}`,
-            cancel_url: `${returnUrl}/billing/cancel`,
-            // carry context to webhook so you can link to your DB
+            return_url: returnUrl,
             metadata: {tier, accountId},
-            // recommend collecting email to link Stripe customer
-            customer_creation: "if_required",
+            customer_creation: "always",
             allow_promotion_codes: true,
         });
 
