@@ -67,7 +67,7 @@ export default function BillingPage() {
             return;
         }
 
-        setLoading(true);        
+        setLoading(true);
         HttpService.post(`/stripe/checkout/sessions`, {
             tier: id,
             accountId: userId
@@ -76,9 +76,9 @@ export default function BillingPage() {
             console.log(resp);
             window.open(checkoutSession.url, "_blank");
             setLoading(false);
-        }, () => {
-            console.error('Failed to initiate checkout');
-            setError("Failed to initiate checkout");
+        }, (err: any) => {
+            console.error('Failed to initiate checkout', err);
+            setError(err.error.error || "Failed to initiate checkout");
             setLoading(false);
         });
     }
@@ -96,6 +96,14 @@ export default function BillingPage() {
             <Icon name={'error'} className={'text-danger'} style={{fontSize: '6rem'}}/>
             <div className="mt-3">
                 <p className="text-danger">Error: {error}</p>
+            </div>
+
+            <div>
+                <button className="btn btn-secondary" onClick={() => {
+                    setError(null);
+                    loadBilling();
+                }}>Retry
+                </button>
             </div>
         </div>;
     }
@@ -118,21 +126,34 @@ export default function BillingPage() {
         </div>;
     }
 
-    return <div className="pt-5 d-flex flex-column align-items-center justify-content-center h-100">
-        {/*<Icon name={'sell'} className={'text-secondary'} style={{fontSize: '6rem'}}/>*/}
-        {PlanPurchaseOptions()}
+    const PlanDetails = () => {
+        if (!billingInfo) return null;
+        return <div className="mt-4">
+            <h3 className="mb-3">Current Plan Details</h3>
+            <p className="mb-1">Plan Name: <strong>{billingInfo.planName}</strong></p>
+            <p className="mb-1">Status: <strong>{billingInfo.status}</strong></p>
+            <p className="mb-1">Start Date: <strong>{new Date(billingInfo.startDate).toLocaleDateString()}</strong></p>
+            {billingInfo.endDate &&
+                <p className="mb-1">End Date: <strong>{new Date(billingInfo.endDate).toLocaleDateString()}</strong></p>
+            }
+            {billingInfo.isSubscription !== undefined &&
+                <p className="mb-1">Type: <strong>{billingInfo.isSubscription ? 'Subscription' : 'One-time Purchase'}</strong>
+                </p>
+            }
+        </div>
+    }
 
-        {/*<div className="mt-5">*/}
-        {/*    <h3 className="mb-3">Available Licenses</h3>*/}
-        {/*    <div>*/}
-        {/*        <p className="my-0">Personal (Perpetual) £59</p>*/}
-        {/*        <small>All Features - built for solo users with a single set of AWS credentials at one time</small>*/}
-        {/*    </div>*/}
-        {/*    */}
-        {/*    <div className="mt-3">*/}
-        {/*        <p className="my-0">Professional (Monthly) £12/mo or £120/year</p>*/}
-        {/*        <small>All Features - Multiple AWS credentials at one time</small>*/}
-        {/*    </div>*/}
-        {/*</div>*/}
+    return <div className="pt-5 d-flex flex-column align-items-center justify-content-center h-100">
+        <Icon name={'sell'} className={'text-secondary'} style={{fontSize: '6rem'}}/>
+        <h1 className="mb-3">Billing</h1>
+
+        <div>
+            {!hasBillingProfile &&
+                <p className="text-center">You do not have a billing profile set up. Please select a plan below to get
+                    started.</p>}
+            {hasBillingProfile && billingInfo && PlanDetails()}
+
+            {PlanPurchaseOptions()}
+        </div>
     </div>;
 }

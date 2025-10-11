@@ -76,10 +76,10 @@ stripeRouter.post("/checkout/sessions", async (req: AuthRequest, res) => {
         }
 
         const session = await stripe.checkout.sessions.create({
-            ui_mode: "embedded",
             mode: isSubscription ? "subscription" : "payment",
             line_items: [{price: PRICES[tier as keyof typeof PRICES], quantity: 1}],
-            return_url: returnUrl,
+            success_url: `/billing/success?session_id={CHECKOUT_SESSION_ID}`,
+            cancel_url: `/billing/cancel`,
             metadata: {tier, accountId},
             customer_creation: "always",
             allow_promotion_codes: true,
