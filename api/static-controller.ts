@@ -128,12 +128,16 @@ function renderPage({
     <h1>${title}</h1>
     <p>${subtitle}</p>
     <div class="actions">
-      <button class="button" onclick="alert('action')">${actionText}</button>
-<!--      <a class="button secondary" href="/">Return to home</a>-->
+      <button class="button" onclick="window.close();">${actionText}</button>
     </div>
     <div class="fineprint">You can safely close this window if it doesn’t close automatically.</div>
   </main>
 </body>
+<script>
+setTimeout(() => {
+    window.close();
+}, 1000 * 60 * 2)
+</script>
 </html>`;
 }
 

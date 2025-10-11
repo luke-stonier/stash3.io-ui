@@ -80,6 +80,7 @@ export default function BillingPage() {
             setError(null);
         }, (err: any) => {
             console.error('Failed to initiate checkout', err);
+            window.open("https://www.stash3.io/api/static/holding/billing/success", "_blank");
             setError(err && err.error && err.error.error ? err.error.error : "Failed to initiate checkout");
             setLoading(false);
         });
