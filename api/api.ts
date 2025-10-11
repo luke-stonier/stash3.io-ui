@@ -154,10 +154,10 @@ async function bootstrap() {
     app.use(stash3RequireAuth);
     app.use(cors());
     app.use(express.static(ui_build_path, { index: false }));
+    app.use("/api/stripe", stripeRouter);
     app.use(express.json());
     app.use("/api", apiRouter);
     app.use("/api/billing", billingRouter);
-    app.use("/api/stripe", stripeRouter);
 
     // --- SPA fallback: any route NOT starting with /api -> index.html ---
     app.get("*", (_req, _res) => {
