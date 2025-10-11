@@ -73,15 +73,23 @@ export default function BillingPage() {
             tier: id,
             accountId: userId
         }, (resp: any) => {
-            setCheckoutSession(resp);
-            console.log(resp);
-            window.open(checkoutSession.url, "_blank");
+            try {
+                setCheckoutSession(resp);
+                window.open(resp.url, "_blank");
+                setError(null);
+            } catch (e) {
+                setError("Failed to initiate checkout");
+                console.error(e);
+            }
             setLoading(false);
-            setError(null);
         }, (err: any) => {
-            console.error('Failed to initiate checkout', err);
-            window.open("https://www.stash3.io/api/static/holding/billing/success", "_blank");
-            setError(err && err.error && err.error.error ? err.error.error : "Failed to initiate checkout");
+            try {
+                console.error('Failed to initiate checkout', err);
+                setError(err && err.error && err.error.error ? err.error.error : "Failed to initiate checkout");
+            } catch (e) {
+                setError("Failed to initiate checkout");
+                console.error(e);
+            }
             setLoading(false);
         });
     }
@@ -113,18 +121,22 @@ export default function BillingPage() {
 
     const PlanPurchaseOptions = () => {
 
-        return <div className="mt-5">
+        return <div className="mt-5 w-100">
             <h3 className="mb-3">Available Licenses</h3>
-            <div>
-                {billingPlans.map(plan => (
-                    <div key={plan.id} className="mb-4 p-3 border rounded">
+            <div className="w-100 d-flex flex-column align-items-center justify-content-center h-100">
+                {billingPlans.map(plan => {
+                    if (hasBillingProfile && billingInfo && billingInfo.planName === plan.id) {
+                        return null;
+                    }
+
+                    return <div key={plan.id} className="mb-4 p-3 border rounded w-100">
                         <h5 className="mb-1">{plan.name} - {plan.price}</h5>
                         <p className="mb-2"><small>{plan.description}</small></p>
                         <button className="btn btn-primary" onClick={() => {
                             checkoutWithPlan(plan);
-                        }}>Purchase {plan.name}</button>
+                        }}>{hasBillingProfile ? 'Update To' : 'Purchase'} {plan.name}</button>
                     </div>
-                ))}
+                })}
             </div>
         </div>;
     }
@@ -150,9 +162,9 @@ export default function BillingPage() {
         <Icon name={'sell'} className={'text-secondary'} style={{fontSize: '6rem'}}/>
         <h1 className="mb-3">Billing</h1>
 
-        <div>
+        <div className="w-100">
             {!hasBillingProfile &&
-                <p className="text-center">You do not have a billing profile set up. Please select a plan below to get
+                <p className="text-center">You do not have an active billing plan. Please select a plan below to get
                     started.</p>}
             {hasBillingProfile && billingInfo && PlanDetails()}
 

@@ -75,15 +75,19 @@ stripeRouter.post("/checkout/sessions", async (req: AuthRequest, res) => {
             }
         }
 
-        const session = await stripe.checkout.sessions.create({
+        const paymentRequest: Stripe.Checkout.SessionCreateParams = {
             mode: isSubscription ? "subscription" : "payment",
             line_items: [{price: PRICES[tier as keyof typeof PRICES], quantity: 1}],
             success_url: `${returnUrl}/billing/success?session_id={CHECKOUT_SESSION_ID}`,
             cancel_url: `${returnUrl}/billing/cancel`,
             metadata: {tier, accountId},
-            customer_creation: "always",
             allow_promotion_codes: true,
-        });
+            customer_email: req.user.email
+        }
+        if (!isSubscription) {
+            paymentRequest.customer_creation = 'always';
+        }
+        const session = await stripe.checkout.sessions.create(paymentRequest);
 
         if (currentPlan === null) {
             const newPlan = billingRepo.create({
@@ -103,7 +107,7 @@ stripeRouter.post("/checkout/sessions", async (req: AuthRequest, res) => {
         } else {
             currentPlan.planId = PRICES[tier as keyof typeof PRICES];
             currentPlan.planName = tier;
-            currentPlan.status = "pending_checkout";
+            currentPlan.status = "upgrading";
             currentPlan.isSubscription = isSubscription;
             currentPlan.lastUpdatedDate = new Date();
             await billingRepo.save(currentPlan);

@@ -157,7 +157,6 @@ async function bootstrap() {
     app.use(express.static(ui_build_path, { index: false }));
     app.use(express.json({
         verify: (req: RawRequest, res, buf) => {
-            console.log(req)
             if (req.url.indexOf('/stripe/webhooks') > -1) {
                 req.rawBody = buf.toString();
             }

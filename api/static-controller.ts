@@ -173,4 +173,11 @@ staticRouter.get("/holding/billing/cancel", (_req, _res) => {
         );
 });
 
+staticRouter.get("/holding/close", (_req, _res) => {
+    _res
+        .status(200)
+        .type("html")
+        .send(`<script>window.close();</script>`);
+});
+
 export default  staticRouter;

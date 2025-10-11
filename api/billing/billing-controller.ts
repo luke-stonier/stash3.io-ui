@@ -31,9 +31,8 @@ billingRouter.get("", async (req: AuthRequest, res) => {
     if (!user) return res.status(404).json({error: "User not found"});
     const currentPlan = await billingRepo.findOneBy({userId: req.user.sub});
     
-    if (!currentPlan) res.status(204);
-    
-    res.json({ ...currentPlan });
+    if (!currentPlan || currentPlan.status === 'pending_checkout' || currentPlan.status === 'cancelled') res.status(204).send();
+    else res.json({ ...currentPlan });
 });
 
 
