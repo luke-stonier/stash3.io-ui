@@ -27,10 +27,10 @@ export class UserPurchasePlan {
 
     @Column({
         type: "enum",
-        enum: ["pending_checkout", "active", "renewing", "expired"],
+        enum: ["pending_checkout", "active", "renewing", "expired", "cancelled"],
         default: "pending_checkout",
     })
-    status!: "pending_checkout" | "active" | "renewing" | "expired";
+    status!: "pending_checkout" | "active" | "renewing" | "expired" | "cancelled";
 
     @Column({ type: "varchar" })
     planName!: string;

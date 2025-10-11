@@ -48,8 +48,8 @@ export default function BillingPage() {
                 setBillingInfo(resp);
             }
             setLoading(false);
-        }, () => {
-            console.error('Failed to fetch billing information');
+        }, (err: any) => {
+            console.error('Failed to fetch billing information', err);
             setError("Failed to fetch billing information");
             setBillingInfo(null);
             setLoading(false);

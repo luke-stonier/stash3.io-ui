@@ -104,10 +104,11 @@ export class ToastService {
     static stackChangeEvent = new EventEmitter<void>();
 
     static Add = (props: Toast) => {
-        props.id = `toast-dialog-${Date.now()}`;
+        const startId = props.id || '';
+        props.id = `${props.id}-toast-dialog-${Date.now()}`;
         props.time = new Date();
         
-        if (ToastService.components.findIndex((c: Toast, index: number) => c.id === props.id) > -1) {
+        if (ToastService.components.findIndex((c: Toast, index: number) => c.id?.startsWith(startId))) {
             return;
         }
         

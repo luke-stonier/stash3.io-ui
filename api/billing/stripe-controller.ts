@@ -215,21 +215,23 @@ stripeRouter.post("/webhooks", express.raw({type: "application/json"}), async (r
             const accountId = s.metadata?.accountId as string | undefined;
             const tier = s.metadata?.tier as keyof typeof PRICES | undefined;
             if (!accountId) break;
-
-            const customerId = (s.customer as string) ?? "";
+            
+            const eventId = event.id;
+            const csId = s.id;
             const invoiceId = (s.invoice as string) ?? "";
             const paymentIntentId = (s.payment_intent as string) ?? "";
             const isSubscription = s.mode === "subscription";
             const subId = (s.subscription as string) ?? null;
+            const customerId = (s.customer as string) ?? "";
 
             await upsertByUser(accountId, {
                 status: "active",
                 planName: tier ?? (isSubscription ? "professional" : "personal"),
                 planId: tier ? PRICES[tier] : PRICES.personal,
                 isSubscription,
-                stripeCustomerId: customerId || "",
-                stripeSubscriptionId: isSubscription ? subId : null,
-                stripeInvoiceId: (invoiceId || paymentIntentId || "").toString(),
+                stripeInvoiceId: (invoiceId || paymentIntentId || csId || `NO_ID.eventId.${eventId}`).toString(),
+                stripeCustomerId: customerId,
+                stripeSubscriptionId: subId,
                 endDate: null,
             });
 
