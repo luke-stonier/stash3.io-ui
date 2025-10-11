@@ -23,6 +23,7 @@ import {AWSAccountRef} from "./entities/AWSAccountRef";
 import stripeRouter from "./billing/stripe-controller";
 import {UserPurchasePlan} from "./entities/UserBilling";
 import billingRouter from "./billing/billing-controller";
+import staticRouter from "./static-controller";
 
 
 const app: Application = express();
@@ -165,6 +166,7 @@ async function bootstrap() {
     app.use("/api", apiRouter);
     app.use("/api/billing", billingRouter);
     app.use("/api/stripe", stripeRouter);
+    app.use("/api/static", staticRouter);
 
     // --- SPA fallback: any route NOT starting with /api -> index.html ---
     app.get("*", (_req, _res) => {

@@ -46,7 +46,7 @@ const PRICES = {
 stripeRouter.post("/checkout/sessions", async (req: AuthRequest, res) => {
     try {
         if (!req.user) return res.status(401).json({error: "Unauthorized"});
-        const {tier, accountId} = req.body ?? {};
+        const {tier, accountId, origin} = req.body ?? {};
         if (!tier || !PRICES[tier as keyof typeof PRICES] || !accountId) {
             return res.status(400).json({error: "Invalid tier or accountId"});
         }
@@ -55,8 +55,8 @@ stripeRouter.post("/checkout/sessions", async (req: AuthRequest, res) => {
             return res.status(403).json({error: "Forbidden: accountId does not match user"});
         }
         
-        var returnUrl = req.headers.host && req.headers.host.indexOf('localhost') > -1 ? `http://${req.body.host}` : '';
-        if (!returnUrl) returnUrl = ''
+    const returnUrl = "https://stash3.io/api/static/holding"
+
         const isSubscription = tier !== "personal";
 
         const userRepo = db.getRepository(User);
@@ -78,8 +78,8 @@ stripeRouter.post("/checkout/sessions", async (req: AuthRequest, res) => {
         const session = await stripe.checkout.sessions.create({
             mode: isSubscription ? "subscription" : "payment",
             line_items: [{price: PRICES[tier as keyof typeof PRICES], quantity: 1}],
-            success_url: `/billing/success?session_id={CHECKOUT_SESSION_ID}`,
-            cancel_url: `/billing/cancel`,
+            success_url: `${returnUrl}/billing/success?session_id={CHECKOUT_SESSION_ID}`,
+            cancel_url: `${returnUrl}/billing/cancel`,
             metadata: {tier, accountId},
             customer_creation: "always",
             allow_promotion_codes: true,
@@ -120,9 +120,6 @@ stripeRouter.post("/webhooks", express.raw({type: "application/json"}), async (r
     const sig = req.headers["stripe-signature"] as string | undefined;
     if (!sig) return res.sendStatus(400).send("Missing signature");
     if (!req.rawBody)  return res.sendStatus(400).send("Missing rawBody");
-    
-    console.log('webhook received', req.rawBody);
-    console.log('with sig', sig)
 
     let event: Stripe.Event;
     try {

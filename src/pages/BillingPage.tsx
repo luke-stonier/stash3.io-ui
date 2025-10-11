@@ -69,6 +69,7 @@ export default function BillingPage() {
 
         setLoading(true);
         HttpService.post(`/stripe/checkout/sessions`, {
+            origin: window.location.origin,
             tier: id,
             accountId: userId
         }, (resp: any) => {
@@ -76,9 +77,10 @@ export default function BillingPage() {
             console.log(resp);
             window.open(checkoutSession.url, "_blank");
             setLoading(false);
+            setError(null);
         }, (err: any) => {
             console.error('Failed to initiate checkout', err);
-            setError(err.error.error || "Failed to initiate checkout");
+            setError(err && err.error && err.error.error ? err.error.error : "Failed to initiate checkout");
             setLoading(false);
         });
     }
