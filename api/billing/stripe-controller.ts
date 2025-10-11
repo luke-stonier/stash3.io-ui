@@ -54,7 +54,8 @@ stripeRouter.post("/checkout/sessions", async (req: AuthRequest, res) => {
         if (req.user.sub !== accountId) {
             return res.status(403).json({error: "Forbidden: accountId does not match user"});
         }
-
+        
+        const returnUrl = req.headers.host && req.headers.host.indexOf('localhost') > -1 ? `http://${req.body.host}` : '';
         const isSubscription = tier !== "personal";
 
         const userRepo = db.getRepository(User);
@@ -64,7 +65,7 @@ stripeRouter.post("/checkout/sessions", async (req: AuthRequest, res) => {
         if (!user) return res.status(404).json({error: "User not found"});
         const currentPlan = await billingRepo.findOneBy({userId: accountId});
         if (currentPlan !== null) {
-            if (!isSubscription && !currentPlan.isSubscription) { // trying to purchase single plan with existing single plan - block
+            if (!isSubscription && !currentPlan.isSubscription && currentPlan.status === 'active') { // trying to purchase single plan with existing single plan - block
                 return res.status(400).json({error: "You already have an active subscription"});
             }
 
@@ -76,8 +77,8 @@ stripeRouter.post("/checkout/sessions", async (req: AuthRequest, res) => {
         const session = await stripe.checkout.sessions.create({
             mode: isSubscription ? "subscription" : "payment",
             line_items: [{price: PRICES[tier as keyof typeof PRICES], quantity: 1}],
-            success_url: `${process.env.FRONTEND_URL}/billing/success?session_id={CHECKOUT_SESSION_ID}`,
-            cancel_url: `${process.env.FRONTEND_URL}/billing/cancel`,
+            success_url: `${returnUrl}/billing/success?session_id={CHECKOUT_SESSION_ID}`,
+            cancel_url: `${returnUrl}/billing/cancel`,
             // carry context to webhook so you can link to your DB
             metadata: {tier, accountId},
             // recommend collecting email to link Stripe customer
@@ -109,7 +110,7 @@ stripeRouter.post("/checkout/sessions", async (req: AuthRequest, res) => {
             await billingRepo.save(currentPlan);
         }
 
-        res.json({id: session.id, url: session.url});
+        res.json({ id: session.id, url: session.url });
     } catch (err: any) {
         res.status(500).json({error: err.message ?? "failed"});
     }
@@ -119,6 +120,9 @@ stripeRouter.post("/checkout/sessions", async (req: AuthRequest, res) => {
 stripeRouter.post("/webhooks", express.raw({type: "application/json"}), async (req: Request, res: Response) => {
     const sig = req.headers["stripe-signature"] as string | undefined;
     if (!sig) return res.sendStatus(400);
+    
+    console.log('webhook received', req.body);
+    console.log('with sig', sig)
 
     let event: Stripe.Event;
     try {

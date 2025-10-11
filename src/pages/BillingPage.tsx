@@ -1,22 +1,42 @@
 import Icon from "../components/Icon";
 import React, {useCallback, useEffect, useState} from "react";
 import HttpService from "../services/http/http-service";
+import UserSession from "../Models/UserSession";
+import UserService from "../services/user-service";
+import {useNavigate} from "react-router-dom";
 
 export default function BillingPage() {
 
+    //const navigate = useNavigate();
     const [loading, setLoading] = useState<boolean>(true);
     const [billingInfo, setBillingInfo] = useState<any>(null);
     const [hasBillingProfile, setHasBillingProfile] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
-    
+    const [checkoutSession, setCheckoutSession] = useState<any>(null);
+
     // 
-    
+
     const billingPlans = [
-        { name: "Personal (Perpetual)", price: "£59", description: "All Features - built for solo users with a single set of AWS credentials at one time", id: "personal" },
-        { name: "Professional (Monthly)", price: "£12/month", description: "All Features - Multiple AWS credentials at one time", id: "professional" },
-        { name: "Professional (Annually)", price: "£100/year", description: "All Features - Multiple AWS credentials at one time", id: "professional_annual" },
+        {
+            name: "Personal (Perpetual)",
+            price: "£59",
+            description: "All Features - built for solo users with a single set of AWS credentials at one time",
+            id: "personal"
+        },
+        {
+            name: "Professional (Monthly)",
+            price: "£12/month",
+            description: "All Features - Multiple AWS credentials at one time",
+            id: "professional"
+        },
+        {
+            name: "Professional (Annually)",
+            price: "£100/year",
+            description: "All Features - Multiple AWS credentials at one time",
+            id: "professional_annual"
+        },
     ];
-    
+
     const loadBilling = useCallback(() => {
         setLoading(true);
         HttpService.get(`/billing`, (resp: any) => {
@@ -35,10 +55,33 @@ export default function BillingPage() {
             setLoading(false);
         });
     }, [])
-    
+
     useEffect(() => {
         loadBilling();
     }, [])
+
+    const checkoutWithPlan = ({name, id}: { name: string, id: string }) => {
+        const userId = UserService.currentSession?.user.id;
+        if (!userId) {
+            setError("User not logged in");
+            return;
+        }
+
+        setLoading(true);        
+        HttpService.post(`/stripe/checkout/sessions`, {
+            tier: id,
+            accountId: userId
+        }, (resp: any) => {
+            setCheckoutSession(resp);
+            console.log(resp);
+            window.open(checkoutSession.url, "_blank");
+            setLoading(false);
+        }, () => {
+            console.error('Failed to initiate checkout');
+            setError("Failed to initiate checkout");
+            setLoading(false);
+        });
+    }
 
     if (loading) {
         return <div className="d-flex flex-column align-items-center justify-content-center w-100 h-100">
@@ -47,7 +90,7 @@ export default function BillingPage() {
             </div>
         </div>;
     }
-    
+
     if (error !== null) {
         return <div className="pt-5 d-flex flex-column align-items-center justify-content-center h-100">
             <Icon name={'error'} className={'text-danger'} style={{fontSize: '6rem'}}/>
@@ -56,9 +99,9 @@ export default function BillingPage() {
             </div>
         </div>;
     }
-    
+
     const PlanPurchaseOptions = () => {
-        
+
         return <div className="mt-5">
             <h3 className="mb-3">Available Licenses</h3>
             <div>
@@ -67,20 +110,18 @@ export default function BillingPage() {
                         <h5 className="mb-1">{plan.name} - {plan.price}</h5>
                         <p className="mb-2"><small>{plan.description}</small></p>
                         <button className="btn btn-primary" onClick={() => {
-                            
+                            checkoutWithPlan(plan);
                         }}>Purchase {plan.name}</button>
                     </div>
                 ))}
             </div>
         </div>;
     }
-    
+
     return <div className="pt-5 d-flex flex-column align-items-center justify-content-center h-100">
         {/*<Icon name={'sell'} className={'text-secondary'} style={{fontSize: '6rem'}}/>*/}
-
-
         {PlanPurchaseOptions()}
-        
+
         {/*<div className="mt-5">*/}
         {/*    <h3 className="mb-3">Available Licenses</h3>*/}
         {/*    <div>*/}
