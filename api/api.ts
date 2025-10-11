@@ -17,7 +17,7 @@ if (process.env.NODE_ENV !== "production") {
 
 import { DataSource } from "typeorm";
 import { User } from "./entities/User";
-import {AuthRequest} from "./types/auth";
+import {AuthRequest, RawRequest} from "./types/auth";
 import {stash3RequireAuth} from "./middleware/auth";
 import {AWSAccountRef} from "./entities/AWSAccountRef";
 import stripeRouter from "./billing/stripe-controller";
@@ -154,10 +154,17 @@ async function bootstrap() {
     app.use(stash3RequireAuth);
     app.use(cors());
     app.use(express.static(ui_build_path, { index: false }));
-    app.use("/api/stripe", stripeRouter);
-    app.use(express.json());
+    app.use(express.json({
+        verify: (req: RawRequest, res, buf) => {
+            console.log(req)
+            if (req.url.indexOf('/stripe/webhooks') > -1) {
+                req.rawBody = buf.toString();
+            }
+        },
+    }));
     app.use("/api", apiRouter);
     app.use("/api/billing", billingRouter);
+    app.use("/api/stripe", stripeRouter);
 
     // --- SPA fallback: any route NOT starting with /api -> index.html ---
     app.get("*", (_req, _res) => {

@@ -7,7 +7,7 @@ import dotenv from "dotenv";
 import {User} from "../entities/User";
 import {db} from "../api";
 import {UserPurchasePlan} from "../entities/UserBilling";
-import {AuthRequest} from "../types/auth";
+import {AuthRequest, RawRequest} from "../types/auth";
 
 if (process.env.NODE_ENV !== "production") {
     const customEnvPath = process.env.STASH3_ENV
@@ -117,17 +117,18 @@ stripeRouter.post("/checkout/sessions", async (req: AuthRequest, res) => {
 });
 
 
-stripeRouter.post("/webhooks", express.raw({type: "application/json"}), async (req: Request, res: Response) => {
+stripeRouter.post("/webhooks", express.raw({type: "application/json"}), async (req: RawRequest, res: Response) => {
     const sig = req.headers["stripe-signature"] as string | undefined;
-    if (!sig) return res.sendStatus(400);
+    if (!sig) return res.sendStatus(400).send("Missing signature");
+    if (!req.rawBody)  return res.sendStatus(400).send("Missing rawBody");
     
-    console.log('webhook received', req.body);
+    console.log('webhook received', req.rawBody);
     console.log('with sig', sig)
 
     let event: Stripe.Event;
     try {
         event = stripe.webhooks.constructEvent(
-            req.body,
+            req.rawBody,
             sig,
             process.env.STRIPE_WEBHOOK_SECRET!
         );
