@@ -55,7 +55,7 @@ stripeRouter.post("/checkout/sessions", async (req: AuthRequest, res) => {
             return res.status(403).json({error: "Forbidden: accountId does not match user"});
         }
         
-    const returnUrl = "https://stash3.io/api/static/holding"
+        const returnUrl = "https://stash3.io/api/static/holding"
 
         const isSubscription = tier !== "personal";
 
@@ -119,6 +119,33 @@ stripeRouter.post("/checkout/sessions", async (req: AuthRequest, res) => {
     }
 });
 
+stripeRouter.get("/portal", async (req: AuthRequest, res) => {
+
+    try {
+        if (!req.user) return res.status(401).json({error: "Unauthorized"});
+        if (!req.user.sub) return res.status(401).json({error: "Unauthorized"});
+
+        const billingRepo = db.getRepository(UserPurchasePlan);
+        const billingPlan = await billingRepo.findOneBy({userId: req.user.sub});
+        console.log(req.user.sub, billingPlan);
+        if (!billingPlan || !billingPlan.stripeCustomerId) return res.status(400).json({error: "No billing profile found"});
+
+        const custId = billingPlan.stripeCustomerId;
+        if (!custId) return res.status(400).json({error: "No billing profile found"});
+
+        const portalSession = await stripe.billingPortal.sessions.create({
+            customer: custId,
+            return_url: "https://stash3.io/api/static/holding/close",
+        });
+
+        return res.status(200).json({
+            ...portalSession
+        });
+    } catch (error) {
+        console.error("Failed to create portal session", error);
+        return res.status(500).json({error: "Failed to create portal session"});
+    }
+});
 
 stripeRouter.post("/webhooks", express.raw({type: "application/json"}), async (req: RawRequest, res: Response) => {
     const sig = req.headers["stripe-signature"] as string | undefined;
@@ -190,7 +217,7 @@ stripeRouter.post("/webhooks", express.raw({type: "application/json"}), async (r
     // Map Stripe subscription statuses to app statuses
     const subStatusToApp: Record<
         string,
-        "active" | "renewing" | "expired"
+        "active" | "renewing" | "expired" | "cancelled"
     > = {
         active: "active",
         trialing: "active",
@@ -198,7 +225,7 @@ stripeRouter.post("/webhooks", express.raw({type: "application/json"}), async (r
         unpaid: "renewing",
         incomplete: "renewing",
         paused: "renewing",
-        canceled: "expired",
+        canceled: "cancelled",
         incomplete_expired: "expired",
     };
 

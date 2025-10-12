@@ -32,7 +32,15 @@ billingRouter.get("", async (req: AuthRequest, res) => {
     const currentPlan = await billingRepo.findOneBy({userId: req.user.sub});
     
     if (!currentPlan || currentPlan.status === 'pending_checkout' || currentPlan.status === 'cancelled') res.status(204).send();
-    else res.json({ ...currentPlan });
+    else res.json({ 
+        id: currentPlan.id,
+        planName: currentPlan.planName,
+        status: currentPlan.status,
+        isSubscription: currentPlan.isSubscription,
+        startDate: currentPlan.startDate,
+        endDate: currentPlan.endDate,
+        lastUpdatedDate: currentPlan.lastUpdatedDate,
+    });
 });
 
 

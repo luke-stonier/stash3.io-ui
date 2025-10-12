@@ -25,13 +25,13 @@ export default function BillingPage() {
         },
         {
             name: "Professional (Monthly)",
-            price: "£12/month",
+            price: "£12.99/month",
             description: "All Features - Multiple AWS credentials at one time",
             id: "professional"
         },
         {
             name: "Professional (Annually)",
-            price: "£100/year",
+            price: "£129/year",
             description: "All Features - Multiple AWS credentials at one time",
             id: "professional_annual"
         },
@@ -75,8 +75,19 @@ export default function BillingPage() {
         }, (resp: any) => {
             try {
                 setCheckoutSession(resp);
-                window.open(resp.url, "_blank");
-                setError(null);
+                const checkoutWindow = window.open(resp.url, "_blank");
+                if (!checkoutWindow) {
+                    setError("Failed to open checkout window. Please contact support if this continues");
+                } else {
+                    setError(null);
+                    const poll = setInterval(() => {
+                        if (checkoutWindow.closed) {
+                            clearInterval(poll);
+                            setLoading(true);
+                            setTimeout(() => loadBilling(), 1000);
+                        }
+                    }, 500);
+                }
             } catch (e) {
                 setError("Failed to initiate checkout");
                 console.error(e);
@@ -92,6 +103,27 @@ export default function BillingPage() {
             }
             setLoading(false);
         });
+    }
+    
+    const openCustomerPortal = () => {
+        setLoading(true);
+        HttpService.get(`/stripe/portal`, (resp: any) => {
+            const portalWindow = window.open(resp.url, "_blank");
+            if (!portalWindow) {
+                setError("Failed to open customer portal. Please contact support if this continues");
+            } else {
+                const poll = setInterval(() => {
+                    if (portalWindow.closed) {
+                        clearInterval(poll);
+                        setLoading(true);
+                        setTimeout(() => loadBilling(), 1000);
+                    }
+                }, 500);
+            }
+            setLoading(false);
+        }, () => {
+            setLoading(false);
+        });   
     }
 
     if (loading) {
@@ -122,10 +154,11 @@ export default function BillingPage() {
     const PlanPurchaseOptions = () => {
 
         return <div className="mt-5 w-100">
-            <h3 className="mb-3">Available Licenses</h3>
+            <h3 className="mb-0">Available Licenses</h3>
+            <small className="mb-3 d-block">Looking for a multi-user business plan? Contact us <a className="text-warning fst-italic text-decoration-none" href="mailto:sales@stash3.io">sales@stash3.io</a></small>
             <div className="w-100 d-flex flex-column align-items-center justify-content-center h-100">
                 {billingPlans.map(plan => {
-                    if (hasBillingProfile && billingInfo && billingInfo.planName === plan.id) {
+                    if (hasBillingProfile && billingInfo && billingInfo.status === 'active' && billingInfo.planName === plan.id) {
                         return null;
                     }
 
@@ -147,13 +180,13 @@ export default function BillingPage() {
             <h3 className="mb-3">Current Plan Details</h3>
             <p className="mb-1">Plan Name: <strong>{billingInfo.planName}</strong></p>
             <p className="mb-1">Status: <strong>{billingInfo.status}</strong></p>
+            <p className="mb-1">Updated Date: <strong>{new Date(billingInfo.lastUpdatedDate).toLocaleDateString()}</strong></p>
             <p className="mb-1">Start Date: <strong>{new Date(billingInfo.startDate).toLocaleDateString()}</strong></p>
             {billingInfo.endDate &&
                 <p className="mb-1">End Date: <strong>{new Date(billingInfo.endDate).toLocaleDateString()}</strong></p>
             }
             {billingInfo.isSubscription !== undefined &&
-                <p className="mb-1">Type: <strong>{billingInfo.isSubscription ? 'Subscription' : 'One-time Purchase'}</strong>
-                </p>
+                <p className="mb-1">Type: <strong>{billingInfo.isSubscription ? 'Subscription' : 'One-time Purchase'}</strong></p>
             }
         </div>
     }
@@ -167,6 +200,7 @@ export default function BillingPage() {
                 <p className="text-center">You do not have an active billing plan. Please select a plan below to get
                     started.</p>}
             {hasBillingProfile && billingInfo && PlanDetails()}
+            {hasBillingProfile && <button className="btn btn-primary mt-3" onClick={openCustomerPortal}>Manage Subscription</button> }
 
             {PlanPurchaseOptions()}
         </div>
