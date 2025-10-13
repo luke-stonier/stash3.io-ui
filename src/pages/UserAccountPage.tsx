@@ -1,10 +1,22 @@
 import Icon from "../components/Icon";
-import React from "react";
+import React, {useState} from "react";
+import ChangePassword from "../components/ChangePassword";
 
 export default function UserAccountPage() {
-    return <div className="pt-5 d-flex flex-column align-items-center justify-content-center h-100">
-        <Icon name={'account_circle'} className={'text-secondary'} style={{fontSize: '6rem'}}/>
-        <h3 className="text-secondary">No account options</h3>
-        <p className="text-secondary text-center">Come back later to view your account details</p>
+    
+    const [session, setSession] = useState<any>(null);
+    
+    return <div className="">
+        <div className="d-flex align-items-center justify-content-start gap-2 w-100 mb-3">
+            <Icon name={'account_circle'} className={'text-secondary'} style={{fontSize: '3rem'}}/>
+            <h1 className="mb-0">Account</h1>
+        </div>
+        
+        <div>
+            
+        </div>
+        
+        <ChangePassword />
+        
     </div>;
 }

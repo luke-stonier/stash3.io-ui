@@ -51,16 +51,22 @@ export default class UserService {
     }
     
     static isLoggedIn = () => {
-        const localSession = localStorage.getItem('session');
-        const localToken = localStorage.getItem('token');
-        if (localSession === null || localToken === null) return false; // not logged in
-        const decodedToken = jwtDecode(localToken);
-        const exp = (decodedToken as any).exp;
-        if (Date.now() >= exp * 1000) {
-            UserService.SignOut();
+        try {
+            const localSession = localStorage.getItem('session');
+            const localToken = localStorage.getItem('token');
+            if (localSession === null || localToken === null) return false; // not logged in
+            if (localSession === undefined || localToken === 'undefined') return false;
+            const decodedToken = jwtDecode(localToken);
+            const exp = (decodedToken as any).exp;
+            if (Date.now() >= exp * 1000) {
+                UserService.SignOut();
+                return false;
+            }
+            return true;
+        } catch (er) {
+            console.log(er)
             return false;
         }
-        return true;
     };
 
     static GetToken = () => {

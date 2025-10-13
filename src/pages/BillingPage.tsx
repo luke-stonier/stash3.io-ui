@@ -157,7 +157,16 @@ export default function BillingPage() {
             <h3 className="mb-0">Available Licenses</h3>
             <small className="mb-3 d-block">Looking for a multi-user business plan? Contact us <a className="text-warning fst-italic text-decoration-none" href="mailto:sales@stash3.io">sales@stash3.io</a></small>
             <div className="w-100 d-flex flex-column align-items-center justify-content-center h-100">
-                {billingPlans.map(plan => {
+                {billingPlans.map(plan => {                    
+                    if (plan.id === 'personal' && hasBillingProfile && billingInfo && billingInfo.hasPurchasedPerpetual) {
+                        return <div key={plan.id} className="mb-4 p-3 border rounded w-100 opacity-25">
+                            <h5 className="mb-1 text-muted">{plan.name}</h5>
+                            <p className="mb-2 text-muted"><small>{plan.description}</small></p>
+                            <button disabled className="btn btn-outline-primary" onClick={() => {
+                            }}>ALREADY PURCHASED</button>
+                        </div>    
+                    }
+
                     if (hasBillingProfile && billingInfo && billingInfo.status === 'active' && billingInfo.planName === plan.id) {
                         return null;
                     }
@@ -171,12 +180,14 @@ export default function BillingPage() {
                     </div>
                 })}
             </div>
+
+            <small className="fst-italic text-muted mb-3 d-block">Upgrading to professional plans after purchasing a personal perpetual license does not remove your personal plan history - cancel your subscription at any time to continue enjoying your standard benefits!</small>
         </div>;
     }
 
     const PlanDetails = () => {
         if (!billingInfo) return null;
-        return <div className="mt-4">
+        return <div className="mt-4 border rounded-3 px-3 py-2 shadow-lg bg-lighter">
             <h3 className="mb-3">Current Plan Details</h3>
             <p className="mb-1">Plan Name: <strong>{billingInfo.planName}</strong></p>
             <p className="mb-1">Status: <strong>{billingInfo.status}</strong></p>
@@ -192,8 +203,10 @@ export default function BillingPage() {
     }
 
     return <div className="pt-5 d-flex flex-column align-items-center justify-content-center h-100">
-        <Icon name={'sell'} className={'text-secondary'} style={{fontSize: '6rem'}}/>
-        <h1 className="mb-3">Billing</h1>
+        <div className="d-flex align-items-center justify-content-start gap-2 w-100 mb-3">
+        <Icon name={'sell'} className={'text-secondary'} style={{fontSize: '3rem'}}/>
+        <h1 className="mb-0">Billing</h1>
+        </div>
 
         <div className="w-100">
             {!hasBillingProfile &&

@@ -42,7 +42,6 @@ export default function AddAccountModal(props: AddAccountModalProps) {
         HttpService.post(`/accounts`, {
             accountName: addAccountRequest.name,
         }, (resp: AddAccountResponse) => {
-            console.log(resp);
             APIWrapperService.SetCredentials(resp.handle, addAccountRequest.accessKey, addAccountRequest.secretKey);
             setTimeout(() => {
                 setLoading(false);

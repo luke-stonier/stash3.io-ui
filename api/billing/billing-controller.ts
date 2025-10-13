@@ -31,16 +31,34 @@ billingRouter.get("", async (req: AuthRequest, res) => {
     if (!user) return res.status(404).json({error: "User not found"});
     const currentPlan = await billingRepo.findOneBy({userId: req.user.sub});
     
-    if (!currentPlan || currentPlan.status === 'pending_checkout' || currentPlan.status === 'cancelled') res.status(204).send();
-    else res.json({ 
-        id: currentPlan.id,
-        planName: currentPlan.planName,
-        status: currentPlan.status,
-        isSubscription: currentPlan.isSubscription,
-        startDate: currentPlan.startDate,
-        endDate: currentPlan.endDate,
-        lastUpdatedDate: currentPlan.lastUpdatedDate,
-    });
+    if (!currentPlan || (currentPlan.status === 'pending_checkout' || currentPlan.status === 'cancelled') && !currentPlan.hasPurchasedPerpetual) {
+        res.status(204).send();
+        return;
+    }
+    
+    if ((currentPlan.status === 'expired' || currentPlan.status === 'cancelled') && currentPlan.hasPurchasedPerpetual) {
+        res.json({
+            id: currentPlan.id,
+            planName: 'personal',
+            status: 'active',
+            isSubscription: false,
+            startDate: currentPlan.startDate,
+            endDate: null,
+            lastUpdatedDate: currentPlan.lastUpdatedDate,
+            hasPurchasedPerpetual: currentPlan.hasPurchasedPerpetual,
+        });
+    } else {
+        res.json({
+            id: currentPlan.id,
+            planName: currentPlan.planName,
+            status: currentPlan.status,
+            isSubscription: currentPlan.isSubscription,
+            startDate: currentPlan.startDate,
+            endDate: currentPlan.endDate,
+            lastUpdatedDate: currentPlan.lastUpdatedDate,
+            hasPurchasedPerpetual: currentPlan.hasPurchasedPerpetual,
+        });
+    }
 });
 
 

@@ -14,6 +14,8 @@ import  { ConfirmationDialogWrapper, ToastWrapper } from "./services/Overlays";
 import Bookmarks from "./pages/Bookmarks";
 import UserAccountPage from "./pages/UserAccountPage";
 import BillingPage from "./pages/BillingPage";
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 
 function App() {
     const [authenticated, setAuthenticated] = useState(UserService.isLoggedIn());
@@ -35,6 +37,12 @@ function App() {
         }
     }, [])
 
+    useEffect(() => {
+        if (!authenticated) {
+            localStorage.removeItem("token");
+        }
+    }, []);
+    
     return <div className="w-100 text-white position-relative">
         {/* Global Modals */}
         <ToastWrapper />
@@ -62,6 +70,8 @@ function App() {
                             <Route path="/" element={<Login/>}/>
                             <Route path="/login" element={<Login/>}/>
                             <Route path="/register" element={<Register/>}/>
+                            <Route path="/forgot-password" element={<ForgotPassword/>}/>
+                            <Route path="/reset-password" element={<ResetPassword/>}/>
 
                             <Route path="*" element={<ErrorPage/>}/>
                         </Route>

@@ -49,4 +49,7 @@ export class UserPurchasePlan {
 
     @Column({ type: "varchar" })
     stripeInvoiceId!: string;
+    
+    @Column({ type: "boolean", default: false, nullable: false })
+    hasPurchasedPerpetual!: boolean; // set once - no matter what the current plan is this will be active / never unset
 }

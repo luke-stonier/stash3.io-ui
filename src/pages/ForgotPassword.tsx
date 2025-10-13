@@ -5,49 +5,41 @@ import HttpService, {HttpError} from "../services/http/http-service";
 import UserService from "../services/user-service";
 import UserSession from "../Models/UserSession";
 
-export default function Login() {
+export default function ForgotPassword() {
 
     const [respError, setRespError] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
-    const [loginRequest, setLoginRequest] = useState<{
+    const [forgotRequest, setForgotRequest] = useState<{
         email: string;
-        password: string;
     }>({
-        email: '',
-        password: ''
+        email: ''
     })
 
-    const loginClickHandler = useCallback(() => {
+    const submitClickHandler = useCallback(() => {
         setLoading(true);
         setRespError(null);
-        HttpService.post(`/auth/login`, loginRequest, (resp: UserSession) => {
+        HttpService.post(`/auth/forgot-password`, forgotRequest, (resp: UserSession) => {
             setLoading(false);
-            setLoginRequest({
+            setForgotRequest({
                 email: '',
-                password: ''
             });
-            UserService.UpdateSession(resp);
-            window.location.href = '/buckets';
+            window.location.href = '/reset-password';
         }, (err: HttpError) => {
             console.log(err);
             setLoading(false);
             setRespError(err && err.error && err.error.error ? err.error.error : 'An unknown error occurred');
         });
-    }, [loginRequest])
+    }, [forgotRequest])
 
     const errors = useCallback(() => {
         const _errors: { visible: boolean, message: string }[] = [];
 
-        if (!loginRequest.email || loginRequest.email.length === 0) {
+        if (!forgotRequest.email || forgotRequest.email.length === 0) {
             _errors.push({visible: false, message: 'Email is required'});
         }
 
-        if (!loginRequest.password || loginRequest.password.length === 0) {
-            _errors.push({visible: false, message: 'Password is required'});
-        }
-
         return _errors;
-    }, [loginRequest])
+    }, [forgotRequest])
 
     return <div className="d-flex flex-column align-items-center justify-content-center w-100 h-100">
         <img
@@ -58,29 +50,20 @@ export default function Login() {
         />
         <h1 className="h3 mb-0 fw-bold">Stash3.io</h1>
 
-        <h1 className="display-1">Login</h1>
+        <h1 className="display-1">Forgot Password</h1>
 
         <div className="mt-3">
             <input type="email" placeholder="Email" className="form-control mb-2 bg-lighter text-white border-0"
                    style={{width: '300px'}}
                    onChange={(e) => {
-                       setLoginRequest({...loginRequest, email: e.target.value})
-                   }}/>
-            <input type="password" placeholder="Password" className="form-control mb-2 bg-lighter text-white border-0"
-                   style={{width: '300px'}}
-                   onChange={(e) => {
-                       setLoginRequest({
-                           ...loginRequest,
-                           password: e.target.value
-                       })
+                       setForgotRequest({...forgotRequest, email: e.target.value})
                    }}
                    onKeyDown={((e) => {
-                       if (e.key === 'Enter') loginClickHandler()
-                   })}
-            />
+                       if (e.key === 'Enter') submitClickHandler()
+                   })}/>
             <button className={`btn btn-primary w-100 ${loading ? 'opacity-50' : ''}`}
                     disabled={loading || errors().length > 0}
-                    onClick={loginClickHandler}>{loading ? 'Loading...' : 'Log In'}</button>
+                    onClick={submitClickHandler}>{loading ? 'Loading...' : 'Continue'}</button>
         </div>
 
         {
@@ -95,10 +78,8 @@ export default function Login() {
                 <div className="text-center text-danger">{respError}</div>
             </div>
         }
-
-        <p className="mt-3 mb-2 text-muted">Dont have an account? <Link className="text-white ms-1" to={'/register'}>Sign up
-            here</Link></p>
-
-        <p className="mt-0 text-muted"><Link className="text-white ms-1" to={'/forgot-password'}>Forgotten your password</Link></p>
+        
+        <p className="mt-3 mb-2 text-muted"><Link className="text-white ms-1" to={'/login'}>Login</Link></p>
+        <p className="mt-0 text-muted"><Link className="text-white ms-1" to={'/reset-password'}>Reset password</Link></p>
     </div>
 }

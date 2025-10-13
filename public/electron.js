@@ -1,4 +1,5 @@
 const { app, BrowserWindow, Menu  } = require("electron");
+// import { autoUpdater } from "electron-updater";
 const path = require("path");
 require('./s3-ipc');
 
@@ -18,6 +19,7 @@ function createWindow() {
             preload: path.join(__dirname, 'preload.js'),
         },
     });
+    
 
     // ✅ App menu with Edit roles so Cmd/Ctrl+C/V/Z work
     const template = [
@@ -50,6 +52,30 @@ function createWindow() {
     } else {
         win.loadFile(path.join(__dirname, "index.html"));
     }
+
+    // Uncomment this block to enable auto-updates
+    // autoUpdater.autoDownload = false;              // let user accept download
+    // autoUpdater.checkForUpdatesAndNotify();        // checks on launch
+    //
+    // autoUpdater.on("update-available", () => {
+    //     dialog.showMessageBox(win, {
+    //         type: "info",
+    //         message: "A new version is available.",
+    //         detail: "Download and install now?",
+    //         buttons: ["Yes", "Later"],
+    //         cancelId: 1,
+    //     }).then(r => { if (r.response === 0) autoUpdater.downloadUpdate(); });
+    // });
+    //
+    // autoUpdater.on("update-downloaded", () => {
+    //     dialog.showMessageBox(win, {
+    //         type: "info",
+    //         message: "Update ready",
+    //         detail: "Restart to apply the update.",
+    //         buttons: ["Restart now", "Later"],
+    //         cancelId: 1,
+    //     }).then(r => { if (r.response === 0) autoUpdater.quitAndInstall(); });
+    // });
 }
 
 app.whenReady().then(async () => {

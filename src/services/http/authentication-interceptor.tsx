@@ -9,10 +9,12 @@ export default function AuthenticationInterceptor(axios: AxiosInstance) {
 		(error: AxiosError) => {
 			if (error === undefined || error.response === undefined) return Promise.reject(error);
 			console.log(error.response.status, error.message);
-			if (error.response.status === 401) {
-				UserService.UpdateSession(null);
-			} else if (error.response.status === 403) {
-				UserService.UpdateSession(null);
+			if (UserService.isLoggedIn()) {
+				if (error.response.status === 401) {
+					UserService.UpdateSession(null);
+				} else if (error.response.status === 403) {
+					UserService.UpdateSession(null);
+				}
 			}
 			return Promise.reject(error);
 		}

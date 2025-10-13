@@ -21,6 +21,7 @@
     "cors": "^2.8.5",
     "dotenv": "^17.2.1",
     "electron-store": "^8.2.0",
+    "electron-updater": "^6.6.2",
     "jsonwebtoken": "^9.0.2",
     "jwt-decode": "^4.0.0",
     "keytar": "^7.9.0",
@@ -51,7 +52,12 @@
     "ui": "concurrently \"npm run react:start\" \"wait-on http://localhost:3000 && npm run electron:start\"",
     "build": "npm run react:build && npm run api:build && npm run electron:build",
     "log": "heroku logs --app=stash3-io --source app --tail",
-    "reset": "kill-port 3000 && kill-port 5000"
+    "reset": "kill-port 3000 && kill-port 5000",
+    "dist": "electron-builder",
+    "dist:win": "electron-builder -w",
+    "dist:mac": "electron-builder -m",
+    "dist:linux": "electron-builder -l",
+    "publish": "electron-builder --publish always"
   },
   "eslintConfig": {
     "extends": [
@@ -79,7 +85,50 @@
     "concurrently": "^9.2.0",
     "cross-env": "^10.0.0",
     "electron": "^37.3.1",
+    "electron-builder": "^26.0.12",
     "nodemon": "^3.1.10",
     "wait-on": "^8.0.4"
+  },
+  "build": {
+    "appId": "com.nitrose.stash3io",
+    "productName": "Stash3.IO",
+    "files": [
+      "dist/**/*",
+      "assets/**/*",
+      "!**/*.map"
+    ],
+    "asar": true,
+    "publish": [],
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "assets/icon.ico"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "allowElevation": false,
+      "artifactName": "${productName}-Setup-${version}.${ext}"
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "hardenedRuntime": true,
+      "entitlements": "build/entitlements.mac.plist",
+      "icon": "assets/icon.icns"
+    },
+    "dmg": {
+      "artifactName": "${productName}-${version}.${ext}"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Utility",
+      "icon": "assets/icons/"
+    }
   }
 }

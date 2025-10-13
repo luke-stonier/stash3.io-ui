@@ -127,7 +127,6 @@ stripeRouter.get("/portal", async (req: AuthRequest, res) => {
 
         const billingRepo = db.getRepository(UserPurchasePlan);
         const billingPlan = await billingRepo.findOneBy({userId: req.user.sub});
-        console.log(req.user.sub, billingPlan);
         if (!billingPlan || !billingPlan.stripeCustomerId) return res.status(400).json({error: "No billing profile found"});
 
         const custId = billingPlan.stripeCustomerId;
@@ -251,7 +250,7 @@ stripeRouter.post("/webhooks", express.raw({type: "application/json"}), async (r
             const subId = (s.subscription as string) ?? null;
             const customerId = (s.customer as string) ?? "";
 
-            await upsertByUser(accountId, {
+            const newRecord: Partial<UserPurchasePlan> = {
                 status: "active",
                 planName: tier ?? (isSubscription ? "professional" : "personal"),
                 planId: tier ? PRICES[tier] : PRICES.personal,
@@ -260,7 +259,9 @@ stripeRouter.post("/webhooks", express.raw({type: "application/json"}), async (r
                 stripeCustomerId: customerId,
                 stripeSubscriptionId: subId,
                 endDate: null,
-            });
+            }
+            if (!isSubscription) newRecord.hasPurchasedPerpetual = true;
+            await upsertByUser(accountId, newRecord);
 
             break;
         }
@@ -341,6 +342,7 @@ stripeRouter.post("/webhooks", express.raw({type: "application/json"}), async (r
                 row.stripeInvoiceId = invoice.id || 'unset';
                 if (event.type === "invoice.paid") row.endDate = null;
                 row.lastUpdatedDate = now();
+                row.hasPurchasedPerpetual = true; // this is a successful payment - so we mark perpetual as purchased as invoice is for one time plans only
                 await billingRepo.save(row);
             }
             break;

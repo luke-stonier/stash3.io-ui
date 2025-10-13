@@ -1,10 +1,22 @@
 ﻿import express, {Application} from "express";
 import bcrypt from "bcryptjs";
-import jwt, { JwtPayload, SignOptions } from "jsonwebtoken";
+import jwt, {SignOptions} from "jsonwebtoken";
 import path from "path";
 import "reflect-metadata";
 import dotenv from "dotenv";
 import cors from "cors";
+import {DataSource} from "typeorm";
+import {User} from "./entities/User";
+import {AuthRequest, RawRequest} from "./types/auth";
+import {stash3RequireAuth} from "./middleware/auth";
+import {AWSAccountRef} from "./entities/AWSAccountRef";
+import stripeRouter from "./billing/stripe-controller";
+import {UserPurchasePlan} from "./entities/UserBilling";
+import billingRouter from "./billing/billing-controller";
+import staticRouter from "./static-controller";
+import {addMinutes, createRawToken, hashToken, isExpired} from "./helpers/passwordReset";
+import {PasswordResetToken} from "./entities/PasswordResetToken";
+import MailService, {MailMessageType} from './services/MailService';
 
 if (process.env.NODE_ENV !== "production") {
     const customEnvPath = process.env.STASH3_ENV
@@ -15,19 +27,19 @@ if (process.env.NODE_ENV !== "production") {
     console.log("[env] production mode");
 }
 
-import { DataSource } from "typeorm";
-import { User } from "./entities/User";
-import {AuthRequest, RawRequest} from "./types/auth";
-import {stash3RequireAuth} from "./middleware/auth";
-import {AWSAccountRef} from "./entities/AWSAccountRef";
-import stripeRouter from "./billing/stripe-controller";
-import {UserPurchasePlan} from "./entities/UserBilling";
-import billingRouter from "./billing/billing-controller";
-import staticRouter from "./static-controller";
-
 
 const app: Application = express();
+const mailService = new MailService();
+(async () => {
+    if (process.env.NODE_ENV !== "production") {
+        console.log('[mail] test email (dev mode)');
+        return;
+    }
+    await mailService.SendEmail('junk@stash3.io', MailMessageType.TEST);
+})(); // warm up
 
+const FRONTEND_URL = process.env.APP_URL ?? "https://stash3.io"; // used in email links
+const TOKEN_TTL_MIN = 30; // token valid for 30 minutes
 
 export const db = new DataSource({
     type: "postgres",
@@ -37,7 +49,7 @@ export const db = new DataSource({
     password: process.env.PGPASSWORD,
     database: process.env.PGDATABASE,
     ssl: process.env.PGSSL === "true" ? { rejectUnauthorized: false } : false,
-    entities: [User, AWSAccountRef, UserPurchasePlan],
+    entities: [User, AWSAccountRef, UserPurchasePlan, PasswordResetToken],
     synchronize: true,   // ✅ dev-friendly. For prod, switch to migrations.
     logging: false
 });
@@ -94,6 +106,188 @@ async function bootstrap() {
         
         res.json({token, user: {id: user.id, email: user.email}});
     });
+
+    /**
+     * FORGOT PASSWORD
+     * Always responds 200 with a generic message (no account enumeration).
+     */
+    apiRouter.post("/auth/forgot-password", async (req, res) => {
+        const emailInput: unknown = req.body?.email;
+        if (typeof emailInput !== "string" || !emailInput.trim()) {
+            // Still generic
+            return res.status(200).json({ ok: true });
+        }
+
+        const email = emailInput.trim().toLowerCase();
+        const userRepo = db.getRepository(User);
+        const prRepo = db.getRepository(PasswordResetToken);
+
+        const user = await userRepo.findOne({ where: { email } });
+
+        if (user) {
+            // Invalidate old tokens (optional but recommended)
+            await prRepo
+                .createQueryBuilder()
+                .update(PasswordResetToken)
+                .set({ usedAt: () => "NOW()" })
+                .where("userId = :userId AND usedAt IS NULL", { userId: user.id })
+                .execute();
+
+            // Create a new token
+            const raw = createRawToken(32);
+            const tokenHash = hashToken(raw);
+            const token = prRepo.create({
+                userId: user.id,
+                tokenHash,
+                expiresAt: addMinutes(new Date(), TOKEN_TTL_MIN),
+                requestedIp: req.ip ?? null,
+                requestedUa: req.get("user-agent") ?? null,
+            });
+            await prRepo.save(token);
+
+            const resetUrl = `${FRONTEND_URL}/reset-password?token=${encodeURIComponent(raw)}`;
+            
+            await mailService.SendEmail(
+                user.email,
+                MailMessageType.PASSWORD_RESET,
+                [
+                    { key: "{{CODE}}", value: encodeURIComponent(raw) },
+                    { key: "{{RESET_URL}}", value: resetUrl },
+                    { key: "{{TTL_MINUTES}}", value: String(TOKEN_TTL_MIN) },
+                ]
+            );
+
+            console.log(`[auth] password reset requested for ${email} -> ${resetUrl}`);
+        }
+
+        // Generic response to avoid user enumeration
+        return res.status(200).json({ ok: true });
+    });
+
+    /**
+     * (Optional) VERIFY TOKEN — lets the client check token validity without submitting a new password
+     */
+    apiRouter.get("/auth/reset-password/verify", async (req, res) => {
+        const raw = String(req.query.token ?? "");
+        if (!raw) return res.status(400).json({ error: "Missing token" });
+
+        const tokenHash = hashToken(raw);
+        const prRepo = db.getRepository(PasswordResetToken);
+        const token = await prRepo.findOne({ where: { tokenHash } });
+
+        if (!token || token.usedAt || isExpired(token.expiresAt)) {
+            return res.status(400).json({ error: "Invalid or expired token" });
+        }
+        return res.json({ ok: true });
+    });
+
+    /**
+     * RESET PASSWORD — consumes token, sets new password
+     */
+    apiRouter.post("/auth/reset-password", async (req, res) => {
+        const { token: raw, password, passwordRepeat } = req.body ?? {};
+        if (!raw || typeof raw !== "string") return res.status(400).json({ error: "Missing token" });
+        if (!password || typeof password !== "string") return res.status(400).json({ error: "Missing password" });
+        if (password !== passwordRepeat) return res.status(400).json({ error: "Passwords do not match" });
+        if (Buffer.byteLength(password, "utf8") > 72) return res.status(400).json({ error: "Password too long" });
+        if (password.length < 8) return res.status(400).json({ error: "Password too short" });
+
+        const prRepo = db.getRepository(PasswordResetToken);
+        const userRepo = db.getRepository(User);
+
+        const tokenHash = hashToken(raw);
+        const token = await prRepo.findOne({ where: { tokenHash } });
+
+        if (!token || token.usedAt || isExpired(token.expiresAt)) {
+            return res.status(400).json({ error: "Invalid or expired token" });
+        }
+
+        const user = await userRepo.findOne({ where: { id: token.userId } });
+        if (!user) {
+            return res.status(400).json({ error: "Invalid token" });
+        }
+
+        // Update password
+        const passwordHash = await bcrypt.hash(password, 12);
+        user.passwordHash = passwordHash;
+        await userRepo.save(user);
+
+        // Mark token used and invalidate others
+        token.usedAt = new Date();
+        await prRepo.save(token);
+        await prRepo
+            .createQueryBuilder()
+            .update(PasswordResetToken)
+            .set({ usedAt: () => "NOW()" })
+            .where("userId = :userId AND usedAt IS NULL", { userId: user.id })
+            .execute();
+
+        // Optional: notify the user that their password changed
+        await mailService.SendEmail(
+            user.email,
+            MailMessageType.PASSWORD_CHANGED,
+            [
+                { key: "{{SUPPORT_URL}}", value: "https://stash3.io/support" }
+            ]
+        );
+
+        console.log(`[auth] password reset succeeded for ${user.email}`);
+
+        return res.json({ ok: true });
+    });
+
+    apiRouter.post("/auth/change-password", async (req: AuthRequest, res) => {
+        try {
+            if (!req.user) return res.status(401).json({ error: "Unauthorized" });
+
+            const { currentPassword, newPassword, newPasswordRepeat } = req.body ?? {};
+            if (!currentPassword || !newPassword || !newPasswordRepeat) {
+                return res.status(400).json({ error: "Current & new passwords are required" });
+            }
+            if (newPassword !== newPasswordRepeat) {
+                return res.status(400).json({ error: "Passwords do not match" });
+            }
+            if (Buffer.byteLength(newPassword, "utf8") > 72) {
+                return res.status(400).json({ error: "Password too long" });
+            }
+            if (newPassword.length < 8) {
+                return res.status(400).json({ error: "Password too short" });
+            }
+
+            const repo = db.getRepository(User);
+            const user = await repo.findOne({ where: { id: req.user.sub } });
+            if (!user) return res.status(401).json({ error: "Unauthorized" });
+
+            // Verify current password
+            const ok = await bcrypt.compare(currentPassword, user.passwordHash);
+            if (!ok) return res.status(401).json({ error: "Invalid current password" });
+
+            // Prevent reusing the same password
+            const sameAsOld = await bcrypt.compare(newPassword, user.passwordHash);
+            if (sameAsOld) {
+                return res.status(400).json({ error: "New password must be different from the current password" });
+            }
+
+            // Update password
+            const newHash = await bcrypt.hash(newPassword, 12);
+            user.passwordHash = newHash;
+            await repo.save(user);
+            
+            await mailService.SendEmail(user.email, MailMessageType.PASSWORD_CHANGED, [
+              { key: "{{SUPPORT_URL}}", value: "https://stash3.io/support" },
+            ]);
+
+            // Note: if you use long-lived JWTs, consider rotating/invalidating elsewhere.
+            console.log("[auth] password changed:", user.email);
+
+            return res.json({ ok: true });
+        } catch (err) {
+            console.error("[auth] change-password error", err);
+            return res.status(500).json({ error: "Something went wrong" });
+        }
+    });
+    
+    /** END */
     
     // AWS ACCOUNT REFS
     apiRouter.post("/accounts", async (req: AuthRequest, res) => {
