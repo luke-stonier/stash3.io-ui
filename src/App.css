@@ -187,3 +187,9 @@ p, i, span, h1, h2, h3, h4, h5, h6, label {
 .opacity-50 { opacity: 0.5 !important; }
 .opacity-75 { opacity: 0.75 !important; }
 .opacity-90 { opacity: 0.9 !important; }
+
+@media only screen and (max-width: 992px) {
+    body .flex-grow-lg-1 {
+        flex-grow: 1 !important;
+    }
+}

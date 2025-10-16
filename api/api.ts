@@ -17,6 +17,7 @@ import staticRouter from "./static-controller";
 import {addMinutes, createRawToken, hashToken, isExpired} from "./helpers/passwordReset";
 import {PasswordResetToken} from "./entities/PasswordResetToken";
 import MailService, {MailMessageType} from './services/MailService';
+import LoggingService from "./services/LoggingService";
 
 if (process.env.NODE_ENV !== "production") {
     const customEnvPath = process.env.STASH3_ENV
@@ -30,6 +31,7 @@ if (process.env.NODE_ENV !== "production") {
 
 const app: Application = express();
 const mailService = new MailService();
+const loggingService = new LoggingService();
 (async () => {
     if (process.env.NODE_ENV !== "production") {
         console.log('[mail] test email (dev mode)');
@@ -86,6 +88,10 @@ async function bootstrap() {
         const token = signToken({sub: user.id, email: user.email});
         
         console.log('[auth] new user registered:', email);
+        await mailService.SendEmail(user.email, MailMessageType.WELCOME, [
+            { key: "{{EMAIL}}", value: user.email }
+        ]);
+        await loggingService.UserRegister(user);
         
         res.json({token, user: {id: user.id, email: user.email}});
     });
@@ -156,6 +162,7 @@ async function bootstrap() {
                     { key: "{{TTL_MINUTES}}", value: String(TOKEN_TTL_MIN) },
                 ]
             );
+            await loggingService.UserForgotPassword(user);
 
             console.log(`[auth] password reset requested for ${email} -> ${resetUrl}`);
         }
@@ -230,6 +237,7 @@ async function bootstrap() {
                 { key: "{{SUPPORT_URL}}", value: "https://stash3.io/support" }
             ]
         );
+        await loggingService.UserResetPassword(user);
 
         console.log(`[auth] password reset succeeded for ${user.email}`);
 
@@ -276,6 +284,7 @@ async function bootstrap() {
             await mailService.SendEmail(user.email, MailMessageType.PASSWORD_CHANGED, [
               { key: "{{SUPPORT_URL}}", value: "https://stash3.io/support" },
             ]);
+            await loggingService.UserResetPassword(user);
 
             // Note: if you use long-lived JWTs, consider rotating/invalidating elsewhere.
             console.log("[auth] password changed:", user.email);
@@ -337,8 +346,8 @@ async function bootstrap() {
     });
     
     apiRouter.get("/version", (_req, res) => {
-        res.json({version: process.env.STASH3_VERSION || "unknown"});
-    })
+        res.json({version: process.env.STASH3_VERSION || "unknown", releaseDate: new Date('2025-10-16')});
+    });
     
     
     // heartbeat

@@ -7,6 +7,7 @@ import AccountPicker from "../components/AccountPicker";
 import UserService from "../services/user-service";
 import useGlobalShortcut from "../hooks/useGlobalShortcut";
 import {SearchWidgetModal} from "../components/SearchWidget";
+import {STASH_VERSION} from "../App";
 
 
 class BaseNavOption {
@@ -77,7 +78,7 @@ export default function AppContainer() {
             <main className="container-fluid flex-grow-1 overflow-hidden d-flex flex-column min-h-0">
                 <div className="row flex-grow-0 flex-grow-lg-1 h-100 overflow-hidden">
                     {/* Sidebar */}
-                    <div className="col-12 col-md-3 col-lg-2 border-end border-black overflow-auto min-h-0 py-3">
+                    <div className="col-12 col-md-3 col-lg-2 border-end border-black overflow-auto min-h-0 py-3 d-flex flex-column">
                         <div className="d-flex d-md-block justify-content-between align-items-center">
                             <div className="d-flex justify-content-center align-items-center gap-2">
                                 <img
@@ -110,6 +111,11 @@ export default function AppContainer() {
                                         NavRow(option)
                                 ))
                             }
+                        </div>
+
+                        <div className="flex-grow-1 align-self-stretch w-100"></div>
+                        <div className="flex-shrink-0 w-100">
+                            <p className="my-0 text-center">Version {STASH_VERSION}</p>
                         </div>
                     </div>
 

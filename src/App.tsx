@@ -16,6 +16,9 @@ import UserAccountPage from "./pages/UserAccountPage";
 import BillingPage from "./pages/BillingPage";
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
+import VersionChecker from './services/VersionChecker';
+
+export const STASH_VERSION = 'v0.0.1';
 
 function App() {
     const [authenticated, setAuthenticated] = useState(UserService.isLoggedIn());
@@ -44,6 +47,9 @@ function App() {
     }, []);
     
     return <div className="w-100 text-white position-relative">
+        {/* VERSION CHECK*/}
+        <VersionChecker />
+
         {/* Global Modals */}
         <ToastWrapper />
         <ConfirmationDialogWrapper />

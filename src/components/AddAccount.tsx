@@ -25,6 +25,7 @@ export default function AddAccountModal(props: AddAccountModalProps) {
     
     const [loading, setLoading] = React.useState<boolean>(false);
     const [respError, setRespError] = React.useState<string | null>(null);
+    const [showPassword, setShowPassword] = React.useState<boolean>(props.editing === false);
     const [addAccountRequest, setAddAccountRequest] = React.useState<AddAccountRequest>(new AddAccountRequest());
     
     useEffect(() => {
@@ -126,12 +127,18 @@ export default function AddAccountModal(props: AddAccountModalProps) {
                                setAddAccountRequest({...addAccountRequest, accessKey: e.target.value})
                            }}/>
 
-                    <input type="text" placeholder="Account Secret"
+                    <div className="position-relative">
+                        <input type={showPassword ? 'text' : 'password'} placeholder="Account Secret"
                            className="form-control mb-2 bg-lighter text-white border-0"
                            value={addAccountRequest.secretKey}
                            onChange={(e) => {
                                setAddAccountRequest({...addAccountRequest, secretKey: e.target.value})
                            }}/>
+
+                        { props.editing && <div className="position-absolute end-0 pe-3 top-50 translate-middle-y d-flex align-items-center">
+                            <Icon name={'visibility'} style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => setShowPassword(!showPassword)} />
+                        </div> }
+                    </div>
                 </div>
 
                 {respError !== null && respError.length > 0 &&

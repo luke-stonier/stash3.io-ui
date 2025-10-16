@@ -70,7 +70,7 @@ export default function Accounts() {
         </div>
         <div className="row">
             <div className="col-6 col-sm-4">
-                <IconButton icon={'add'} isButton={true} staticClasses={'btn btn-warning gap-1 justify-content-start'}
+                <IconButton icon={'add'} isButton={true} staticClasses={'btn btn-outline-warning gap-1 justify-content-start'}
                             onClick={() => setAddingAccount(true)}>
                     <span>Add Account</span>
                 </IconButton>

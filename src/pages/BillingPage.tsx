@@ -202,7 +202,7 @@ export default function BillingPage() {
         </div>
     }
 
-    return <div className="pt-5 d-flex flex-column align-items-center justify-content-center h-100">
+    return <div className="d-flex flex-column align-items-center justify-content-start h-100">
         <div className="d-flex align-items-center justify-content-start gap-2 w-100 mb-3">
         <Icon name={'sell'} className={'text-secondary'} style={{fontSize: '3rem'}}/>
         <h1 className="mb-0">Billing</h1>
