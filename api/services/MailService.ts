@@ -87,7 +87,7 @@ export default class MailService {
             const info = await this.transporter.sendMail({
                 from: `"${OUTGOING_NAME}" <${OUTGOING_EMAIL}>`,
                 to: email,
-                bcc: `${OUTGOING_EMAIL}`,
+                //bcc: `${OUTGOING_EMAIL}`,
                 subject: mailTemplate.subject,
                 text: mailTemplate.text,
                 html: mailTemplate.html,
