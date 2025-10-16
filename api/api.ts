@@ -336,6 +336,10 @@ async function bootstrap() {
         res.json({ok: true});
     });
     
+    apiRouter.get("/version", (_req, res) => {
+        res.json({version: process.env.STASH3_VERSION || "unknown"});
+    })
+    
     
     // heartbeat
     apiRouter.get("/ping", (_req, res) => {

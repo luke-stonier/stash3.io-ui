@@ -107,6 +107,25 @@ export default class BucketService {
         return bookmarks ? JSON.parse(bookmarks).sort((a: { key: string },b: { key: string}) => Number.parseInt(b.key) - Number.parseInt(a.key)) : [];
     }
     
+    static async GetAllBuckets() {
+        try {
+            const resp = await APIWrapperService.ListS3Buckets();
+            const bucketObjs = resp.map(bucket => {
+                return {
+                    bookmarked: BucketService.IsBucketBookmarked(bucket.Name),
+                    id: bucket.Name,
+                    bucket: bucket.Name,
+                    region: undefined,
+                    creationDate: bucket.CreationDate,
+                }
+            });
+            return bucketObjs.sort((a, b) => a.bucket.localeCompare(b.bucket));
+        } catch (err) {
+            console.error('Failed to list buckets', err);
+            return [];
+        }
+    }
+    
     static GetCurrentObjects = (callback: (error: string | undefined, objects: BucketObject[]) => void) => {
         if (window.location.hash.indexOf("/buckets/") === -1) { callback("", []); return; }
         if (BucketService.currentBucket === "") { callback("", []); return; }

@@ -6,6 +6,7 @@ import BucketObject from "../Models/BucketObject";
 import {useDebounce} from "../hooks/useDebounce";
 import {Button} from "./Button";
 import {useNavigate} from "react-router-dom";
+import UserService from "../services/user-service";
 
 interface ISearchResultGroup {
     groupName: string;
@@ -29,6 +30,7 @@ export default function SearchWidget(props: { showCloseButton?: boolean, onClose
     const rounding = '15px'
     const navigate = useNavigate();
     const inputElementRef = useRef(null);
+    const [allBuckets, setAllBuckets] = useState<{ bookmarked: boolean, id: string, bucket: string }[]>([]);
     const [searchInput, setSearchInput] = useState('');
     const [showResults, setShowResults] = useState(false);
     const [results, setResults] = useState<ISearchResultGroup[]>([]);
@@ -40,6 +42,25 @@ export default function SearchWidget(props: { showCloseButton?: boolean, onClose
 
     useEffect(() => {
         setResults([]);
+        setAllBuckets([]);
+    }, []);
+
+    const LoadBuckets = async () => {
+        BucketService.GetAllBuckets().then(buckets => {
+            setAllBuckets(buckets);
+        });
+    }
+    
+    useEffect(() => {
+        (async () => await LoadBuckets())();
+
+        const accountChangeSub = UserService.changeAWSAccountEvent.subscribe(() => {
+            (async () => await LoadBuckets())();
+        });
+        
+        return () => {
+            UserService.changeAWSAccountEvent.unsubscribe(accountChangeSub);
+        }
     }, []);
 
     useEffect(() => {
@@ -71,12 +92,15 @@ export default function SearchWidget(props: { showCloseButton?: boolean, onClose
 
     useEffect(() => {
         setResults([]);
+        let index = 0;
+
+        const buckets = [...allBuckets];
+        const filteredBuckets = buckets.filter(b => BucketService.currentBucket !== b.bucket && !b.bookmarked && filterMethod(debouncedSearch, b.bucket)); // filter out bookmarked buckets, as they are shown in bookmarks section
 
         const bookmarks = BucketService.GetAllBookmarks();
         const filteredBookmarks = bookmarks.filter(b =>
             filterMethod(debouncedSearch, b.value)
         );
-        let index = 0;
 
         const currentPath = "./" + BucketService.currentPath;
         const upPath = currentPath === './' ? '' : currentPath.split('/').slice(0, -2).join('/') + '/';
@@ -148,6 +172,21 @@ export default function SearchWidget(props: { showCloseButton?: boolean, onClose
                     return a.name.localeCompare(b.name);
                 });
 
+                const mappedBuckets = filteredBuckets.map(b => {
+                    const resp = {
+                        type: 'bucket',
+                        bucket: b.bucket,
+                        path: b.bucket,
+                        name: b.bucket,
+                        origin: 'bucket',
+                        route: b.bucket,
+                        id: index
+                    } as ISearchResult;
+
+                    index++;
+                    return resp;
+                });
+
                 if (error) {
                     setSearchError(error);
                 } else {
@@ -158,6 +197,8 @@ export default function SearchWidget(props: { showCloseButton?: boolean, onClose
                     {groupName: 'Actions', results: pathActions, resultCount: pathActions.length},
                     {groupName: 'Bookmarks', results: mappedBookmarks, resultCount: mappedBookmarks.length},
                     {groupName: 'Current Location', results: mappedObjects, resultCount: mappedObjects.length},
+                    
+                    {groupName: 'Buckets', results: mappedBuckets, resultCount: mappedBuckets.length},
                 ];
 
 
@@ -166,7 +207,7 @@ export default function SearchWidget(props: { showCloseButton?: boolean, onClose
             }
         );
         // eslint-disable-next-line
-    }, [debouncedSearch]);
+    }, [debouncedSearch, allBuckets]);
 
     const filterMethod = (search: string, item: string) => {
         if (item.toLowerCase().includes(search.toLowerCase())) return true;
