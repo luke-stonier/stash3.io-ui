@@ -1,4 +1,4 @@
-﻿import React, { useState } from "react";
+import React, { useState } from "react";
 import HttpService from "../services/http/http-service";
 
 export default function ChangePassword() {

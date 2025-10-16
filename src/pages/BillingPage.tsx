@@ -1,9 +1,7 @@
 import Icon from "../components/Icon";
 import React, {useCallback, useEffect, useState} from "react";
 import HttpService from "../services/http/http-service";
-import UserSession from "../Models/UserSession";
 import UserService from "../services/user-service";
-import {useNavigate} from "react-router-dom";
 
 export default function BillingPage() {
 
@@ -12,7 +10,7 @@ export default function BillingPage() {
     const [billingInfo, setBillingInfo] = useState<any>(null);
     const [hasBillingProfile, setHasBillingProfile] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
-    const [checkoutSession, setCheckoutSession] = useState<any>(null);
+    const [, setCheckoutSession] = useState<any>(null);
 
     // 
 
@@ -58,7 +56,7 @@ export default function BillingPage() {
 
     useEffect(() => {
         loadBilling();
-    }, [])
+    }, [loadBilling])
 
     const checkoutWithPlan = ({name, id}: { name: string, id: string }) => {
         const userId = UserService.currentSession?.user.id;

@@ -1,8 +1,11 @@
 import EventEmitter from "./event-emitter";
 import APIWrapperService from "./APIWrapperService";
 import BucketObject from "../Models/BucketObject";
+import UserService from "./user-service";
 
 export interface IBookmarkedItem {
+    accountHandle: string;
+
     key: string;
     type: string;
     value: string;
@@ -41,13 +44,25 @@ export default class BucketService {
         }
     }
     
-    static ToggleBookmarkBucket = (bucket: string) => {
+    static RemoveAllAccountBookmarks = (accountHandle: string) => {
         let bookmarks = localStorage.getItem('bookmarks');
         let bookmarkList: IBookmarkedItem[] = bookmarks ? JSON.parse(bookmarks) : [];
-        if (bookmarkList.findIndex(b => b.type === 'bucket' && b.value === bucket) > -1) {
+        bookmarkList = bookmarkList.filter(b => b.accountHandle !== accountHandle);
+        localStorage.setItem('bookmarks', JSON.stringify(bookmarkList));
+
+        BucketService.bucketRefreshEvent.emit();
+    }
+    
+    static ToggleBookmarkBucket = (bucket: string) => {
+        const awsAccount = UserService.currentAWSAccount;
+        if (!awsAccount) return;
+        
+        let bookmarks = localStorage.getItem('bookmarks');
+        let bookmarkList: IBookmarkedItem[] = bookmarks ? JSON.parse(bookmarks) : [];
+        if (bookmarkList.findIndex(b => b.type === 'bucket' && b.accountHandle === awsAccount.handle && b.value === bucket) > -1) {
             bookmarkList = bookmarkList.filter(b => b.value !== bucket);
         } else {
-            bookmarkList.push({ key: new Date().getTime().toString(), type: 'bucket', value: bucket });
+            bookmarkList.push({ accountHandle: awsAccount.handle, key: new Date().getTime().toString(), type: 'bucket', value: bucket });
         }
         localStorage.setItem('bookmarks', JSON.stringify(bookmarkList));
 
@@ -61,13 +76,15 @@ export default class BucketService {
     }
     
     static ToggleBookmarkPath = (bucket: string, path: string) => {
+        const awsAccount = UserService.currentAWSAccount;
+        if (!awsAccount) return;
         let fullPath = `${bucket}/${path}`;
         let bookmarks = localStorage.getItem('bookmarks');
         let bookmarkList: IBookmarkedItem[] = bookmarks ? JSON.parse(bookmarks) : [];
-        if (bookmarkList.findIndex(b => b.type === 'path' && b.value === fullPath) > -1) {
+        if (bookmarkList.findIndex(b => b.type === 'path' && b.accountHandle === awsAccount.handle && b.value === fullPath) > -1) {
             bookmarkList = bookmarkList.filter(b => b.value !== fullPath);
         } else {
-            bookmarkList.push({ key: new Date().getTime().toString(), type: 'path', value: fullPath });
+            bookmarkList.push({ accountHandle: awsAccount.handle, key: new Date().getTime().toString(), type: 'path', value: fullPath });
         }
         localStorage.setItem('bookmarks', JSON.stringify(bookmarkList));
 
@@ -75,20 +92,24 @@ export default class BucketService {
     }
     
     static IsPathBookmarked = (bucket: string, path: string): boolean => {
+        const awsAccount = UserService.currentAWSAccount;
+        if (!awsAccount) return false;
         let fullPath = `${bucket}/${path}`;
         let bookmarks = localStorage.getItem('bookmarks');
         let bookmarkList: IBookmarkedItem[] = bookmarks ? JSON.parse(bookmarks) : [];
-        return bookmarkList.findIndex(b => b.type === 'path' && b.value === fullPath) > -1;
+        return bookmarkList.findIndex(b => b.type === 'path' && b.accountHandle === awsAccount.handle && b.value === fullPath) > -1;
     }
     
     static ToggleBookmarkItem = (bucket: string, itemPathAndName: string) => {
+        const awsAccount = UserService.currentAWSAccount;
+        if (!awsAccount) return;
         let fullPath = `${bucket}/${itemPathAndName}`;
         let bookmarks = localStorage.getItem('bookmarks');
         let bookmarkList: IBookmarkedItem[] = bookmarks ? JSON.parse(bookmarks) : [];
-        if (bookmarkList.findIndex(b => b.type === 'item' && b.value === fullPath) > -1) {
+        if (bookmarkList.findIndex(b => b.type === 'item' && b.accountHandle === awsAccount.handle && b.value === fullPath) > -1) {
             bookmarkList = bookmarkList.filter(b => b.value !== fullPath);
         } else {
-            bookmarkList.push({ key: new Date().getTime().toString(), type: 'item', value: fullPath });
+            bookmarkList.push({ accountHandle: awsAccount.handle, key: new Date().getTime().toString(), type: 'item', value: fullPath });
         }
         localStorage.setItem('bookmarks', JSON.stringify(bookmarkList));
 
@@ -96,10 +117,12 @@ export default class BucketService {
     }
     
     static IsItemBookmarked = (bucket: string, itemPathAndName: string): boolean => {
+        const awsAccount = UserService.currentAWSAccount;
+        if (!awsAccount) return false;
         let fullPath = `${bucket}/${itemPathAndName}`;
         let bookmarks = localStorage.getItem('bookmarks');
         let bookmarkList: IBookmarkedItem[] = bookmarks ? JSON.parse(bookmarks) : [];
-        return bookmarkList.findIndex(b => b.type === 'item' && b.value === fullPath) > -1;
+        return bookmarkList.findIndex(b => b.type === 'item' && b.accountHandle === awsAccount.handle && b.value === fullPath) > -1;
     }
     
     static GetAllBookmarks = (): IBookmarkedItem[] => {

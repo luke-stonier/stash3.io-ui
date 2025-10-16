@@ -32,6 +32,13 @@ export default class LoggingService {
             email: user.email,
         });
     }
+    
+    public async UserAddedAccount(user: User, handle: string): Promise<void> {
+        await this.SendLog("events", "User Added Account", `Email: ${user.email}, Handle: ${handle}`, "➕", {
+            email: user.email,
+            handle: handle,
+        });
+    }
 
     private async SendLog(channel: string, event: string, description: string, icon: string, tags: any, notify: boolean = true): Promise<void> {
         if (process.env.ENV_NAME === "LOCAL") {

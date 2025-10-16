@@ -2,7 +2,6 @@ import {Link} from "react-router-dom";
 import logo from "../assets/images/stash3_logo.png";
 import React, {useCallback, useState} from "react";
 import HttpService, {HttpError} from "../services/http/http-service";
-import UserService from "../services/user-service";
 import UserSession from "../Models/UserSession";
 
 export default function ForgotPassword() {

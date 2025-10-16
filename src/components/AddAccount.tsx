@@ -3,6 +3,8 @@ import React, {useCallback, useEffect} from "react";
 import HttpService, {HttpError} from "../services/http/http-service";
 import AwsAccount from "../Models/AwsAccount";
 import APIWrapperService from "../services/APIWrapperService";
+import BucketService from "../services/BucketService";
+import {ConfirmationService} from "../services/Overlays";
 
 class AddAccountRequest {
     name: string = '';
@@ -67,23 +69,38 @@ export default function AddAccountModal(props: AddAccountModalProps) {
         if (!props) return;
         if (!props.account) return;
         if (!props.editing) return;
-        
         const account = {...props.account};
-        setLoading(true);
-        HttpService.delete(`/accounts/${account.handle}`, (resp: {ok: boolean}) => {
-            setLoading(false);
-            if (resp.ok) {
-                APIWrapperService.DeleteCredentials(account.handle);
-                setTimeout(() => {
+        
+        ConfirmationService.Add({
+            title: 'Are you sure?',
+            children: <div style={{ maxWidth: 450, marginBottom: 20, marginTop: 20 }}>
+                <p className={'mb-2'}>Deleting this account will also remove all bookmarks associated from stash3.</p>
+                <p className={'mb-2'}>Bucket objects and configuration settings will not be affected by this.</p>
+                <strong>This action can not be undone.</strong>
+            </div>,
+            onClose: (status: boolean) => {
+                if (!status) return;
+                
+                setLoading(true);
+                HttpService.delete(`/accounts/${account.handle}`, (resp: {ok: boolean}) => {
                     setLoading(false);
-                    props.onClose && props.onClose();
-                }, 250);
-            } else {
-                setRespError('Failed to delete account');
-            }
-        }, (err: HttpError) => {
-            setLoading(false);
-            setRespError(err.error.error || 'An unknown error occurred');
+                    if (resp.ok) {
+                        APIWrapperService.DeleteCredentials(account.handle);
+                        BucketService.RemoveAllAccountBookmarks(account.handle);
+                        setTimeout(() => {
+                            setLoading(false);
+                            props.onClose && props.onClose();
+                        }, 250);
+                    } else {
+                        setRespError('Failed to delete account');
+                    }
+                }, (err: HttpError) => {
+                    setLoading(false);
+                    setRespError(err.error.error || 'An unknown error occurred');
+                });
+            },
+            cancelColor: 'outline-warning',
+            confirmColor: 'danger'
         });
     }, [props])
 

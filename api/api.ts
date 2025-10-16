@@ -284,7 +284,7 @@ async function bootstrap() {
             await mailService.SendEmail(user.email, MailMessageType.PASSWORD_CHANGED, [
               { key: "{{SUPPORT_URL}}", value: "https://stash3.io/support" },
             ]);
-            await loggingService.UserResetPassword(user);
+            await loggingService.UserChangedPassword(user);
 
             // Note: if you use long-lived JWTs, consider rotating/invalidating elsewhere.
             console.log("[auth] password changed:", user.email);
@@ -301,6 +301,10 @@ async function bootstrap() {
     // AWS ACCOUNT REFS
     apiRouter.post("/accounts", async (req: AuthRequest, res) => {
         if (!req.user) return res.status(401).json({error: "Unauthorized"});
+        const userRepo = db.getRepository(User);
+        const user = await userRepo.findOne({ where: { id: req.user.sub } });
+        
+        if (!user) return res.status(401).json({error: "Unauthorized"});
         const { accountName } = req.body;
         if (!accountName) {
             return res.status(400).json({error: "Name is required"});
@@ -320,11 +324,18 @@ async function bootstrap() {
                 .replace(/-+/g, "-")           // collapse multiple - into one
         });
         await repo.save(accRef);
+        
+        await loggingService.UserAddedAccount(user, accRef.handle);
+        
         res.json(accRef);
     });
     
     apiRouter.get("/accounts", async (req: AuthRequest, res) => {
         if (!req.user) return res.status(401).json({error: "Unauthorized"});
+        const userRepo = db.getRepository(User);
+        const user = await userRepo.findOne({ where: { id: req.user.sub } });
+        if (!user) return res.status(401).json({error: "Unauthorized"});
+        
         const repo = db.getRepository(AWSAccountRef);
         const rows = await repo.find({where: {userId: req.user.sub}});
         res.json([...rows]);
@@ -332,6 +343,10 @@ async function bootstrap() {
     
     apiRouter.delete("/accounts/:handle", async (req: AuthRequest, res) => {
         if (!req.user) return res.status(401).json({error: "Unauthorized"});
+        const userRepo = db.getRepository(User);
+        const user = await userRepo.findOne({ where: { id: req.user.sub } });
+        if (!user) return res.status(401).json({error: "Unauthorized"});
+
         const { handle } = req.params;
         if (!handle) {
             return res.status(400).json({error: "Handle is required"});

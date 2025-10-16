@@ -1,7 +1,6 @@
 import BucketSelector from "../components/BucketSelector";
 import Bucket from "../Models/Bucket";
 import {useCallback, useEffect, useState} from "react";
-import APIWrapperService from "../services/APIWrapperService";
 import UserService from "../services/user-service";
 import BucketService from "../services/BucketService";
 

@@ -10,6 +10,9 @@ export default function Accounts() {
     const [accounts, setAccounts] = useState<AwsAccount[]>([]);
     const [addingAccount, setAddingAccount] = useState<boolean>(false);
     const [updatingAccount, setUpdatingAccount] = useState<AwsAccount | undefined>(undefined);
+    const [hasBillingProfile, setHasBillingProfile] = useState<boolean>(false);
+    const [billingInfo, setBillingInfo] = useState<any>(null);
+    const [error, setError] = useState<string | null>(null);
 
     const isSetupAccount = (a: AwsAccount) => {
         return a.awsAccessKey && a.awsSecretKey && a.awsAccessKey.length > 0 && a.awsSecretKey.length > 0
@@ -33,6 +36,25 @@ export default function Accounts() {
         })();
     }, []);
 
+    const loadBilling = useCallback(() => {
+        setLoading(true);
+        HttpService.get(`/billing`, (resp: any) => {
+            if (JSON.stringify(resp) === "" || Object.keys(resp).length === 0) {
+                setHasBillingProfile(false);
+                setBillingInfo(null);
+            } else {
+                setHasBillingProfile(true);
+                setBillingInfo(resp);
+            }
+            setLoading(false);
+        }, (err: any) => {
+            console.error('Failed to fetch billing information', err);
+            setError("Failed to fetch billing information");
+            setBillingInfo(null);
+            setLoading(false);
+        });
+    }, [])
+
     const loadAccounts = useCallback(() => {
         setLoading(true);
         HttpService.get(`/accounts`, (resp: AwsAccount[]) => {
@@ -46,13 +68,26 @@ export default function Accounts() {
     }, [addCredentialsToAccounts])
 
     useEffect(() => {
+        loadBilling();
         loadAccounts();
-    }, [loadAccounts]);
+    }, [loadBilling, loadAccounts]);
 
 
     const mask = (s?: string) =>
         !s ? "—" : `${s.slice(0, 1)}•••••${s.slice(-4)}`.toUpperCase();
 
+    const canAddAccount = hasBillingProfile && (
+        (billingInfo && billingInfo.currentPeriodEnd && new Date(billingInfo.currentPeriodEnd) > new Date()) &&
+        (billingInfo.planName === 'personal' && accounts.length < 1)
+    );
+    
+    const unableToAddAccountReason = !hasBillingProfile ? "You must set up a billing profile before adding an AWS account." :
+        (billingInfo && billingInfo.currentPeriodEnd && new Date(billingInfo.currentPeriodEnd) <= new Date()) ?
+            "Your billing profile is expired. Please update your billing information to add more AWS accounts." :
+            (billingInfo.planName === 'personal' && accounts.length >= 1) ?
+                "Your current plan only allows one AWS account. Please upgrade your plan to add more accounts." :
+                "";
+    
     if (loading) {
         return <div className="d-flex flex-column align-items-center justify-content-center w-100 h-100">
             <div className="spinner-border text-warning" style={{width: 90, height: 90}} role="status">
@@ -70,10 +105,13 @@ export default function Accounts() {
         </div>
         <div className="row">
             <div className="col-6 col-sm-4">
-                <IconButton icon={'add'} isButton={true} staticClasses={'btn btn-outline-warning gap-1 justify-content-start'}
+                <IconButton disabled={!canAddAccount} icon={'add'} isButton={true} staticClasses={'btn btn-outline-warning gap-1 justify-content-start'}
                             onClick={() => setAddingAccount(true)}>
                     <span>Add Account</span>
                 </IconButton>
+            </div>
+            <div className="col-12">
+                {!canAddAccount && <p className={'mt-2 mb-0'}>{unableToAddAccountReason}</p>}
             </div>
         </div>
 
@@ -123,7 +161,7 @@ export default function Accounts() {
                             }
                         </div>
                         <div>
-                            <small className="text-muted">Created: {new Date(account.createdAt).toLocaleDateString()}</small>
+                            <small style={{ userSelect: 'none' }} className="text-muted">Created: {new Date(account.createdAt).toLocaleDateString()}</small>
                         </div>
                     </div>
                 </div>

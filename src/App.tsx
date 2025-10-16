@@ -44,7 +44,7 @@ function App() {
         if (!authenticated) {
             localStorage.removeItem("token");
         }
-    }, []);
+    }, [authenticated]);
     
     return <div className="w-100 text-white position-relative">
         {/* VERSION CHECK*/}

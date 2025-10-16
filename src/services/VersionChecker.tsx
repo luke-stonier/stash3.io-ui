@@ -1,4 +1,4 @@
-﻿import {useEffect} from "react";
+import {useEffect} from "react";
 import HttpService from "./http/http-service";
 import {STASH_VERSION} from "../App";
 import { ConfirmationService } from "./Overlays";
