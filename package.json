@@ -73,7 +73,8 @@
     "dist:fast": "npm run pre-build && electron-builder -w --dir --publish never",
     "test-build": "npm run pre-build && electron dist/win-unpacked/resources/app --enable-logging",
     "log": "heroku logs --app=stash3-io --source app --tail",
-    "deploy-api": "git commit --allow-empty -m \"Trigger redeploy\" && git push",
+    "deploy": "git add . && git commit --allow-empty -m \"__DEPLOY__\" && git push",
+    "force-deploy": "git commit --allow-empty -m \"Trigger redeploy\" && git push",
     "reset": "kill-port 3000 && kill-port 5000"
   },
   "eslintConfig": {
