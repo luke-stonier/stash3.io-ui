@@ -1,4 +1,4 @@
-import {Link} from "react-router-dom";
+import {Link, useNavigate} from "react-router-dom";
 import logo from "../assets/images/stash3_logo.png";
 import React, {useCallback, useState} from "react";
 import HttpService, {HttpError} from "../services/http/http-service";
@@ -6,6 +6,7 @@ import UserSession from "../Models/UserSession";
 
 export default function ResetPassword() {
 
+    const navigate = useNavigate();
     const [respError, setRespError] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [forgotRequest, setForgotRequest] = useState<{
@@ -28,13 +29,13 @@ export default function ResetPassword() {
                 password: '',
                 passwordRepeat: ''
             });
-            window.location.href = '/login';
+            navigate('/login');
         }, (err: HttpError) => {
             console.log(err);
             setLoading(false);
             setRespError(err && err.error && err.error.error ? err.error.error : 'An unknown error occurred');
         });
-    }, [forgotRequest])
+    }, [forgotRequest, navigate])
 
     const errors = useCallback(() => {
         const _errors: { visible: boolean, message: string }[] = [];

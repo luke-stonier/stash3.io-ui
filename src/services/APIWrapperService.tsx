@@ -37,6 +37,18 @@ export type SavePublicAccessBlockResult = {
 };
 
 export default class APIWrapperService {
+    
+    static IPCConfigure(): boolean {
+        console.log("Configuring IPC API...");
+        if (!(window as any).api) {
+            console.error("IPC API not available");
+            return false;
+        }
+
+        (window as any).api.configureIPC();
+        return true;
+    }
+    
     static async UploadFileToS3 (bucket: string, key: string, path: string, meta: { fileSize: number | undefined }) {
         const account = UserService.GetAWSAccount();
         if (account === null) return;

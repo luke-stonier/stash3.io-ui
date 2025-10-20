@@ -12,7 +12,7 @@ export default function Accounts() {
     const [updatingAccount, setUpdatingAccount] = useState<AwsAccount | undefined>(undefined);
     const [hasBillingProfile, setHasBillingProfile] = useState<boolean>(false);
     const [billingInfo, setBillingInfo] = useState<any>(null);
-    const [error, setError] = useState<string | null>(null);
+    const [, setError] = useState<string | null>(null);
 
     const isSetupAccount = (a: AwsAccount) => {
         return a.awsAccessKey && a.awsSecretKey && a.awsAccessKey.length > 0 && a.awsSecretKey.length > 0

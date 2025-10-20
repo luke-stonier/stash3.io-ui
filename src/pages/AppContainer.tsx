@@ -75,7 +75,7 @@ export default function AppContainer() {
             <SearchWidgetModal />
             
             {/* Main */}
-            <main className="container-fluid flex-grow-1 overflow-hidden d-flex flex-column min-h-0">
+            <main className="container-fluid flex-grow-1 overflow-hidden d-flex flex-column min-h-0" style={{ height: '100vh' }}>
                 <div className="row flex-grow-0 flex-grow-lg-1 h-100 overflow-hidden">
                     {/* Sidebar */}
                     <div className="col-12 col-md-3 col-lg-2 border-end border-black overflow-auto min-h-0 py-3 d-flex flex-column">

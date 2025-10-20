@@ -1,0 +1,519 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>Stash3.io — Fast, modern S3 client</title>
+    <!-- favicon -->
+    <link rel="icon" href="https://stash3.io/favicon.ico" type="image/x-icon"/>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.js"
+            integrity="sha512-+k1pnlgt4F1H8L7t3z95o3/KO+o78INEcXTbnoJQ/F2VqDVhWoaiVml/OEHv9HsVgxUaVW+IbiZPUJQfF/YxZw=="
+            crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <meta name="description"
+          content="Stash3.io is a modern S3 client for developers and teams. Browse, preview, upload and share with presigned links."/>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@400;700&display=swap"
+          rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0..1,0"
+          rel="stylesheet"/>
+
+    <link rel="stylesheet" type="text/css" href="https://stash3.io/slick/slick.css"/>
+    <link rel="stylesheet" type="text/css" href="https://stash3.io/slick/slick-theme.css"/>
+
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-5P38YWNTDW"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+
+        function gtag() {
+            dataLayer.push(arguments);
+        }
+
+        gtag('js', new Date());
+
+        gtag('config', 'G-5P38YWNTDW');
+    </script>
+
+    <style>
+        :root {
+            /*--bg-url: url('assets/stash3-hero.jpg'); /* ← replace with your generated image path */
+            --orange: #ff6a00;
+            --orange-2: #ff7f1f;
+            --ink-900: #0e0f12; /* page bg */
+            --ink-800: #15171c;
+            --ink-700: #1c1f26;
+            --text-1: #e6e8ee;
+            --text-2: #aab0bd;
+            --shadow: 0 10px 30px rgba(0, 0, 0, .45), 0 40px 90px rgba(0, 0, 0, .55);
+        }
+
+        .rounded-lg {
+            border-radius: 1rem !important;
+        }
+
+        .material-symbols {
+            font-family: "Material Symbols Outlined";
+            font-weight: normal;
+            font-style: normal;
+            font-size: 24px;
+            line-height: 1;
+            display: inline-block;
+            white-space: nowrap;
+            direction: ltr;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            text-rendering: optimizeLegibility;
+
+            /* default = outline */
+            font-variation-settings: "FILL" 0,
+            "wght" 400,
+            "GRAD" 0,
+            "opsz" 24;
+        }
+
+        .material-symbols.filled {
+            font-variation-settings: "FILL" 1,
+            "wght" 400,
+            "GRAD" 0,
+            "opsz" 24;
+        }
+
+        html, body {
+            height: 100%;
+        }
+
+        body {
+            margin: 0;
+            color: white;
+            background-color: #0E1218 !important;
+            font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji";
+            overflow-x: hidden;
+        }
+
+        /* Background image with subtle vignette + gradient overlay */
+        .bg {
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            inset: 0;
+            height: 100dvh;
+            z-index: -2;
+            background: radial-gradient(1200px 800px at 70% 40%, rgba(255, 106, 0, .18), transparent 60%),
+            linear-gradient(180deg, rgba(10, 10, 12, .75), rgba(10, 10, 12, .95));
+            /*var(--bg-url) center/cover no-repeat fixed;*/
+            filter: saturate(1.05) contrast(1.02);
+        }
+
+        @keyframes window-float {
+            0% {
+                transform: rotateX(6deg) rotateY(-8deg) translateY(0);
+            }
+            50% {
+                transform: rotateX(8deg) rotateY(-2deg) translateY(-6px)
+            }
+            100% {
+                transform: rotateX(6deg) rotateY(-8deg) translateY(0);
+            }
+        }
+
+        /* 3D Scene */
+        .scene {
+            perspective: 1200px;
+            height: 520px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .window {
+            width: min(680px, 88vw);
+            height: 420px;
+            border-radius: 18px;
+            background: linear-gradient(180deg, var(--ink-800), var(--ink-700));
+            border: 1px solid rgba(255, 255, 255, .08);
+            box-shadow: var(--shadow);
+            transform-style: preserve-3d;
+            position: relative;
+            overflow: hidden;
+            will-change: transform, box-shadow;
+            transition: box-shadow .2s ease, transform .3s ease;
+            animation: window-float 9s ease-in-out infinite;
+        }
+
+        .window::before { /* glow edge */
+            content: "";
+            position: absolute;
+            inset: -1px;
+            border-radius: 18px;
+            background: radial-gradient(600px 120px at 80% 10%, rgba(255, 106, 0, .25), transparent 60%);
+            pointer-events: none;
+            transform: translateZ(50px);
+        }
+
+        .toolbar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, .06);
+            background: linear-gradient(180deg, rgba(255, 255, 255, .04), rgba(255, 255, 255, 0));
+        }
+
+        .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #ffbd2e;
+            box-shadow: 0 0 12px rgba(255, 189, 46, .6);
+        }
+
+        .dot:nth-child(1) {
+            background: #ff5f57
+        }
+
+        .dot:nth-child(2) {
+            background: #ffbd2e
+        }
+
+        .dot:nth-child(3) {
+            background: #28c940
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 18px;
+            padding: 18px;
+        }
+
+        .bucket-card {
+            border-radius: 14px;
+            background: rgba(255, 255, 255, .03);
+            border: 1px solid rgba(255, 255, 255, .06);
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        @media only screen and (max-width: 768px) {
+            .bucket-card {
+                padding: 8px;
+            }
+        }
+
+        .bucket-card svg {
+            width: 56px;
+            height: 56px;
+            filter: drop-shadow(0 0 24px rgba(255, 106, 0, .45));
+        }
+
+        .bucket-card::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(160px 120px at 30% 20%, rgba(255, 106, 0, .12), transparent 60%);
+            opacity: .8
+        }
+
+        /* depth layers */
+        .depth-1 {
+            transform: translateZ(20px);
+        }
+
+        .depth-2 {
+            transform: translateZ(40px);
+        }
+
+        .depth-3 {
+            transform: translateZ(60px);
+        }
+
+        .bucket-card {
+            transition: transform .25s ease, box-shadow .25s ease;
+        }
+
+        .bucket-card:hover {
+            transform: translateZ(70px) scale(1.02);
+        }
+
+        /* animated glare overlay */
+
+        @media (prefers-reduced-motion: reduce) {
+            .window {
+                animation: none;
+            }
+        }
+
+        .mono {
+            font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace
+        }
+
+        #article-content a {
+            color: white !important;
+            font-style: italic;
+            font-size: 14px;
+        }
+
+        #article-content .article-blog-item {
+            flex-direction: row !important;
+            align-items: flex-start !important;
+        }
+
+        .article-blog-item__img {
+            flex-shrink: 0;
+        }
+
+        .article-blog__container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-direction: row;
+            overflow: hidden !important;
+
+            opacity: 0;
+            max-height: 0;
+        }
+
+        .article-blog-item {
+            /*max-width: 720px;*/
+            /*min-height: 400px ;*/
+        }
+
+        .article-blog-item h2 {
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+
+        .article-blog-item__img {
+            margin-right: 20px;
+        }
+
+        .article-blog-item__blog-description {
+            font-size: 14px;
+        }
+
+        .article-blog-item__publish-info {
+            display: none;
+        }
+
+        |
+        footer {
+            padding: 40px 28px;
+            color: var(--text-2);
+            border-top: 1px solid rgba(255, 255, 255, .06);
+        }
+    </style>
+
+    <link href="https://stash3.io/assets/bootstrap.css" rel="stylesheet"/>
+</head>
+<body class="text-white">
+<div class="bg" aria-hidden="true"></div>
+
+<header class="bg-dark w-100 py-2 px-3">
+    <div class="container d-flex align-items-center justify-content-start gap-2">
+        <a href="/" class="text-decoration-none d-flex align-items-center gap-2">
+            <img src="https://stash3.io/assets/stash3_logo.png" alt="Stash3.io logo" style="height:48px;"
+                 class="d-block">
+            <span class="text-white text-decoration-none fs-4 fw-bolder">Stash3.io</span>
+        </a>
+
+        <div class="flex-fill"></div>
+        <div class="d-flex align-items-center justify-content-end gap-2">
+            <a href="#join" class="btn btn-outline-warning">Get Started</a>
+        </div>
+    </div>
+</header>
+
+<!-- CONTENT -->
+<section class="py-5 bg-dark">
+    <div class="container py-4">
+        <div class="row">
+            <h3 class="display-3 mb-4 text-center">Additional Information</h3>
+        </div>
+        <div class="row">
+            <div style="max-width: 600px" class="mx-auto mdp_15985c81-7b7b-4701-8aba-c337887a046b"></div>
+        </div>
+    </div>
+</section>
+<!-- END CONTENT -->
+
+<section class="mt-5"
+         style="background: linear-gradient(to bottom, rgba(14,18,24,0), rgba(14,18,24,1) 10%, rgba(14,18,24,1) 90%);">
+    <div class="container py-5">
+        <div class="row py-3 px-4">
+            <h3 class="display-3 text-center">Find out more</h3>
+            <p class="text-center text-muted">Get notified when Stash3 launches and earn access to exclusive pricing
+                options when signing up.</p>
+            <div style="max-width: 600px" class="mx-auto mdp_d3803fb2-5d23-417d-8a2d-f3e180c4d8a0"></div>
+        </div>
+    </div>
+</section>
+
+<section class="pt-5 bg-dark">
+    <div class="container py-4">
+        <div class="row">
+            <h3 class="display-3 mb-4 text-center">Additional Information</h3>
+        </div>
+        <div class="row">
+            <div id="article-content"></div>
+        </div>
+    </div>
+</section>
+
+<footer class="bg-dark py-3">
+    <div class="container">
+        <div class="col-12">© <span id="year"></span> Stash3.io • All Rights Reserved</div>
+    </div>
+</footer>
+
+<script>
+    const bucketNames = [
+        "client-cdn",
+        "production-site",
+        "user-uploads",
+        "logs-archive",
+    ]
+    document.querySelectorAll('.bucket-card').forEach((el, i) => {
+        el.innerHTML = `<div class="d-flex flex-column align-items-center justify-content-center">
+            <h1 class="display-1 my-0 text-warning material-symbols ${i === 0 || i === 3 ? '' : 'filled'}">deployed_code</h1>
+            <p class="text-center d-none d-lg-block fs-5 my-0">${bucketNames[i]}</p>
+            <p class="text-center d-block d-lg-none fs-6 my-0">${bucketNames[i]}</p>
+        </div>`;
+    });
+
+    document.getElementById('year').textContent = new Date().getFullYear();
+</script>
+
+<script>
+    // --- DEBUG + FORCE MOTION FLAGS ---
+    const params = new URLSearchParams(location.search);
+    const FORCE_MOTION = params.get("motion") === "on";   // visit with ?motion=on to override
+
+    // 3D parallax / tilt
+    const prefersReducedRaw = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const prefersReduced = prefersReducedRaw && !FORCE_MOTION;
+
+    console.log("[stash3] prefersReducedRaw:", prefersReducedRaw, "FORCE_MOTION:", FORCE_MOTION, "effective prefersReduced:", prefersReduced);
+
+    const win = document.getElementById("window3d");
+    const scene = document.querySelector(".scene");
+    console.log("[stash3] elements -> win:", !!win, "scene:", !!scene);
+
+    if (win) {
+        // log computed animation
+        const anim = getComputedStyle(win).animation;
+        console.log("[stash3] computed animation:", anim);
+
+        win.addEventListener("animationstart", () => console.log("[stash3] animationstart"));
+        win.addEventListener("animationiteration", () => console.log("[stash3] animationiteration"));
+
+        // if reduced-motion killed it but we forced motion, turn it back on
+        if (FORCE_MOTION && (!anim || anim === "none" || anim.startsWith("none"))) {
+            win.style.animation = "idleFloat 9s ease-in-out infinite";
+            console.log("[stash3] forcing idleFloat animation");
+        }
+    }
+
+    if (win && scene) {
+        let raf = null;
+        let rx = 6, ry = -8; // starting tilt
+        const lerp = (a, b, t) => a + (b - a) * t;
+
+        scene.addEventListener("mousemove", (e) => {
+            const r = scene.getBoundingClientRect();
+            const px = (e.clientX - r.left) / r.width;   // 0..1
+            const py = (e.clientY - r.top) / r.height;  // 0..1
+            const targetX = (py - 0.5) * 18; // rotateX
+            const targetY = (px - 0.5) * 26; // rotateY
+
+            if (raf) cancelAnimationFrame(raf);
+            raf = requestAnimationFrame(() => {
+                rx = lerp(rx, targetX, 0.15);
+                ry = lerp(ry, targetY, 0.15);
+                win.style.transform = `rotateX(${rx}deg) rotateY(${ry}deg)`;
+                // light telemetry
+                if ((Math.random() * 100 | 0) === 0) console.log("[stash3] tilt", {
+                    rx: rx.toFixed(2),
+                    ry: ry.toFixed(2),
+                    px: px.toFixed(2),
+                    py: py.toFixed(2)
+                });
+            });
+        });
+
+        scene.addEventListener("mouseleave", () => {
+            win.style.transform = "rotateX(6deg) rotateY(-8deg)";
+            console.log("[stash3] mouseleave -> reset tilt");
+        });
+    } else {
+        console.log("[stash3] skipping tilt (no elements or prefersReduced).");
+    }
+</script>
+</body>
+<script script async src="https://www.mydatapro.co.uk/api/v1/d3803fb2-5d23-417d-8a2d-f3e180c4d8a0"></script>
+<script script async src="https://www.mydatapro.co.uk/api/v1/15985c81-7b7b-4701-8aba-c337887a046b"></script>
+<script async
+        src="https://www.myblogspro.com/api/integration/widget/3529c97c-2317-4604-b958-4dfc428b75be/blog-row?id=article-content&linkType=query"></script>
+
+<script src="https://stash3.io/slick/slick.min.js"></script>
+
+<script>
+    function slickifyBlogs() {
+        const articleContent = document.getElementById('article-content');
+        console.log("[stash3] initializing blog carousel...", articleContent);
+        if (articleContent) {
+            // Wait for a short moment to ensure the blog content is loaded
+            setTimeout(() => {
+                const blogItems = articleContent.querySelectorAll('.article-blog-item');
+                console.log("[stash3] found blog items:", blogItems.length);
+                if (blogItems.length > 0) {
+                    // Initialize Slick Carousel
+                    $('#article-content .article-blog__container').slick({
+                        dots: true,
+                        infinite: true,
+                        speed: 300,
+                        slidesToShow: 2,
+                        adaptiveHeight: true,
+                        arrows: false,
+                        autoplay: true,
+                        autoplaySpeed: 5000,
+                        responsive: [
+                            {
+                                breakpoint: 1400,
+                                settings: {
+                                    slidesToShow: 1,
+                                }
+                            }
+                        ]
+                    });
+
+                    setTimeout(() => {
+                        document.querySelector('.article-blog__container').style.opacity = '1';
+                        document.querySelector('.article-blog__container').style.maxHeight = 'max-content';
+                    }, 10)
+                } else {
+                    console.log("[stash3] No blog items found to initialize carousel.");
+                }
+            }, 200); // Adjust timeout as necessary based on content load time
+        }
+    }
+
+    const slickElementChecker = setInterval(() => {
+        const el = document.getElementsByClassName('article-blog-item');
+        if (el && el.length > 0) {
+            slickifyBlogs(el);
+            clearInterval(slickElementChecker);
+        }
+    }, 100);
+
+</script>
+
+</html>

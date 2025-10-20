@@ -1,4 +1,4 @@
-import {Link} from "react-router-dom";
+import {Link, useNavigate} from "react-router-dom";
 import logo from "../assets/images/stash3_logo.png";
 import React, {useCallback, useState} from "react";
 import HttpService, {HttpError} from "../services/http/http-service";
@@ -7,6 +7,7 @@ import UserSession from "../Models/UserSession";
 
 export default function Login() {
 
+    const navigate = useNavigate();
     const [respError, setRespError] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [loginRequest, setLoginRequest] = useState<{
@@ -27,13 +28,13 @@ export default function Login() {
                 password: ''
             });
             UserService.UpdateSession(resp);
-            window.location.href = '/buckets';
+            navigate('/buckets');
         }, (err: HttpError) => {
             console.log(err);
             setLoading(false);
             setRespError(err && err.error && err.error.error ? err.error.error : 'An unknown error occurred');
         });
-    }, [loginRequest])
+    }, [loginRequest, navigate])
 
     const errors = useCallback(() => {
         const _errors: { visible: boolean, message: string }[] = [];

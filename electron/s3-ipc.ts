@@ -1,9 +1,16 @@
-﻿const {ipcMain} = require("electron");
-const Store = require("electron-store");
-const keytar = require("keytar");
-const fs = require("fs");
+﻿import { ipcMain } from 'electron';
+import Store from 'electron-store';
+import keytar from 'keytar';
+import fs from 'fs';
+import path from "path";
+import fsp from 'fs/promises';
+import { pipeline } from 'stream';
+import { promisify } from 'util';
+const streamPipeline = promisify(pipeline)
+import { pipeline as pipelinePromise } from "stream/promises";
+import { Readable } from "stream";
 
-const {
+import {
     S3Client,
     ListBucketsCommand,
     ListObjectsV2Command,
@@ -18,20 +25,64 @@ const {
     PutBucketPolicyCommand,
     GetPublicAccessBlockCommand,
     PutPublicAccessBlockCommand
-} = require("@aws-sdk/client-s3");
-const {getSignedUrl} = require("@aws-sdk/s3-request-presigner");
-const {Upload} = require("@aws-sdk/lib-storage");
+} from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { Upload } from '@aws-sdk/lib-storage';
 
-const store = new Store({name: "prefs", defaults: {region: "eu-west-2"}});
+type Prefs = { region: string };
+
+const store = new Store<Prefs>({
+    name: 'prefs',
+    defaults: { region: 'eu-west-2' },
+});
 const SERVICE = "stash3.io";
 
 const clientCache = new Map();
 
-async function ensureDirForFile(filePath) {
+// Convert AWS v3 GetObject Body → Node Readable (no Readable.fromWeb needed)
+function toNodeReadable(body: unknown): NodeJS.ReadableStream {
+    if (!body) throw new Error("Empty S3 object body");
+
+    // Node stream?
+    if (typeof (body as any).pipe === "function") return body as NodeJS.ReadableStream;
+
+    // Blob? -> read as ArrayBuffer and emit once
+    if (typeof (body as any).arrayBuffer === "function") {
+        const make = async () => Buffer.from(await (body as any).arrayBuffer());
+        // Readable.from accepts async iterable too
+        // @ts-ignore
+        return Readable.from((async function* () { yield await make(); })());
+    }
+
+    // Web ReadableStream?
+    if (typeof (body as any).getReader === "function") {
+        const reader = (body as any).getReader();
+        // Wrap Web reader in a Node Readable
+        return new Readable({
+            async read() {
+                try {
+                    const { done, value } = await reader.read();
+                    if (done) return this.push(null);
+                    this.push(Buffer.isBuffer(value) ? value : Buffer.from(value));
+                } catch (err) {
+                    this.destroy(err as Error);
+                }
+            }
+        });
+    }
+
+    // Uint8Array / ArrayBuffer
+    if (body instanceof Uint8Array) return Readable.from([Buffer.from(body)]);
+    if (body instanceof ArrayBuffer) return Readable.from([Buffer.from(body)]);
+
+    throw new Error("Unknown GetObject body type");
+}
+
+async function ensureDirForFile(filePath: string) {
     await fsp.mkdir(path.dirname(filePath), {recursive: true});
 }
 
-async function s3ClientForUser(accountHandle) {
+async function s3ClientForUser(accountHandle: string): Promise<S3Client | null> {
     try {
         const region = store.get("region") || "eu-west-2";
 
@@ -50,7 +101,7 @@ async function s3ClientForUser(accountHandle) {
         }
         const client = new S3Client({region, credentials: {accessKeyId, secretAccessKey}});
         if (!client) {
-            console.error("[s3ClientForUser]", err);
+            console.error("[s3ClientForUser] Failed to create S3 client");
             return null;
         }
         clientCache.set(`${region}_${accountHandle}`, client);
@@ -61,7 +112,7 @@ async function s3ClientForUser(accountHandle) {
     }
 }
 
-async function resolveBucketRegion(client, bucket) {
+async function resolveBucketRegion(client: S3Client, bucket: string) {
     try {
         if (bucket === null || bucket === undefined || bucket === "") return "eu-west-2";
         const {LocationConstraint} = await client.send(new GetBucketLocationCommand({Bucket: bucket}));
@@ -72,9 +123,10 @@ async function resolveBucketRegion(client, bucket) {
     }
 }
 
-async function GetClientForBucket(accountHandle, bucket) {
+async function GetClientForBucket(accountHandle: string, bucket: string) {
     try {
         const s3 = await s3ClientForUser(accountHandle);
+        if (!s3) return null;
         const bucketRegion = await resolveBucketRegion(s3, bucket);
         store.set('region', bucketRegion);
         return await s3ClientForUser(accountHandle);
@@ -87,6 +139,7 @@ async function GetClientForBucket(accountHandle, bucket) {
 // IPC handlers
 ipcMain.handle("s3:listBuckets", async (e, accountHandle) => {
     const s3 = await s3ClientForUser(accountHandle);
+    if (!s3) return [];
     const {Buckets} = await s3.send(new ListBucketsCommand({}));
     return Buckets ?? [];
 });
@@ -102,7 +155,7 @@ ipcMain.handle("s3:listObjects", async (_e, accountHandle, bucket, prefix = "") 
             new ListObjectsV2Command({Bucket: bucket, Prefix: prefix, Delimiter: "/"})
         );
         return {files: Contents ?? [], folders: CommonPrefixes ?? [], error: null};
-    } catch (err) {
+    } catch (err: any) {
         console.error(err);
         return {files: [], folders: [], error: err.message};
     }
@@ -163,7 +216,7 @@ ipcMain.handle("s3:upload", async (e, accountHandle, {bucket, key, filePath}) =>
         });
 
         upload.on("httpUploadProgress", (p) => {
-            if (p.percent < 100) {
+            if (!p || !p.loaded || !p.total || p.loaded < p.total) {
                 e.sender.send("s3:uploadProgress", {
                     key,
                     loaded: p.loaded,
@@ -176,7 +229,7 @@ ipcMain.handle("s3:upload", async (e, accountHandle, {bucket, key, filePath}) =>
 
         await upload.done();
         return {ok: true};
-    } catch (err) {
+    } catch (err: any) {
         e.sender.send("s3:uploadEnd", {key, status: false});
         return {ok: false, error: err.message};
     }
@@ -186,6 +239,7 @@ ipcMain.handle("s3:upload", async (e, accountHandle, {bucket, key, filePath}) =>
 ipcMain.handle("s3:createFolder", async (_e, accountHandle, bucket, prefix) => {
     try {
         const s3 = await s3ClientForUser(accountHandle);
+        if (!s3) { return {ok: false, error: "No S3 client"}; }
         const key = prefix.endsWith("/") ? prefix : prefix + "/";
         await s3.send(
             new PutObjectCommand({
@@ -202,7 +256,7 @@ ipcMain.handle("s3:createFolder", async (_e, accountHandle, bucket, prefix) => {
         });
 
         return {ok: true, error: null};
-    } catch (err) {
+    } catch (err: any) {
         console.error("[s3:createFolder]", err);
         return {ok: false, error: err.message};
     }
@@ -212,6 +266,9 @@ ipcMain.handle("s3:createFolder", async (_e, accountHandle, bucket, prefix) => {
 ipcMain.handle("s3:deleteObject", async (_e, accountHandle, bucket, key) => {
     try {
         const s3 = await s3ClientForUser(accountHandle);
+        if (!s3) {
+            return {ok: false, error: "No S3 client"};
+        }
         console.log({Bucket: bucket, Key: key});
         await s3.send(new DeleteObjectCommand({Bucket: bucket, Key: key}));
 
@@ -219,7 +276,7 @@ ipcMain.handle("s3:deleteObject", async (_e, accountHandle, bucket, key) => {
 
 
         return {ok: true, error: null};
-    } catch (err) {
+    } catch (err: any) {
         console.error("[s3:deleteObject]", err);
         return {ok: false, error: err.message};
     }
@@ -242,7 +299,7 @@ ipcMain.handle("s3:getObjectHead", async (_e, accountHandle, bucket, key) => {
                 lastModified: out.LastModified,
             }
         };
-    } catch (err) {
+    } catch (err: any) {
         console.error("[s3:getObjectHead]", err);
         return {ok: false, error: err.message};
     }
@@ -257,7 +314,7 @@ ipcMain.handle("s3:getPreSignedUrl", async (_e, accountHandle, bucket, key, expi
         const cmd = new GetObjectCommand({Bucket: bucket, Key: key});
         const signedUrl = await getSignedUrl(s3, cmd, {expiresIn});
         return {ok: true, error: null, url: signedUrl};
-    } catch (err) {
+    } catch (err: any) {
         console.error("[s3:getPreSignedUrl]", err);
         return {ok: false, error: err.message};
     }
@@ -274,7 +331,7 @@ ipcMain.handle("s3:getObjectUrl", async (_e, accountHandle, bucket, key) => {
             url: `https://${bucket}.s3.${region}.amazonaws.com/${encodeURIComponent(key)}`,
             error: null
         };
-    } catch (err) {
+    } catch (err: any) {
         console.error("[s3:getObjectUrl]", err);
         return {url: null, error: err.message};
     }
@@ -291,7 +348,7 @@ ipcMain.handle("s3:getBucketUrl", async (_e, accountHandle, bucket) => {
             url: `https://${bucket}.s3.${region}.amazonaws.com/`,
             error: null
         };
-    } catch (err) {
+    } catch (err: any) {
         console.error("[s3:getObjectUrl]", err);
         return {url: null, error: err.message};
     }
@@ -300,35 +357,38 @@ ipcMain.handle("s3:getBucketUrl", async (_e, accountHandle, bucket) => {
 ipcMain.handle('s3:downloadAll', async (_e, accountHandle, bucket, destDir) => {
     try {
         const s3 = await GetClientForBucket(accountHandle, bucket);
-        if (!s3) return {ok: false, error: 'No S3 client'};
+        if (!s3) return { ok: false, error: 'No S3 client' };
 
-        let ContinuationToken = undefined;
+        let ContinuationToken: string | undefined;
         let count = 0;
         let bytes = 0;
 
         do {
-            const page = await s3.send(new ListObjectsV2Command({Bucket: bucket, ContinuationToken}));
-            const items = page.Contents || [];
+            const page: any = await s3.send(new ListObjectsV2Command({ Bucket: bucket, ContinuationToken }));
+            const items = page.Contents ?? [];
 
-            // Sequential to keep it simple/reliable (can add concurrency later)
             for (const obj of items) {
                 if (!obj.Key) continue;
+
                 const keyPath = path.join(destDir, obj.Key);
                 await ensureDirForFile(keyPath);
 
-                const {Body} = await s3.send(new GetObjectCommand({Bucket: bucket, Key: obj.Key}));
-                await streamPipeline(Body, fs.createWriteStream(keyPath));
+                const out = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: obj.Key }));
+                const rs = toNodeReadable(out.Body);
+
+                await pipelinePromise(rs, fs.createWriteStream(keyPath));
+
                 count += 1;
-                bytes += obj.Size || 0;
+                bytes += Number(obj.Size ?? 0);
             }
 
             ContinuationToken = page.IsTruncated ? page.NextContinuationToken : undefined;
         } while (ContinuationToken);
 
-        return {ok: true, count, bytes, error: null};
-    } catch (err) {
+        return { ok: true, count, bytes, error: null };
+    } catch (err: any) {
         console.error('[s3:downloadAll]', err);
-        return {ok: false, error: err.message};
+        return { ok: false, error: err.message };
     }
 });
 
@@ -340,20 +400,20 @@ ipcMain.handle('s3:getCors', async (_e, accountHandle, bucket) => {
         try {
             const res = await s3.send(new GetBucketCorsCommand({Bucket: bucket}));
             return {ok: true, rules: res.CORSRules || [], error: null};
-        } catch (err) {
+        } catch (err: any) {
             // If no CORS config set, AWS throws NoSuchCORSConfiguration
             if (err?.name === 'NoSuchCORSConfiguration' || err?.$metadata?.httpStatusCode === 404) {
                 return {ok: true, rules: [], error: null};
             }
             throw err;
         }
-    } catch (err) {
+    } catch (err: any) {
         console.error('[s3:getCors]', err);
         return {ok: false, error: err.message};
     }
 });
 
-ipcMain.handle('s3:saveCors', async (_e, accountHandle, bucket, corsRules /* array */) => {
+ipcMain.handle('s3:saveCors', async (_e, accountHandle, bucket, corsRules) => {
     try {
         const s3 = await GetClientForBucket(accountHandle, bucket);
         if (!s3) return {ok: false, error: 'No S3 client'};
@@ -366,7 +426,7 @@ ipcMain.handle('s3:saveCors', async (_e, accountHandle, bucket, corsRules /* arr
         );
 
         return {ok: true, error: null};
-    } catch (err) {
+    } catch (err: any) {
         console.error('[s3:saveCors]', err);
         return {ok: false, error: err.message};
     }
@@ -381,14 +441,14 @@ ipcMain.handle('s3:getBucketPolicy', async (_e, accountHandle, bucket) => {
             const res = await s3.send(new GetBucketPolicyCommand({Bucket: bucket}));
             // res.Policy is a JSON string when present
             return {ok: true, policy: res.Policy ?? null, error: null};
-        } catch (err) {
+        } catch (err: any) {
             // If no policy exists, S3 may return NoSuchBucketPolicy / 404
             if (err?.name === 'NoSuchBucketPolicy' || err?.$metadata?.httpStatusCode === 404) {
                 return {ok: true, policy: null, error: null};
             }
             throw err;
         }
-    } catch (err) {
+    } catch (err: any) {
         console.error('[s3:getBucketPolicy]', err);
         return {ok: false, error: err.message};
     }
@@ -403,7 +463,7 @@ ipcMain.handle('s3:saveBucketPolicy', async (_e, accountHandle, bucket, policy) 
         await s3.send(new PutBucketPolicyCommand({Bucket: bucket, Policy: policyString}));
 
         return {ok: true, error: null};
-    } catch (err) {
+    } catch (err: any) {
         console.error('[s3:saveBucketPolicy]', err);
         return {ok: false, error: err.message};
     }
@@ -421,14 +481,14 @@ ipcMain.handle('s3:getPublicAccessBlock', async (_e, accountHandle, bucket) => {
                 config: res.PublicAccessBlockConfiguration ?? null,
                 error: null,
             };
-        } catch (err) {
+        } catch (err: any) {
             // When not set, S3 returns NoSuchPublicAccessBlockConfiguration / 404
             if (err?.name === 'NoSuchPublicAccessBlockConfiguration' || err?.$metadata?.httpStatusCode === 404) {
                 return { ok: true, config: null, error: null };
             }
             throw err;
         }
-    } catch (err) {
+    } catch (err: any) {
         console.error('[s3:getPublicAccessBlock]', err);
         return { ok: false, error: err.message };
     }
@@ -447,7 +507,7 @@ ipcMain.handle('s3:savePublicAccessBlock', async (_e, accountHandle, bucket, con
         }));
 
         return { ok: true, error: null };
-    } catch (err) {
+    } catch (err: any) {
         console.error('[s3:savePublicAccessBlock]', err);
         return { ok: false, error: err.message };
     }
