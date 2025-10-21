@@ -2,6 +2,7 @@
 import bcrypt from "bcryptjs";
 import jwt, {SignOptions} from "jsonwebtoken";
 import path from "path";
+import fs from "node:fs";
 import "reflect-metadata";
 import dotenv from "dotenv";
 import cors from "cors";
@@ -372,7 +373,9 @@ async function bootstrap() {
     });
 
     // ui path
-    const ui_build_path = path.join(__dirname, "/public-site");    
+    const ui_build_path = path.join(__dirname, "/public-site/pages");
+    const UI_ROOT = path.resolve(ui_build_path); // ensure absolute once
+
     // middlewares
     app.use(stash3RequireAuth);
     app.use(cors());
@@ -390,22 +393,58 @@ async function bootstrap() {
     app.use("/api/static", staticRouter);
 
     // --- SPA fallback: any route NOT starting with /api -> index.html ---
-    app.get("*", (_req, _res) => {
-        if (_req.path.indexOf("/api/") > -1) {
-            _res.status(404);
-            _res.send();
-        } else {
-            _res.status(200);
-            if (_req.path === "/article") {
-                _res.sendFile(`${ui_build_path}/article.html`);
-            } else if (_req.path === "/support") {
-                _res.sendFile(`${ui_build_path}/support.html`);
-            } else if (_req.path === "/sitemap" || _req.path === "/sitemap.xml") {
-                _res.sendFile(`${ui_build_path}/sitemap.xml`);
-            } else {
-                // fallback (turn into spa at some point)
-                _res.sendFile(`${ui_build_path}/index.html`);
+
+    function sendIfExists(_res: any, root: string, relFile: string): boolean {
+        // Normalize and ensure the target stays under root (no traversal)
+        const abs = path.resolve(root, relFile);
+        if (!abs.startsWith(root + path.sep)) return false;
+
+        try {
+            const stat = fs.statSync(abs);
+            if (stat.isFile()) {
+                _res.status(200).sendFile(abs);
+                return true;
             }
+        } catch {
+            // file not found
+        }
+        return false;
+    }
+
+    function routeToCandidates(p: string): string[] {
+        // remove trailing slash (but keep single "/")
+        const clean = p.replace(/\/+$/, "") || "/";
+        const hasExt = path.extname(clean) !== "";
+
+        // Root: serve index.html
+        if (clean === "/") return ["index.html"];
+
+        // If the URL already has an extension, try the exact relative file
+        // e.g. "/sitemap.xml" -> "sitemap.xml"
+        if (hasExt) return [clean.slice(1)];
+
+        // Extension-less route: try "<slug>.html" then "<slug>/index.html"
+        // e.g. "/support" -> "support.html", "support/index.html"
+        const slug = clean.slice(1);
+        return [`${slug}.html`, path.join(slug, "index.html")];
+    }
+    
+    app.get("*", (_req, _res) => {
+        if (_req.path.includes("/api/")) {
+            _res.status(404).send();
+            return;
+        }
+
+        const candidates = routeToCandidates(_req.path);
+
+        // Try candidates in order
+        for (const rel of candidates) {
+            if (sendIfExists(_res, UI_ROOT, rel)) return;
+        }
+
+        // SPA fallback → index.html (or 404 if somehow missing)
+        if (!sendIfExists(_res, UI_ROOT, "index.html")) {
+            _res.status(404).send();
         }
     });
 

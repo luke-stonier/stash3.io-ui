@@ -1,0 +1,364 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>Stash3.io — Downloads</title>
+    <link rel="icon" href="https://stash3.io/favicon.ico" type="image/x-icon"/>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.js" integrity="sha512-+k1pnlgt4F1H8L7t3z95o3/KO+o78INEcXTbnoJQ/F2VqDVhWoaiVml/OEHv9HsVgxUaVW+IbiZPUJQfF/YxZw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <meta name="description" content="Download Stash3.io — a fast, modern S3 client for Windows, macOS, and Linux."/>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0..1,0" rel="stylesheet"/>
+
+    <!-- Slick (optional if you ever reuse the carousel below) -->
+    <link rel="stylesheet" type="text/css" href="https://stash3.io/slick/slick.css"/>
+    <link rel="stylesheet" type="text/css" href="https://stash3.io/slick/slick-theme.css"/>
+
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-5P38YWNTDW"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', 'G-5P38YWNTDW');
+    </script>
+
+    <style>
+        :root{
+            --orange:#ff6a00; --orange-2:#ff7f1f; --ink-900:#0e0f12; --ink-800:#15171c; --ink-700:#1c1f26; --text-1:#e6e8ee; --text-2:#aab0bd; --shadow:0 10px 30px rgba(0,0,0,.45),0 40px 90px rgba(0,0,0,.55)
+        }
+        .rounded-lg{border-radius:1rem!important}
+        .material-symbols{font-family:"Material Symbols Outlined";font-weight:normal;font-style:normal;font-size:24px;line-height:1;display:inline-block;white-space:nowrap;direction:ltr;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizeLegibility;font-variation-settings:"FILL" 0,"wght" 400,"GRAD" 0,"opsz" 24}
+        .material-symbols.filled{font-variation-settings:"FILL" 1,"wght" 400,"GRAD" 0,"opsz" 24}
+        html,body{height:100%}
+        body{margin:0;color:white;background-color:#0E1218!important;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial,"Apple Color Emoji","Segoe UI Emoji";overflow-x:hidden}
+
+        .bg{position:fixed;inset:0;height:100dvh;z-index:-2;background:radial-gradient(1200px 800px at 70% 40%, rgba(255,106,0,.18), transparent 60%),linear-gradient(180deg, rgba(10,10,12,.75), rgba(10,10,12,.95));filter:saturate(1.05) contrast(1.02)}
+
+        @keyframes window-float{0%{transform:rotateX(6deg) rotateY(-8deg) translateY(0)}50%{transform:rotateX(8deg) rotateY(-2deg) translateY(-6px)}100%{transform:rotateX(6deg) rotateY(-8deg) translateY(0)}}
+
+        .scene{perspective:1200px;height:520px;display:flex;align-items:center;justify-content:center}
+        .window{width:min(680px,88vw);height:420px;border-radius:18px;background:linear-gradient(180deg,var(--ink-800),var(--ink-700));border:1px solid rgba(255,255,255,.08);box-shadow:var(--shadow);transform-style:preserve-3d;position:relative;overflow:hidden;will-change:transform,box-shadow;transition:box-shadow .2s ease, transform .3s ease;animation:window-float 9s ease-in-out infinite}
+        .window::before{content:"";position:absolute;inset:-1px;border-radius:18px;background:radial-gradient(600px 120px at 80% 10%, rgba(255,106,0,.25), transparent 60%);pointer-events:none;transform:translateZ(50px)}
+        .toolbar{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.06);background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,0))}
+        .dot{width:10px;height:10px;border-radius:50%;background:#ffbd2e;box-shadow:0 0 12px rgba(255,189,46,.6)}
+        .dot:nth-child(1){background:#ff5f57}.dot:nth-child(2){background:#ffbd2e}.dot:nth-child(3){background:#28c940}
+
+        .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:18px;padding:18px}
+        .bucket-card{border-radius:14px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);padding:20px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;user-select:none}
+        @media (max-width:768px){.bucket-card{padding:8px}}
+        .bucket-card::after{content:"";position:absolute;inset:0;background:radial-gradient(160px 120px at 30% 20%, rgba(255,106,0,.12), transparent 60%);opacity:.8}
+        .depth-1{transform:translateZ(20px)}.depth-2{transform:translateZ(40px)}.depth-3{transform:translateZ(60px)}
+        .bucket-card{transition:transform .25s ease, box-shadow .25s ease}
+        .bucket-card:hover{transform:translateZ(70px) scale(1.02)}
+
+        .mono{font-family:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace}
+
+        .download-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);border-radius:16px;padding:20px}
+        .download-card .title{font-weight:800}
+        .download-card .subtitle{color:var(--text-2)}
+        .download-actions .btn{min-width:180px}
+
+        .feature-bullet{display:flex;align-items:center;gap:10px;margin:.35rem 0;color:var(--text-2)}
+        .feature-bullet .material-symbols{font-size:20px}
+
+        footer{padding:40px 28px;color:var(--text-2);border-top:1px solid rgba(255,255,255,.06)}
+    </style>
+
+    <link href="https://stash3.io/assets/bootstrap.css" rel="stylesheet"/>
+</head>
+<body class="text-white">
+<div class="bg" aria-hidden="true"></div>
+
+<header class="bg-dark w-100 py-2 px-3">
+    <div class="container d-flex align-items-center justify-content-start gap-2">
+        <a href="/" class="text-decoration-none d-flex align-items-center gap-2">
+            <img src="https://stash3.io/assets/stash3_logo.png" alt="Stash3.io logo" style="height:48px;" class="d-block">
+            <span class="text-white text-decoration-none fs-4 fw-bolder">Stash3.io</span>
+        </a>
+        <div class="flex-fill"></div>
+        <div class="d-flex align-items-center justify-content-end gap-2">
+            <a href="#downloads" class="btn btn-outline-warning">Downloads</a>
+        </div>
+    </div>
+</header>
+
+<!-- HERO -->
+<section class="container">
+    <div class="row align-items-center">
+        <div class="col-12 col-lg-6 order-1 order-lg-1">
+            <div class="ms-3 d-flex flex-column align-items-stretch justify-content-center h-100 text-center text-lg-start">
+                <h1 class="title display-4 fw-bolder">Download Stash3</h1>
+                <p class="subtitle my-2">Fast, modern S3 client for developers and teams. Choose your platform below and get started in seconds.</p>
+                <div class="d-flex gap-2 justify-content-center justify-content-lg-start flex-wrap">
+                    <a href="#windows" class="btn btn-warning">Windows</a>
+                    <a href="#mac" class="btn btn-outline-light">macOS</a>
+                    <a href="#linux" class="btn btn-outline-light">Linux</a>
+                </div>
+                <p class="my-3 text-muted">No sign-up required. Offline-first. Secure by design.</p>
+            </div>
+        </div>
+
+        <!-- 3D interactive window -->
+        <div class="scene col-12 col-lg-6 order-0 order-lg-0">
+            <div class="window" id="window3d">
+                <div class="toolbar">
+                    <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+                    <span class="small ms-auto text-muted">Stash3.io</span>
+                </div>
+                <div class="grid" style="height: 90%">
+                    <div class="bucket-card depth-1 d-flex flex-column text-center">
+                        <span class="material-symbols filled display-5 text-warning">download</span>
+                        <small class="mt-2">Windows</small>
+                    </div>
+                    <div class="bucket-card depth-2 d-flex flex-column text-center">
+                        <span class="material-symbols display-5 text-warning">desktop_mac</span>
+                        <small class="mt-2">macOS</small>
+                    </div>
+                    <div class="bucket-card depth-1 d-flex flex-column text-center">
+                        <span class="material-symbols display-5 text-warning">terminal</span>
+                        <small class="mt-2">Linux</small>
+                    </div>
+                    <div class="bucket-card depth-3 d-flex flex-column text-center">
+                        <span class="material-symbols filled display-5 text-warning">bolt</span>
+                        <small class="mt-2">Blazing Fast</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- DOWNLOADS -->
+<section id="downloads" class="py-5 bg-dark">
+    <div class="container py-4">
+        <div class="row">
+            <h2 class="display-4 mb-4 text-center">Choose your OS</h2>
+        </div>
+
+        <div class="row g-4">
+            <!-- Windows -->
+            <div class="col-12 col-lg-4" id="windows">
+                <div class="download-card h-100">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <span class="material-symbols filled">desktop_windows</span>
+                        <span class="title fs-4">Windows</span>
+                    </div>
+                    <p class="subtitle">Windows 10/11 (x64)</p>
+                    <div class="download-actions d-grid gap-2 mb-3">
+                        <a class="btn btn-warning" href="https://stash3.io/downloads/stash3-setup.exe">Download .exe</a>
+                        <a class="btn btn-outline-light" href="https://stash3.io/downloads/stash3.msi">MSI Installer</a>
+                    </div>
+                    <div class="mb-2 small mono">
+                        <div>Version: <span id="win-version">v1.0.0</span></div>
+                        <div>SHA256: <code id="win-sha">—</code></div>
+                    </div>
+                    <div class="mt-3">
+                        <div class="feature-bullet"><span class="material-symbols filled">check_circle</span><span>Native ARM64 + x64</span></div>
+                        <div class="feature-bullet"><span class="material-symbols filled">check_circle</span><span>Auto-updates</span></div>
+                        <div class="feature-bullet"><span class="material-symbols filled">check_circle</span><span>Explorer integration (optional)</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- macOS -->
+            <div class="col-12 col-lg-4" id="mac">
+                <div class="download-card h-100">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <span class="material-symbols">desktop_mac</span>
+                        <span class="title fs-4">macOS</span>
+                    </div>
+                    <p class="subtitle">macOS 12+ (Monterey or later)</p>
+                    <div class="download-actions d-grid gap-2 mb-3">
+                        <a class="btn btn-warning" href="https://stash3.io/downloads/Stash3.dmg">Download .dmg</a>
+                        <a class="btn btn-outline-light" href="https://stash3.io/downloads/Stash3.zip">Universal .zip</a>
+                    </div>
+                    <div class="mb-2 small mono">
+                        <div>Version: <span id="mac-version">v1.0.0</span></div>
+                        <div>SHA256: <code id="mac-sha">—</code></div>
+                    </div>
+                    <div class="mt-3">
+                        <div class="feature-bullet"><span class="material-symbols filled">check_circle</span><span>Apple Silicon & Intel</span></div>
+                        <div class="feature-bullet"><span class="material-symbols filled">check_circle</span><span>Notarized & signed</span></div>
+                        <div class="feature-bullet"><span class="material-symbols filled">check_circle</span><span>Dark mode by default</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Linux -->
+            <div class="col-12 col-lg-4" id="linux">
+                <div class="download-card h-100">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <span class="material-symbols">terminal</span>
+                        <span class="title fs-4">Linux</span>
+                    </div>
+                    <p class="subtitle">Ubuntu 22.04+/Fedora 38+/Arch (x64)</p>
+                    <div class="download-actions d-grid gap-2 mb-3">
+                        <a class="btn btn-warning" href="https://stash3.io/downloads/Stash3.AppImage">AppImage</a>
+                        <a class="btn btn-outline-light" href="https://stash3.io/downloads/stash3-amd64.deb">Deb (.deb)</a>
+                        <a class="btn btn-outline-light" href="https://stash3.io/downloads/stash3-x86_64.rpm">RPM (.rpm)</a>
+                    </div>
+                    <div class="mb-2 small mono">
+                        <div>Version: <span id="linux-version">v1.0.0</span></div>
+                        <div>SHA256: <code id="linux-sha">—</code></div>
+                    </div>
+                    <div class="mt-3">
+                        <div class="feature-bullet"><span class="material-symbols filled">check_circle</span><span>Wayland & X11</span></div>
+                        <div class="feature-bullet"><span class="material-symbols filled">check_circle</span><span>Portable AppImage</span></div>
+                        <div class="feature-bullet"><span class="material-symbols filled">check_circle</span><span>CLI tools included</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Helper row: Auto-detect + Release notes -->
+        <div class="row mt-5 g-4">
+            <div class="col-12 col-lg-6">
+                <div class="download-card h-100 d-flex flex-column gap-2">
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                        <span class="material-symbols filled">smart_toy</span>
+                        <span class="title fs-5">Recommended for your device</span>
+                    </div>
+                    <p class="subtitle">We detect your OS and suggest the right build.</p>
+                    <div>
+                        <a id="autoBtn" class="btn btn-warning" href="#">Get the recommended download</a>
+                    </div>
+                    <small class="text-muted">If detection fails, pick from the options above.</small>
+                </div>
+            </div>
+
+            <div class="col-12 col-lg-6">
+                <div class="download-card h-100">
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                        <span class="material-symbols">history</span>
+                        <span class="title fs-5">Release notes</span>
+                    </div>
+                    <div class="small mono">
+                        <div>Latest: <span id="latest-version">v1.0.0</span> — <span id="latest-date">2025-10-01</span></div>
+                        <ul class="mt-2 mb-0">
+                            <li>Improved multipart uploads and retry logic.</li>
+                            <li>New presigned link sharing flow.</li>
+                            <li>UI polish and bug fixes.</li>
+                        </ul>
+                    </div>
+                    <div class="mt-3">
+                        <a class="link-light" href="/changelog">View full changelog →</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</section>
+
+<!-- FAQ / Help -->
+<section class="pt-5 bg-dark">
+    <div class="container py-4">
+        <div class="row">
+            <h3 class="display-5 mb-4 text-center">Need help installing?</h3>
+        </div>
+        <div class="row g-4">
+            <div class="col-12 col-lg-4">
+                <div class="download-card h-100">
+                    <div class="title fs-5 mb-2">Windows</div>
+                    <ol class="small" style="line-height:1.8">
+                        <li>Download the <span class="mono">.exe</span> or <span class="mono">.msi</span>.</li>
+                        <li>Run the installer and follow prompts.</li>
+                        <li>Launch Stash3 from Start menu.</li>
+                    </ol>
+                </div>
+            </div>
+            <div class="col-12 col-lg-4">
+                <div class="download-card h-100">
+                    <div class="title fs-5 mb-2">macOS</div>
+                    <ol class="small" style="line-height:1.8">
+                        <li>Open the <span class="mono">.dmg</span> and drag to <span class="mono">Applications</span>.</li>
+                        <li>If Gatekeeper warns, open via <span class="mono">System Settings → Privacy & Security</span>.</li>
+                        <li>Launch Stash3 from Applications.</li>
+                    </ol>
+                </div>
+            </div>
+            <div class="col-12 col-lg-4">
+                <div class="download-card h-100">
+                    <div class="title fs-5 mb-2">Linux</div>
+                    <ol class="small" style="line-height:1.8">
+                        <li>Make AppImage executable: <span class="mono">chmod +x Stash3.AppImage</span></li>
+                        <li>Run with <span class="mono">./Stash3.AppImage</span> or install the <span class="mono">.deb/.rpm</span>.</li>
+                        <li>Launch from your app menu.</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<footer class="bg-dark py-3">
+    <div class="container">
+        <div class="col-12">© <span id="year"></span> Stash3.io • All Rights Reserved</div>
+    </div>
+</footer>
+
+<script>
+    // Year
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    // Auto-detect best download
+    const autoBtn = document.getElementById('autoBtn');
+    if (autoBtn) {
+        autoBtn.addEventListener('click', function(e){
+            e.preventDefault();
+            const ua = navigator.userAgent;
+            let href = '#downloads';
+            if (/Windows/i.test(ua)) href = 'https://stash3.io/downloads/stash3-setup.exe';
+            else if (/Mac OS X|Macintosh/i.test(ua)) href = 'https://stash3.io/downloads/Stash3.dmg';
+            else if (/Linux|X11/i.test(ua)) href = 'https://stash3.io/downloads/Stash3.AppImage';
+            window.location.href = href;
+        });
+    }
+</script>
+
+<script>
+    // --- DEBUG + FORCE MOTION FLAGS ---
+    const params = new URLSearchParams(location.search);
+    const FORCE_MOTION = params.get("motion") === "on";   // visit with ?motion=on to override
+    const prefersReducedRaw = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const prefersReduced = prefersReducedRaw && !FORCE_MOTION;
+
+    const win = document.getElementById("window3d");
+    const scene = document.querySelector(".scene");
+
+    if (win) {
+        const anim = getComputedStyle(win).animation;
+        if (FORCE_MOTION && (!anim || anim === "none" || anim.startsWith("none"))) {
+            win.style.animation = "idleFloat 9s ease-in-out infinite";
+        }
+    }
+
+    if (win && scene) {
+        let raf = null; let rx = 6, ry = -8; const lerp = (a,b,t)=>a+(b-a)*t;
+        scene.addEventListener("mousemove", (e)=>{
+            const r = scene.getBoundingClientRect();
+            const px = (e.clientX - r.left) / r.width;   // 0..1
+            const py = (e.clientY - r.top) / r.height;  // 0..1
+            const targetX = (py - 0.5) * 18; // rotateX
+            const targetY = (px - 0.5) * 26; // rotateY
+            if (raf) cancelAnimationFrame(raf);
+            raf = requestAnimationFrame(()=>{
+                rx = lerp(rx, targetX, 0.15);
+                ry = lerp(ry, targetY, 0.15);
+                win.style.transform = `rotateX(${rx}deg) rotateY(${ry}deg)`;
+            });
+        });
+        scene.addEventListener("mouseleave", ()=>{ win.style.transform = "rotateX(6deg) rotateY(-8deg)"; });
+    }
+</script>
+
+<!-- (Optional) If you later wire release data, you can hydrate versions/checksums here. -->
+<!-- <script src="/api/releases/latest"></script> -->
+
+<!-- Slick (only needed if you add a release carousel) -->
+<script src="https://stash3.io/slick/slick.min.js"></script>
+</body>
+</html>
