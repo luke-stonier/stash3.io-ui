@@ -518,23 +518,27 @@ ipcMain.handle("prefs:setRegion", (_e, region) => {
     return {ok: true};
 });
 
-ipcMain.handle("creds:set", async (_e, accountHandle, accessKeyId, secretAccessKey) => {
-    await keytar.setPassword(`${SERVICE}:akid`, accountHandle, accessKeyId);
-    await keytar.setPassword(`${SERVICE}:secret`, accountHandle, secretAccessKey);
+ipcMain.handle("creds:set", async (_e, stash_userId, accountHandle, accessKeyId, secretAccessKey) => {
+    const key = `${stash_userId}_${accountHandle}`
+    await keytar.setPassword(`${SERVICE}:akid`, key, accessKeyId);
+    await keytar.setPassword(`${SERVICE}:secret`, key, secretAccessKey);
     return {ok: true};
 });
 
-ipcMain.handle("creds:get", async (_e, accountHandle) => {
-    const accessKeyId = await keytar.getPassword(`${SERVICE}:akid`, accountHandle);
-    const secretAccessKey = await keytar.getPassword(`${SERVICE}:secret`, accountHandle);
+ipcMain.handle("creds:get", async (_e, stash_userId, accountHandle) => {
+    // const key = `${stash_userId}_${accountHandle}`
+    const key = accountHandle;
+    const accessKeyId = await keytar.getPassword(`${SERVICE}:akid`, key);
+    const secretAccessKey = await keytar.getPassword(`${SERVICE}:secret`, key);
     if (!accessKeyId || !secretAccessKey) {
         return {ok: false, error: "No credentials found"};
     }
     return {ok: true, accessKeyId, secretAccessKey};
 });
 
-ipcMain.handle("creds:remove", async (_e, accountHandle) => {
-    await keytar.deletePassword(`${SERVICE}:akid`, accountHandle);
-    await keytar.deletePassword(`${SERVICE}:secret`, accountHandle);
+ipcMain.handle("creds:remove", async (_e, stash_userId, accountHandle) => {
+    const key = `${stash_userId}_${accountHandle}`
+    await keytar.deletePassword(`${SERVICE}:akid`, key);
+    await keytar.deletePassword(`${SERVICE}:secret`, key);
     return {ok: true};
 });

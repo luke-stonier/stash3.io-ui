@@ -323,35 +323,65 @@
     // --- DEBUG + FORCE MOTION FLAGS ---
     const params = new URLSearchParams(location.search);
     const FORCE_MOTION = params.get("motion") === "on";   // visit with ?motion=on to override
+
+    // 3D parallax / tilt
     const prefersReducedRaw = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const prefersReduced = prefersReducedRaw && !FORCE_MOTION;
 
+    console.log("[stash3] prefersReducedRaw:", prefersReducedRaw, "FORCE_MOTION:", FORCE_MOTION, "effective prefersReduced:", prefersReduced);
+
     const win = document.getElementById("window3d");
     const scene = document.querySelector(".scene");
+    console.log("[stash3] elements -> win:", !!win, "scene:", !!scene);
 
     if (win) {
+        // log computed animation
         const anim = getComputedStyle(win).animation;
+        console.log("[stash3] computed animation:", anim);
+
+        win.addEventListener("animationstart", () => console.log("[stash3] animationstart"));
+        win.addEventListener("animationiteration", () => console.log("[stash3] animationiteration"));
+
+        // if reduced-motion killed it but we forced motion, turn it back on
         if (FORCE_MOTION && (!anim || anim === "none" || anim.startsWith("none"))) {
             win.style.animation = "idleFloat 9s ease-in-out infinite";
+            console.log("[stash3] forcing idleFloat animation");
         }
     }
 
     if (win && scene) {
-        let raf = null; let rx = 6, ry = -8; const lerp = (a,b,t)=>a+(b-a)*t;
-        scene.addEventListener("mousemove", (e)=>{
+        let raf = null;
+        let rx = 6, ry = -8; // starting tilt
+        const lerp = (a, b, t) => a + (b - a) * t;
+
+        scene.addEventListener("mousemove", (e) => {
             const r = scene.getBoundingClientRect();
             const px = (e.clientX - r.left) / r.width;   // 0..1
             const py = (e.clientY - r.top) / r.height;  // 0..1
             const targetX = (py - 0.5) * 18; // rotateX
             const targetY = (px - 0.5) * 26; // rotateY
+
             if (raf) cancelAnimationFrame(raf);
-            raf = requestAnimationFrame(()=>{
+            raf = requestAnimationFrame(() => {
                 rx = lerp(rx, targetX, 0.15);
                 ry = lerp(ry, targetY, 0.15);
                 win.style.transform = `rotateX(${rx}deg) rotateY(${ry}deg)`;
+                // light telemetry
+                if ((Math.random() * 100 | 0) === 0) console.log("[stash3] tilt", {
+                    rx: rx.toFixed(2),
+                    ry: ry.toFixed(2),
+                    px: px.toFixed(2),
+                    py: py.toFixed(2)
+                });
             });
         });
-        scene.addEventListener("mouseleave", ()=>{ win.style.transform = "rotateX(6deg) rotateY(-8deg)"; });
+
+        scene.addEventListener("mouseleave", () => {
+            win.style.transform = "rotateX(6deg) rotateY(-8deg)";
+            console.log("[stash3] mouseleave -> reset tilt");
+        });
+    } else {
+        console.log("[stash3] skipping tilt (no elements or prefersReduced).");
     }
 </script>
 

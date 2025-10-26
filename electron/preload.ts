@@ -75,9 +75,9 @@ contextBridge.exposeInMainWorld("api", {
     savePublicAccessBlock: (accountHandle: string, bucket: string, config: any) => ipcRenderer.invoke('s3:savePublicAccessBlock', accountHandle, bucket, config),
 
     setRegion: (region: string) => ipcRenderer.invoke("prefs:setRegion", region),
-    setCreds: (handle: string, akid: string, secret: string) => ipcRenderer.invoke("creds:set", handle, akid, secret),
-    getCreds: (handle: string) => ipcRenderer.invoke("creds:get", handle),
-    removeCreds: (handle: string) => ipcRenderer.invoke("creds:remove", handle),
+    setCreds: (stash_userId: string, handle: string, akid: string, secret: string) => ipcRenderer.invoke("creds:set", stash_userId, handle, akid, secret),
+    getCreds: (stash_userId: string, handle: string) => ipcRenderer.invoke("creds:get", stash_userId, handle),
+    removeCreds: (stash_userId: string, handle: string) => ipcRenderer.invoke("creds:remove", stash_userId, handle),
 
     // S3 Bucket Properties
     getBucketUrl: (accountHandle: string, bucket: string) =>

@@ -4,8 +4,10 @@ import {IconButton} from "../components/Button";
 import AwsAccount from "../Models/AwsAccount";
 import AddAccountModal from "../components/AddAccount";
 import UserService from "../services/user-service";
+import Icon from "../components/Icon";
 
 export default function Accounts() {
+    const [user] = useState(UserService.GetCurrentUserSession()?.user);
     const [loading, setLoading] = useState<boolean>(true);
     const [accounts, setAccounts] = useState<AwsAccount[]>([]);
     const [addingAccount, setAddingAccount] = useState<boolean>(false);
@@ -19,14 +21,19 @@ export default function Accounts() {
     }
 
     const addCredentialsToAccounts = useCallback((_accounts: AwsAccount[]) => {
+        if (user === undefined) { setAccounts([]); return; }
+
         (async () => {
             const accountsWithCreds = await Promise.all(
                 _accounts.map(async (a: AwsAccount) => {
-                    const {accessKeyId, secretAccessKey} = await (window as any).api.getCreds(a.handle);
+                    const {accessKeyId, secretAccessKey} = await (window as any).api.getCreds(user.id, a.handle);
                     return {
                         ...a,
+                        email: user.email,
                         awsAccessKey: accessKeyId,
                         awsSecretKey: secretAccessKey,
+                        
+                        icon: a.type === 'S3' ? <Icon name={'deployed_code'} /> : <Icon name={'cloud'} />,
                     };
                 })
             );
@@ -135,7 +142,7 @@ export default function Accounts() {
                         setUpdatingAccount(account);
                         setAddingAccount(true);
                     }} style={{cursor: 'pointer'}}
-                         className="rounded-3 bg-lighter overflow-hidden mb-3 h-auto px-3 py-3 d-flex align-items-start justify-content-between">
+                         className="rounded-3 bg-lighter overflow-hidden mb-3 h-auto px-3 py-3 d-flex align-items-stretch justify-content-between">
                         <div>
                             <p className="my-0 fs- lh-sm">{account.name}</p>
                             {
@@ -160,8 +167,11 @@ export default function Accounts() {
                                     </>
                             }
                         </div>
-                        <div>
+                        <div className={''}>
                             <small style={{ userSelect: 'none' }} className="text-muted">Created: {new Date(account.createdAt).toLocaleDateString()}</small>
+                            <div className={'flex-fill d-flex align-items-center justify-content-end h-100'}>
+                                {account.icon || <Icon name={'disabled_by_default'} />}
+                            </div>
                         </div>
                     </div>
                 </div>

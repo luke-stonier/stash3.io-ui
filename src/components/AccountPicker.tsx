@@ -8,6 +8,7 @@ import {ToastService} from "../services/Overlays";
 export default function AccountPicker() {
     
     const navigate = useNavigate();
+    const [user] = useState(UserService.GetCurrentUserSession()?.user);
     const [loading, setLoading] = useState<boolean>(true);
     const [selectedAccount, setSelectedAccount] = useState<AwsAccount | null>(UserService.GetAWSAccount());
     const [accounts, setAccounts] = useState<AwsAccount[]>([]);
@@ -30,10 +31,12 @@ export default function AccountPicker() {
     }, [navigate]);
 
     const addCredentialsToAccounts = useCallback((_accounts: AwsAccount[]) => {
+        if (user === undefined) { setAccounts([]); return; }
+        
         (async () => {
             const builtAccounts = await Promise.all(
                 _accounts.map(async (a: AwsAccount) => {
-                    const { accessKeyId, secretAccessKey } = await (window as any).api.getCreds(a.handle);
+                    const { accessKeyId, secretAccessKey } = await (window as any).api.getCreds(user.id, a.handle);
                     return {
                         ...a,
                         awsAccessKey: accessKeyId,

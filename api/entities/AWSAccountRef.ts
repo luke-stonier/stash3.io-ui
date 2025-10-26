@@ -17,4 +17,7 @@ export class AWSAccountRef {
 
     @CreateDateColumn()
     createdAt!: Date;
+    
+    @Column({ nullable: true, default: 'S3' })
+    type: string; // S3 | R2...
 }
