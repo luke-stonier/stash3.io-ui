@@ -4,6 +4,7 @@ import HttpService from "../services/http/http-service";
 import UserService from "../services/user-service";
 import {useNavigate} from "react-router-dom";
 import {ToastService} from "../services/Overlays";
+import APIWrapperService from "../services/APIWrapperService";
 
 export default function AccountPicker() {
     
@@ -36,7 +37,7 @@ export default function AccountPicker() {
         (async () => {
             const builtAccounts = await Promise.all(
                 _accounts.map(async (a: AwsAccount) => {
-                    const { accessKeyId, secretAccessKey } = await (window as any).api.getCreds(user.id, a.handle);
+                    const { accessKeyId, secretAccessKey } = await APIWrapperService.GetCredentials(user.id, a.handle)
                     return {
                         ...a,
                         awsAccessKey: accessKeyId,
@@ -72,7 +73,7 @@ export default function AccountPicker() {
         
         loadAccounts();
         return () => {
-            UserService.accountsUpdatedEvent.unsubscribe(aue);;
+            UserService.accountsUpdatedEvent.unsubscribe(aue);
         }
     }, [loadAccounts]);
     

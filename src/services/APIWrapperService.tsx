@@ -170,16 +170,16 @@ export default class APIWrapperService {
         return (window as any).api.listObjects(account.handle, bucket, prefix);
     };
     
-    static GetCredentials = (handle: string): Promise<{accessKey: string, secretKey: string}> => {
-        return (window as any).api.getCreds(handle);
+    static async GetCredentials (userId: string, handle: string): Promise<{accessKeyId: string, secretAccessKey: string}> {
+        return await (window as any).api.getCreds(userId, handle);
     }
     
-    static SetCredentials = (handle: string, accessKey: string, secretKey: string) => {
-        (window as any).api.setCreds(handle, accessKey, secretKey);
+    static SetCredentials = (userId: string, handle: string, accessKey: string, secretKey: string) => {
+        (window as any).api.setCreds(userId, handle, accessKey, secretKey);
     }
     
-    static DeleteCredentials = (handle: string) => {
-        (window as any).api.deleteCreds(handle);
+    static DeleteCredentials = (userId: string, handle: string) => {
+        (window as any).api.deleteCreds(userId, handle);
     }
 
     static DownloadAll = async (bucket: string, destDir: string): Promise<DownloadAllResult> => {

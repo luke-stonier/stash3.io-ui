@@ -1,15 +1,18 @@
 import Icon from "./Icon";
-import React, {useCallback, useEffect} from "react";
+import React, {useCallback, useEffect, useState} from "react";
 import HttpService, {HttpError} from "../services/http/http-service";
 import AwsAccount from "../Models/AwsAccount";
 import APIWrapperService from "../services/APIWrapperService";
 import BucketService from "../services/BucketService";
 import {ConfirmationService} from "../services/Overlays";
+import {MapIconToAccountType} from "../pages/Accounts";
+import UserService from "../services/user-service";
 
 class AddAccountRequest {
     name: string = '';
     accessKey: string = '';
     secretKey: string = '';
+    type: string = 'S3';
 }
 
 class AddAccountResponse {
@@ -24,28 +27,38 @@ export type AddAccountModalProps = {
     account?: AwsAccount
 }
 export default function AddAccountModal(props: AddAccountModalProps) {
-    
+
     const [loading, setLoading] = React.useState<boolean>(false);
     const [respError, setRespError] = React.useState<string | null>(null);
     const [showPassword, setShowPassword] = React.useState<boolean>(props.editing === false);
     const [addAccountRequest, setAddAccountRequest] = React.useState<AddAccountRequest>(new AddAccountRequest());
-    
+    const [user] = useState(UserService.GetCurrentUserSession()?.user);
+
+    const accountTypes = [
+        {label: 'Amazon S3', value: 'S3'},
+        {label: 'Cloudflare R2', value: 'R2'},
+    ];
+
     useEffect(() => {
         if (props.editing && props.account) {
             setAddAccountRequest({
                 name: props.account.name,
                 accessKey: props.account.awsAccessKey,
                 secretKey: props.account.awsSecretKey,
+                type: props.account.type,
             });
         }
     }, [props])
-    
+
     const addAccountClickHandler = useCallback(() => {
+        if (!user) return;
+
         setLoading(true);
         HttpService.post(`/accounts`, {
             accountName: addAccountRequest.name,
+            accountType: addAccountRequest.type
         }, (resp: AddAccountResponse) => {
-            APIWrapperService.SetCredentials(resp.handle, addAccountRequest.accessKey, addAccountRequest.secretKey);
+            APIWrapperService.SetCredentials(user.id, resp.handle, addAccountRequest.accessKey, addAccountRequest.secretKey);
             setTimeout(() => {
                 setLoading(false);
                 props.onClose && props.onClose();
@@ -55,37 +68,40 @@ export default function AddAccountModal(props: AddAccountModalProps) {
             setRespError(err.error.error || 'An unknown error occurred');
         });
     }, [addAccountRequest, props]);
-    
+
     const updateAccountClickHandler = useCallback(() => {
+        if (!user) return;
         if (!props.account) return;
-        APIWrapperService.SetCredentials(props.account.handle, addAccountRequest.accessKey, addAccountRequest.secretKey);
+        APIWrapperService.SetCredentials(user.id, props.account.handle, addAccountRequest.accessKey, addAccountRequest.secretKey);
+
         setTimeout(() => {
             setLoading(false);
             props.onClose && props.onClose();
         }, 250);
     }, [addAccountRequest, props])
-    
+
     const deleteAccountClickHandler = useCallback(() => {
+        if (!user) return;
         if (!props) return;
         if (!props.account) return;
         if (!props.editing) return;
         const account = {...props.account};
-        
+
         ConfirmationService.Add({
             title: 'Are you sure?',
-            children: <div style={{ maxWidth: 450, marginBottom: 20, marginTop: 20 }}>
+            children: <div style={{maxWidth: 450, marginBottom: 20, marginTop: 20}}>
                 <p className={'mb-2'}>Deleting this account will also remove all bookmarks associated from stash3.</p>
                 <p className={'mb-2'}>Bucket objects and configuration settings will not be affected by this.</p>
                 <strong>This action can not be undone.</strong>
             </div>,
             onClose: (status: boolean) => {
                 if (!status) return;
-                
+
                 setLoading(true);
-                HttpService.delete(`/accounts/${account.handle}`, (resp: {ok: boolean}) => {
+                HttpService.delete(`/accounts/${account.handle}`, (resp: { ok: boolean }) => {
                     setLoading(false);
                     if (resp.ok) {
-                        APIWrapperService.DeleteCredentials(account.handle);
+                        APIWrapperService.DeleteCredentials(user.id, account.handle);
                         BucketService.RemoveAllAccountBookmarks(account.handle);
                         setTimeout(() => {
                             setLoading(false);
@@ -96,7 +112,7 @@ export default function AddAccountModal(props: AddAccountModalProps) {
                     }
                 }, (err: HttpError) => {
                     setLoading(false);
-                    setRespError(err.error.error || 'An unknown error occurred');
+                    setRespError(err && err.error && err.error.error ? err.error.error : 'An unknown error occurred');
                 });
             },
             cancelColor: 'outline-warning',
@@ -104,13 +120,27 @@ export default function AddAccountModal(props: AddAccountModalProps) {
         });
     }, [props])
 
+    const canSave = useCallback(() => {
+        if (props.editing) {
+            if (addAccountRequest && addAccountRequest.accessKey && addAccountRequest.secretKey) {
+                return addAccountRequest.accessKey.length > 0 && addAccountRequest.secretKey.length > 0;
+            } else {
+                return false;
+            }
+        } else {
+            return addAccountRequest.name.length > 0 &&
+                addAccountRequest.accessKey.length > 0 &&
+                addAccountRequest.secretKey.length > 0;
+        }
+    }, [addAccountRequest, props]);
+
     return <div onClick={props.onClose} className="position-absolute d-flex align-items-center justify-content-center"
                 style={{top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0,0,0,0.5)'}}>
         <div className="shadow-lg bg-dark rounded-3 p-3" style={{minWidth: 500, maxWidth: '90vw'}}
              onClick={(e) => e.stopPropagation()}>
             <div className="d-flex justify-content-between align-items-start">
                 <div>
-                    <p className="my-0 fs-4">{props.editing ? 'Update' : 'Add' } AWS Account</p>
+                    <p className="my-0 fs-4">{props.editing ? 'Update' : 'Add'} AWS Account</p>
                     <p className="small my-0 text-muted">AWS credentials are only stored locally</p>
                 </div>
 
@@ -146,16 +176,38 @@ export default function AddAccountModal(props: AddAccountModalProps) {
 
                     <div className="position-relative">
                         <input type={showPassword ? 'text' : 'password'} placeholder="Account Secret"
-                           className="form-control mb-2 bg-lighter text-white border-0"
-                           value={addAccountRequest.secretKey}
-                           onChange={(e) => {
-                               setAddAccountRequest({...addAccountRequest, secretKey: e.target.value})
-                           }}/>
+                               className="form-control mb-2 bg-lighter text-white border-0"
+                               value={addAccountRequest.secretKey}
+                               onChange={(e) => {
+                                   setAddAccountRequest({...addAccountRequest, secretKey: e.target.value})
+                               }}/>
 
-                        { props.editing && <div className="position-absolute end-0 pe-3 top-50 translate-middle-y d-flex align-items-center">
-                            <Icon name={'visibility'} style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => setShowPassword(!showPassword)} />
-                        </div> }
+                        {props.editing && <div
+                            className="position-absolute end-0 pe-3 top-50 translate-middle-y d-flex align-items-center">
+                            <Icon name={'visibility'} style={{cursor: 'pointer', userSelect: 'none'}}
+                                  onClick={() => setShowPassword(!showPassword)}/>
+                        </div>}
                     </div>
+
+                    {props.editing ? <div className={'mt-3'}>{MapIconToAccountType(addAccountRequest.type)}</div> :
+                        <div>
+                            <label htmlFor="account-type-select" className="d-block form-label mb-0">Account
+                                Type:</label>
+                            <div className="d-flex align-items-center justify-content-start gap-2 mt-1">
+                                {
+                                    accountTypes.map(at => {
+                                        return <div
+                                            className={`border border-2 rounded-3 px-2 py-1 ${addAccountRequest.type === at.value ? 'border-white' : 'border-secondary'}`}
+                                            style={{cursor: 'pointer '}}
+                                            onClick={() => setAddAccountRequest({...addAccountRequest, type: at.value})}
+                                            key={at.value}>
+                                            {MapIconToAccountType(at.value, addAccountRequest.type !== at.value)}
+                                        </div>
+                                    })
+                                }
+                            </div>
+                        </div>
+                    }
                 </div>
 
                 {respError !== null && respError.length > 0 &&
@@ -166,13 +218,15 @@ export default function AddAccountModal(props: AddAccountModalProps) {
                 <div className="mt-3 d-flex align-items-center justify-content-between w-100">
                     <button className="me-auto ms-0 d-block btn btn-outline-warning" onClick={props.onClose}>Cancel
                     </button>
-                    <button className="ms-auto me-0 d-block btn btn-warning" onClick={props.editing ? updateAccountClickHandler : addAccountClickHandler}>{
+                    <button disabled={!canSave()} className="ms-auto me-0 d-block btn btn-warning"
+                            onClick={props.editing ? updateAccountClickHandler : addAccountClickHandler}>{
                         props.editing ? 'Save' : 'Add Account'
                     }
                     </button>
                     {
                         props.editing &&
-                        <button className="ms-3 me-0 d-block btn btn-outline-danger" onClick={deleteAccountClickHandler}>Delete
+                        <button className="ms-3 me-0 d-block btn btn-outline-danger"
+                                onClick={deleteAccountClickHandler}>Delete
                         </button>
                     }
                 </div>

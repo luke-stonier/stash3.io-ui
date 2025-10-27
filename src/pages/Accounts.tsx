@@ -5,6 +5,16 @@ import AwsAccount from "../Models/AwsAccount";
 import AddAccountModal from "../components/AddAccount";
 import UserService from "../services/user-service";
 import Icon from "../components/Icon";
+import APIWrapperService from "../services/APIWrapperService";
+
+export const MapIconToAccountType = (type: string, muted: boolean = false) => {
+    return <div className={'d-flex align-items-center justify-content-end'} style={{ width: 'fit-content' }}>
+        <Icon className={`fs-1 my-0 ${muted ? 'text-muted' : ''} d-block`}
+              name={ type === 'S3' ? 'deployed_code' : 'cloud' }
+        />
+        <p className={`${muted ? 'text-muted' : ''} ms-2 fs-5 my-0 d-block`}>{type}</p>
+    </div>;
+}
 
 export default function Accounts() {
     const [user] = useState(UserService.GetCurrentUserSession()?.user);
@@ -26,14 +36,15 @@ export default function Accounts() {
         (async () => {
             const accountsWithCreds = await Promise.all(
                 _accounts.map(async (a: AwsAccount) => {
-                    const {accessKeyId, secretAccessKey} = await (window as any).api.getCreds(user.id, a.handle);
+                    const { accessKeyId, secretAccessKey } = await APIWrapperService.GetCredentials(user.id, a.handle)
+                    console.log('accessKey, secretKey', accessKeyId, secretAccessKey);
                     return {
                         ...a,
                         email: user.email,
                         awsAccessKey: accessKeyId,
                         awsSecretKey: secretAccessKey,
                         
-                        icon: a.type === 'S3' ? <Icon name={'deployed_code'} /> : <Icon name={'cloud'} />,
+                        icon: MapIconToAccountType(a.type),
                     };
                 })
             );
@@ -83,17 +94,37 @@ export default function Accounts() {
     const mask = (s?: string) =>
         !s ? "—" : `${s.slice(0, 1)}•••••${s.slice(-4)}`.toUpperCase();
 
-    const canAddAccount = hasBillingProfile && (
-        (billingInfo && billingInfo.currentPeriodEnd && new Date(billingInfo.currentPeriodEnd) > new Date()) &&
-        (billingInfo.planName === 'personal' && accounts.length < 1)
-    );
+    const canAddAccount = () => {        
+        if (!hasBillingProfile) {
+            return false;
+        }
+        
+        if (billingInfo && billingInfo.currentPeriodEnd && new Date(billingInfo.currentPeriodEnd) <= new Date()) {
+            return false;
+        }
+        
+        if (billingInfo.planName === 'personal' && accounts.length >= 1) {
+            return false;
+        }
+        
+        return true;
+    }
     
-    const unableToAddAccountReason = !hasBillingProfile ? "You must set up a billing profile before adding an AWS account." :
-        (billingInfo && billingInfo.currentPeriodEnd && new Date(billingInfo.currentPeriodEnd) <= new Date()) ?
-            "Your billing profile is expired. Please update your billing information to add more AWS accounts." :
-            (billingInfo.planName === 'personal' && accounts.length >= 1) ?
-                "Your current plan only allows one AWS account. Please upgrade your plan to add more accounts." :
-                "";
+    const unableToAddAccountReason = () => {        
+        if (!hasBillingProfile) {
+            return "You must set up a billing profile before adding an AWS account.";
+        }
+        
+        if (billingInfo && billingInfo.currentPeriodEnd && new Date(billingInfo.currentPeriodEnd) <= new Date()) {
+            return "Your billing profile is expired. Please update your billing information to add more AWS accounts.";
+        }
+        
+        if (billingInfo.planName === 'personal' && accounts.length >= 1) {
+            return "Your current plan only allows one AWS account. Please upgrade your plan to add more accounts.";
+        }
+        
+        return "erm";
+    }
     
     if (loading) {
         return <div className="d-flex flex-column align-items-center justify-content-center w-100 h-100">
@@ -112,13 +143,13 @@ export default function Accounts() {
         </div>
         <div className="row">
             <div className="col-6 col-sm-4">
-                <IconButton disabled={!canAddAccount} icon={'add'} isButton={true} staticClasses={'btn btn-outline-warning gap-1 justify-content-start'}
+                <IconButton disabled={!canAddAccount()} icon={'add'} isButton={true} staticClasses={'btn btn-outline-warning gap-1 justify-content-start'}
                             onClick={() => setAddingAccount(true)}>
                     <span>Add Account</span>
                 </IconButton>
             </div>
             <div className="col-12">
-                {!canAddAccount && <p className={'mt-2 mb-0'}>{unableToAddAccountReason}</p>}
+                {!canAddAccount() && <p className={'mt-2 mb-0'}>reason: {unableToAddAccountReason()}</p>}
             </div>
         </div>
 

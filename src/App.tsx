@@ -52,7 +52,6 @@ function App() {
     }, [authenticated]);
 
     useEffect(() => {
-        
         // ensure ipc is configured
         const safeToLoad = APIWrapperService.IPCConfigure();
         setLoaded(safeToLoad);

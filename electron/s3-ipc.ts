@@ -526,10 +526,12 @@ ipcMain.handle("creds:set", async (_e, stash_userId, accountHandle, accessKeyId,
 });
 
 ipcMain.handle("creds:get", async (_e, stash_userId, accountHandle) => {
-    // const key = `${stash_userId}_${accountHandle}`
-    const key = accountHandle;
+    const key = `${stash_userId}_${accountHandle}`
+    // console.log('GET CREDS', stash_userId, accountHandle);
+    //const key = accountHandle;
     const accessKeyId = await keytar.getPassword(`${SERVICE}:akid`, key);
     const secretAccessKey = await keytar.getPassword(`${SERVICE}:secret`, key);
+    
     if (!accessKeyId || !secretAccessKey) {
         return {ok: false, error: "No credentials found"};
     }

@@ -306,7 +306,7 @@ async function bootstrap() {
         const user = await userRepo.findOne({ where: { id: req.user.sub } });
         
         if (!user) return res.status(401).json({error: "Unauthorized"});
-        const { accountName } = req.body;
+        const { accountName, accountType } = req.body;
         if (!accountName) {
             return res.status(400).json({error: "Name is required"});
         }
@@ -322,7 +322,8 @@ async function bootstrap() {
                 .trim()
                 .replace(/[^a-z0-9\s-]/g, "")   // remove all non-alphanumeric, non-space, non-dash
                 .replace(/\s+/g, "-")           // replace spaces with -
-                .replace(/-+/g, "-")           // collapse multiple - into one
+                .replace(/-+/g, "-"),           // collapse multiple - into one
+            type: accountType
         });
         await repo.save(accRef);
         
