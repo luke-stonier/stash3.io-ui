@@ -67,7 +67,7 @@ export default function AddAccountModal(props: AddAccountModalProps) {
             setLoading(false);
             setRespError(err.error.error || 'An unknown error occurred');
         });
-    }, [addAccountRequest, props]);
+    }, [addAccountRequest, props, user]);
 
     const updateAccountClickHandler = useCallback(() => {
         if (!user) return;
@@ -78,7 +78,7 @@ export default function AddAccountModal(props: AddAccountModalProps) {
             setLoading(false);
             props.onClose && props.onClose();
         }, 250);
-    }, [addAccountRequest, props])
+    }, [addAccountRequest, props, user])
 
     const deleteAccountClickHandler = useCallback(() => {
         if (!user) return;
@@ -118,7 +118,7 @@ export default function AddAccountModal(props: AddAccountModalProps) {
             cancelColor: 'outline-warning',
             confirmColor: 'danger'
         });
-    }, [props])
+    }, [props, user])
 
     const canSave = useCallback(() => {
         if (props.editing) {

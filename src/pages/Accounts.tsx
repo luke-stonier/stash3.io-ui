@@ -51,7 +51,7 @@ export default function Accounts() {
             UserService.accountsUpdatedEvent.emit(accountsWithCreds);
             setAccounts(accountsWithCreds);
         })();
-    }, []);
+    }, [user]);
 
     const loadBilling = useCallback(() => {
         setLoading(true);

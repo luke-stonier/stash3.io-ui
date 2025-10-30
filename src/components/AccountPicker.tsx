@@ -60,7 +60,7 @@ export default function AccountPicker() {
                 }
             }
         })();
-    }, [selectedAccount, selectAccount]);
+    }, [selectedAccount, selectAccount, user, lastSelectedHandle]);
 
     const loadAccounts = useCallback(() => {
         setLoading(true);
@@ -116,6 +116,9 @@ export default function AccountPicker() {
         className="ms-auto me-0 form-select bg-lighter border-warning text-white"
         aria-label="Account Selector">
         { accounts.length === 0 && <option value={'__N/A__'}>Select an AWS account</option> }
-        {accounts.map((a) => <option key={a.id} disabled={!isSetupAccount(a)} value={a.id}>{a.name} ({a.handle})</option>)}
+        {accounts.map((a) => {
+            const configured = isSetupAccount(a);
+            return <option key={a.id} disabled={!configured} value={a.id}>{a.name} ({a.handle}){!configured && ' Not Setup'}</option>
+        })}
     </select>;
 }
