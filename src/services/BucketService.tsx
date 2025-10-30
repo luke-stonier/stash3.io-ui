@@ -126,8 +126,12 @@ export default class BucketService {
     }
     
     static GetAllBookmarks = (): IBookmarkedItem[] => {
+        const account = UserService.currentAWSAccount;
+        if (!account) return [];
         let bookmarks = localStorage.getItem('bookmarks');
-        return bookmarks ? JSON.parse(bookmarks).sort((a: { key: string },b: { key: string}) => Number.parseInt(b.key) - Number.parseInt(a.key)) : [];
+        if (bookmarks === undefined || bookmarks === null) return [];
+        const parsedBookmarks = JSON.parse(bookmarks).filter((b: IBookmarkedItem) => b.accountHandle === account.handle);
+        return parsedBookmarks.sort((a: { key: string },b: { key: string}) => Number.parseInt(b.key) - Number.parseInt(a.key));
     }
     
     static async GetAllBuckets() {
@@ -184,6 +188,7 @@ export default class BucketService {
     };
     
     static ViewItem = (key: string) => {
+        console.log("Viewing item", key);
         BucketService.previewItemEvent.emit(key);
     }
     

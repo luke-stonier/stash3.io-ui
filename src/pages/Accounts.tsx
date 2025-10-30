@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useState} from "react";
+import React, {useCallback, useEffect, useState} from "react";
 import HttpService from "../services/http/http-service";
 import {IconButton} from "../components/Button";
 import AwsAccount from "../Models/AwsAccount";
@@ -37,7 +37,6 @@ export default function Accounts() {
             const accountsWithCreds = await Promise.all(
                 _accounts.map(async (a: AwsAccount) => {
                     const { accessKeyId, secretAccessKey } = await APIWrapperService.GetCredentials(user.id, a.handle)
-                    console.log('accessKey, secretKey', accessKeyId, secretAccessKey);
                     return {
                         ...a,
                         email: user.email,
@@ -149,7 +148,7 @@ export default function Accounts() {
                 </IconButton>
             </div>
             <div className="col-12">
-                {!canAddAccount() && <p className={'mt-2 mb-0'}>reason: {unableToAddAccountReason()}</p>}
+                {!canAddAccount() && <p className={'mt-2 mb-0'}>{unableToAddAccountReason()}</p>}
             </div>
         </div>
 
@@ -165,7 +164,11 @@ export default function Accounts() {
         <div
             className={`row mt-3 flex-grow-1 flex-fill ${!accounts || accounts.length === 0 ? 'd-flex align-items-center justify-content-center' : 'd-flex flex-column'}`}>
             {(!accounts || accounts.length === 0) &&
-                <p style={{userSelect: 'none'}} className="text-center my-0 display-5">No accounts.</p>
+                <div className="pt-5 d-flex flex-column align-items-center justify-content-center h-100">
+                    <Icon name={'account_circle'} className={'text-secondary'} style={{fontSize: '6rem'}}/>
+                    <h3 className="text-secondary">No accounts yet</h3>
+                    <p className="text-secondary text-center">Accounts will appear here<br/>Ensure you have a valid billing profile and subscription for access.</p>
+                </div>
             }
             {accounts && accounts.length > 0 && accounts.map((account: AwsAccount, index: number) => {
                 return <div key={`${account.id}_${index}`} className="col-12 h-auto">
@@ -208,6 +211,15 @@ export default function Accounts() {
                 </div>
             })
             }
+        </div>
+
+        <div className="row">
+            <div className="col-12 mt-5">
+                <h1 className="h4 mb-2">How we store your details</h1>
+                <p className="text-muted mb-1">All details are stored locally to this device - logging in from another device will sync the account config but not the credentials associated, and will need to be re-entered for the new device.</p>
+                <p className="text-muted mb-1">Removing an account will remove from all devices.</p>
+                <p className="text-muted">Clearing credentials from an account will only remove from the current device.</p>
+            </div>
         </div>
     </div>;
 }

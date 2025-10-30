@@ -9,6 +9,7 @@ import APIWrapperService from "../services/APIWrapperService";
 export default function AccountPicker() {
     
     const navigate = useNavigate();
+    const [lastSelectedHandle] = useState<string | null>(UserService.GetLastAwsAccount());
     const [user] = useState(UserService.GetCurrentUserSession()?.user);
     const [loading, setLoading] = useState<boolean>(true);
     const [selectedAccount, setSelectedAccount] = useState<AwsAccount | null>(UserService.GetAWSAccount());
@@ -49,7 +50,14 @@ export default function AccountPicker() {
             setAccounts(builtAccounts);
             const accountsWithCreds = builtAccounts.filter(a => isSetupAccount(a));
             if (accountsWithCreds.length > 0 && !selectedAccount) {
-                selectAccount(accountsWithCreds[0]);
+                if (lastSelectedHandle) {
+                    const lastAccount = accountsWithCreds.find(a => a.handle === lastSelectedHandle);
+                    if (lastAccount) {
+                        selectAccount(lastAccount);
+                    }
+                } else {
+                    selectAccount(accountsWithCreds[0]);
+                }
             }
         })();
     }, [selectedAccount, selectAccount]);
@@ -77,8 +85,28 @@ export default function AccountPicker() {
         }
     }, [loadAccounts]);
     
+    if (loading && accounts.length === 0) {
+        return <select
+            disabled={true}    
+            style={{ maxWidth: 300}}
+            className="ms-auto me-0 form-select bg-lighter border-warning text-white"
+            aria-label="Account Selector">
+            <option>Loading accounts...</option>
+        </select>;
+    }
+    
+    if (accounts.length === 0) {
+        return <select
+            disabled={true}    
+            style={{ maxWidth: 300}}
+            className="ms-auto me-0 form-select bg-lighter border-warning text-white"
+            aria-label="Account Selector">
+            <option>No AWS accounts available</option>
+        </select>;
+    }
+    
     return <select
-        defaultValue={accounts.length === 0 ? '__N/A__' : selectedAccount?.id}
+        value={accounts.length === 0 ? '__N/A__' : selectedAccount?.id}
         onChange={(e) => {
             const account = accounts.find(a => a.id === e.target.value);
             if (account) selectAccount(account);

@@ -10,6 +10,19 @@ export type SaveCorsResult = { ok: boolean; error?: string | null };
 export type GetBucketPolicyResult = { ok: boolean; policy?: string | null; error?: string | null };
 export type SaveBucketPolicyResult = { ok: boolean; error?: string | null };
 
+// USED BY S3-IPC
+class Account {
+    handle: string;
+    accountType: 'S3' | 'R2';
+    r2AccountId?: string; // optional, used if accountType === 'r2'
+
+    constructor(handle: string, accountType: 'S3' | 'R2', r2AccountId?: string) {
+        this.handle = handle;
+        this.accountType = accountType;
+        this.r2AccountId = r2AccountId;
+    }
+}
+
 export type S3CorsRule = {
     AllowedHeaders?: string[];
     AllowedMethods: string[];
@@ -161,13 +174,13 @@ export default class APIWrapperService {
     static ListS3Buckets = (): Promise<{Name: string, CreationDate: Date}[]> => {
         const account = UserService.GetAWSAccount();
         if (account === null) return Promise.resolve([]);
-        return (window as any).api.listBuckets(account.handle);
+        return (window as any).api.listBuckets(new Account(account.handle, account.type));
     }
     
     static ListS3Objects = (bucket: string, prefix: string = ''): Promise<{ files: any[], folders: any[], error: string  }> => {
         const account = UserService.GetAWSAccount();
         if (account === null) return Promise.resolve({ files: [], folders: [], error: 'No account selected' });
-        return (window as any).api.listObjects(account.handle, bucket, prefix);
+        return (window as any).api.listObjects(new Account(account.handle, account.type), bucket, prefix);
     };
     
     static async GetCredentials (userId: string, handle: string): Promise<{accessKeyId: string, secretAccessKey: string}> {
@@ -179,8 +192,8 @@ export default class APIWrapperService {
     }
     
     static DeleteCredentials = (userId: string, handle: string) => {
-        (window as any).api.deleteCreds(userId, handle);
-    }
+        (window as any).api.removeCreds(userId, handle);
+    } 
 
     static DownloadAll = async (bucket: string, destDir: string): Promise<DownloadAllResult> => {
         const account = UserService.GetAWSAccount();
@@ -256,7 +269,7 @@ export default class APIWrapperService {
         try {
             const { head, error } = await (window as any).api.getObjectHead(account.handle, bucket, key);
             if (error) {
-                console.error("GetObjectHead error:", error);
+                console.error("GetObjectHead error:", error, account, bucket, key);
                 return null;
             }
             return head;

@@ -86,9 +86,18 @@ export function ObjectPreview({ bucket, objectKey, filename }: MediaProps) {
             try {
                 const head = await APIWrapperService.GetObjectHead(bucket, objectKey);
                 const url = await APIWrapperService.GetPreSignedUrl(bucket, objectKey);
-                if (!head) return;
-                if (!url) return;
-                if (!mounted) return;
+                if (!head) {
+                    setState({ error: 'Failed to load preview - unknown error' });
+                    return;
+                }
+                if (!url) {
+                    setState({ error: 'Failed to load URL - unknown error' });
+                    return;
+                }
+                if (!mounted) {
+                    setState({ error: 'Failed to load preview - component not ready' });
+                    return;
+                }
                 setState({
                     url,
                     contentType: head.contentType ?? undefined,
@@ -96,13 +105,13 @@ export function ObjectPreview({ bucket, objectKey, filename }: MediaProps) {
                 });
             } catch (e: any) {
                 if (!mounted) return;
-                setState({ error: e?.message ?? String(e) });
+                setState({ error: "Failed to load" + (e?.message ?? String(e)) });
             }
         })();
         return () => { mounted = false; };
     }, [bucket, objectKey]);
 
-    if (state.error) return <div className="p-4 text-red-600">Failed to load: {state.error}</div>;
+    if (state.error) return <div className="p-4 text-red-600">{state.error}</div>;
     if (!state.url) return <div className="p-4 text-gray-500">Loading preview…</div>;
 
     const kind = chooseViewerKind({ contentType: state.contentType, filename: name });

@@ -1,8 +1,9 @@
 import BucketSelector from "../components/BucketSelector";
 import Bucket from "../Models/Bucket";
-import {useCallback, useEffect, useState} from "react";
+import React, {useCallback, useEffect, useState} from "react";
 import UserService from "../services/user-service";
 import BucketService from "../services/BucketService";
+import Icon from "../components/Icon";
 
 export default function Buckets() {
 
@@ -51,13 +52,19 @@ export default function Buckets() {
         </div>
     }
 
+    if (!buckets || buckets.length === 0) {
+        return <div className="pt-5 d-flex flex-column align-items-center justify-content-center h-100">
+            <Icon name={'deployed_code'} className={'text-secondary'} style={{fontSize: '6rem'}}/>
+            <h3 className="text-secondary">No buckets yet</h3>
+            <p className="text-secondary text-center">Buckets will appear once an account is created.<br/>Buckets can't be created from here at this time.</p>
+        </div>;
+    }
+
     return <div className="container-fluid px-0 d-flex flex-column align-items-stretch">
 
         <div
             className={`row mt-3 ${!buckets || buckets.length === 0 ? 'flex-grow-1 flex-fill d-flex align-items-center justify-content-center' : ''}`}>
-            {(!buckets || buckets.length === 0) &&
-                <p style={{userSelect: 'none'}} className="text-center my-0 display-5">No buckets.</p>
-            }
+
             {buckets && buckets.length > 0 && buckets.map((bucket: Bucket, index: number) => {
                 return <div key={`${bucket.id}_${index}`} className="col-6 col-sm-4 col-lg-3 mb-4">
                     <BucketSelector bucket={bucket} altStyle={index % 2 !== 0}/>

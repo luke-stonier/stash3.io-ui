@@ -1,6 +1,7 @@
 ﻿import { contextBridge, ipcRenderer, webUtils } from "electron";
 import fs from "fs";
 import path from "path";
+import { Account } from "./s3-ipc";
 
 console.log("preload baby")
 
@@ -44,8 +45,8 @@ contextBridge.exposeInMainWorld("api", {
     },
 
     // S3
-    listBuckets: (accountHandle: string) => ipcRenderer.invoke("s3:listBuckets", accountHandle),
-    listObjects: (accountHandle: string, bucket: string, prefix: string) => ipcRenderer.invoke("s3:listObjects", accountHandle, bucket, prefix),
+    listBuckets: (account: Account) => ipcRenderer.invoke("s3:listBuckets", account),
+    listObjects: (account: Account, bucket: string, prefix: string) => ipcRenderer.invoke("s3:listObjects", account, bucket, prefix),
     getObjectUrl: (accountHandle: string, bucket: string, key: string) =>
         ipcRenderer.invoke("s3:getObjectUrl", accountHandle, bucket, key),
     createFolder: (accountHandle: string, bucket: string, prefix: string) => ipcRenderer.invoke("s3:createFolder", accountHandle, bucket, prefix),

@@ -39,25 +39,32 @@ const SERVICE = "stash3.io";
 
 const clientCache = new Map();
 
+export class Account {
+    handle: string;
+    accountType: 'S3' | 'R2';
+    r2AccountId?: string; // optional, used if accountType === 'r2'
+
+    constructor(handle: string, accountType: 'S3' | 'R2', r2AccountId?: string) {
+        this.handle = handle;
+        this.accountType = accountType;
+        this.r2AccountId = r2AccountId;
+    }
+}
+
 // Convert AWS v3 GetObject Body → Node Readable (no Readable.fromWeb needed)
 function toNodeReadable(body: unknown): NodeJS.ReadableStream {
     if (!body) throw new Error("Empty S3 object body");
 
-    // Node stream?
     if (typeof (body as any).pipe === "function") return body as NodeJS.ReadableStream;
 
-    // Blob? -> read as ArrayBuffer and emit once
     if (typeof (body as any).arrayBuffer === "function") {
         const make = async () => Buffer.from(await (body as any).arrayBuffer());
-        // Readable.from accepts async iterable too
         // @ts-ignore
         return Readable.from((async function* () { yield await make(); })());
     }
 
-    // Web ReadableStream?
     if (typeof (body as any).getReader === "function") {
         const reader = (body as any).getReader();
-        // Wrap Web reader in a Node Readable
         return new Readable({
             async read() {
                 try {
@@ -71,7 +78,6 @@ function toNodeReadable(body: unknown): NodeJS.ReadableStream {
         });
     }
 
-    // Uint8Array / ArrayBuffer
     if (body instanceof Uint8Array) return Readable.from([Buffer.from(body)]);
     if (body instanceof ArrayBuffer) return Readable.from([Buffer.from(body)]);
 
@@ -79,43 +85,60 @@ function toNodeReadable(body: unknown): NodeJS.ReadableStream {
 }
 
 async function ensureDirForFile(filePath: string) {
-    await fsp.mkdir(path.dirname(filePath), {recursive: true});
+    await fsp.mkdir(path.dirname(filePath), { recursive: true });
 }
 
-async function s3ClientForUser(accountHandle: string): Promise<S3Client | null> {
+async function s3ClientForUser(account: Account): Promise<S3Client | null> {
     try {
         const region = store.get("region") || "eu-west-2";
 
-        // Check cache first
-        if (clientCache.has(`${region}_${accountHandle}`)) {
-            const cachedClient = clientCache.get(accountHandle);
+        const cacheKey = `${region}_${account.handle}_${account.accountType}`;
+        if (clientCache.has(cacheKey)) {
+            const cachedClient = clientCache.get(cacheKey);
             if (cachedClient) return cachedClient;
-            clientCache.delete(`${region}_${accountHandle}`); // cleanup
+            clientCache.delete(cacheKey);
         }
 
-        const accessKeyId = await keytar.getPassword(`${SERVICE}:akid`, accountHandle);
-        const secretAccessKey = await keytar.getPassword(`${SERVICE}:secret`, accountHandle);
+        const accessKeyId = await keytar.getPassword(`${SERVICE}:akid`, account.handle);
+        const secretAccessKey = await keytar.getPassword(`${SERVICE}:secret`, account.handle);
         if (!accessKeyId || !secretAccessKey) {
-            console.error("Missing AWS credentials");
+            console.error("Missing credentials for", account.handle);
             return null;
         }
-        const client = new S3Client({region, credentials: {accessKeyId, secretAccessKey}});
-        if (!client) {
-            console.error("[s3ClientForUser] Failed to create S3 client");
-            return null;
+
+        // ✅ R2-specific endpoint configuration
+        let clientConfig: any = {
+            region,
+            credentials: { accessKeyId, secretAccessKey },
+        };
+
+        if (account.accountType === 'R2') {
+            if (!account.r2AccountId) {
+                console.error("[s3ClientForUser] Missing r2AccountId for R2 account");
+                return null;
+            }
+            clientConfig = {
+                region: 'auto',
+                endpoint: `https://${account.r2AccountId}.r2.cloudflarestorage.com`,
+                forcePathStyle: true,
+                credentials: { accessKeyId, secretAccessKey },
+            };
         }
-        clientCache.set(`${region}_${accountHandle}`, client);
+
+        const client = new S3Client(clientConfig);
+        clientCache.set(cacheKey, client);
         return client;
     } catch (err) {
-        console.error("[s3ClientForUser]", err);
+        console.error("[s3-ipc] [s3ClientForUser]", account.handle, err);
         return null;
     }
 }
 
-async function resolveBucketRegion(client: S3Client, bucket: string) {
+async function resolveBucketRegion(client: S3Client, bucket: string, account: Account) {
     try {
-        if (bucket === null || bucket === undefined || bucket === "") return "eu-west-2";
-        const {LocationConstraint} = await client.send(new GetBucketLocationCommand({Bucket: bucket}));
+        if (account.accountType === 'R2') return 'auto';
+        if (!bucket) return "eu-west-2";
+        const { LocationConstraint } = await client.send(new GetBucketLocationCommand({ Bucket: bucket }));
         return LocationConstraint || "us-east-1";
     } catch (err) {
         console.error("[resolveBucketRegion]", err);
@@ -123,41 +146,38 @@ async function resolveBucketRegion(client: S3Client, bucket: string) {
     }
 }
 
-async function GetClientForBucket(accountHandle: string, bucket: string) {
+async function GetClientForBucket(account: Account, bucket: string) {
     try {
-        const s3 = await s3ClientForUser(accountHandle);
+        const s3 = await s3ClientForUser(account);
         if (!s3) return null;
-        const bucketRegion = await resolveBucketRegion(s3, bucket);
+        const bucketRegion = await resolveBucketRegion(s3, bucket, account);
         store.set('region', bucketRegion);
-        return await s3ClientForUser(accountHandle);
+        return await s3ClientForUser(account);
     } catch (err) {
         console.error("[GetClientForBucket]", err);
         return null;
     }
 }
 
-// IPC handlers
-ipcMain.handle("s3:listBuckets", async (e, accountHandle) => {
-    const s3 = await s3ClientForUser(accountHandle);
+// ---------- IPC HANDLERS ----------
+ipcMain.handle("s3:listBuckets", async (_e, account: Account) => {
+    const s3 = await s3ClientForUser(account);
     if (!s3) return [];
-    const {Buckets} = await s3.send(new ListBucketsCommand({}));
+    const { Buckets } = await s3.send(new ListBucketsCommand({}));
     return Buckets ?? [];
 });
 
-ipcMain.handle("s3:listObjects", async (_e, accountHandle, bucket, prefix = "") => {
+ipcMain.handle("s3:listObjects", async (_e, account: Account, bucket, prefix = "") => {
     try {
-        const s3 = await GetClientForBucket(accountHandle, bucket);
-
-        if (!s3) {
-            return {files: [], folders: [], error: "No S3 client"};
-        }
-        const {Contents, CommonPrefixes} = await s3.send(
-            new ListObjectsV2Command({Bucket: bucket, Prefix: prefix, Delimiter: "/"})
+        const s3 = await GetClientForBucket(account, bucket);
+        if (!s3) return { files: [], folders: [], error: "No S3 client" };
+        const { Contents, CommonPrefixes } = await s3.send(
+            new ListObjectsV2Command({ Bucket: bucket, Prefix: prefix, Delimiter: "/" })
         );
-        return {files: Contents ?? [], folders: CommonPrefixes ?? [], error: null};
+        return { files: Contents ?? [], folders: CommonPrefixes ?? [], error: null };
     } catch (err: any) {
         console.error(err);
-        return {files: [], folders: [], error: err.message};
+        return { files: [], folders: [], error: err.message };
     }
 });
 

@@ -59,6 +59,7 @@ export default function BucketDetail() {
 
     useEffect(() => {
         const pie = BucketService.previewItemEvent.subscribe((item: string | null) => {
+            console.log('previewItemEvent received:', item);
             setViewingItem(item);
             if (item === null) setMediaViewerOpen(false);
             else setMediaViewerOpen(true);

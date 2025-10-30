@@ -200,6 +200,14 @@ export default function SearchWidget(props: { showCloseButton?: boolean, onClose
                     
                     {groupName: 'Buckets', results: mappedBuckets, resultCount: mappedBuckets.length},
                 ];
+                
+                index = 0;
+                finalRes.map(g => {
+                    g.results.map(r => {
+                        r.id = index;
+                        index++;
+                    })
+                })
 
 
                 setResults(finalRes);
@@ -218,6 +226,7 @@ export default function SearchWidget(props: { showCloseButton?: boolean, onClose
     }
 
     const gotoResult = useCallback((result: ISearchResult | null) => {
+        console.log('Going to result', result);
         if (!result) return;
 
         let path = '';
@@ -279,17 +288,19 @@ export default function SearchWidget(props: { showCloseButton?: boolean, onClose
                         path = '';
                     }
                 }
-
             }
 
             if (result.type === 'item') {
                 const url = `/buckets/${result.bucket}?prefix=${encodeURIComponent(path || '')}/`
-                BucketService.SetBucketAndPath(result.bucket, path + '/');
-                navigate(url);
-                console.log(url);
-                setTimeout(() => {
-                    BucketService.ViewItem(path + '/' + itemName);
-                }, 500);
+                if (path !== '') {
+                    BucketService.SetBucketAndPath(result.bucket, path + '/');
+                    navigate(url);
+                    setTimeout(() => {
+                        BucketService.ViewItem(path + '/' + itemName);
+                    }, 500);
+                } else {
+                    if (result.path) BucketService.ViewItem(result.path);
+                }
             } else {
                 const url = `/buckets/${result.bucket}?prefix=${encodeURIComponent(path || '')}`
                 BucketService.SetBucketAndPath(result.bucket, path || '');

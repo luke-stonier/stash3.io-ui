@@ -6,6 +6,7 @@ import {jwtDecode} from "jwt-decode";
 export default class UserService {
     static currentSession: UserSession | null;
     static currentAWSAccount: AwsAccount | null = null;
+    static lastAwsAccountSelected: AwsAccount | null = null;
     
     static sessionUpdatedEvent = new EventEmitter<UserSession>();
     static sessionExpiredEvent = new EventEmitter<void>();
@@ -13,14 +14,25 @@ export default class UserService {
     static changeAWSAccountEvent = new EventEmitter<AwsAccount | null>();
 
     static GetAWSAccount = () => {
-        //if (UserService.currentAWSAccount === null) console.error("No AWS account selected.");
         return UserService.currentAWSAccount;
     }
     
     static UpdateAWSAccount = (account: AwsAccount | null) => {
+        UserService.lastAwsAccountSelected = account;
+        localStorage.setItem('awsAccountHandle', account ? account.handle : '');
         UserService.currentAWSAccount = account;
         UserService.changeAWSAccountEvent.emit(account);
     };
+    
+    static GetLastAwsAccount = () => {
+        if (UserService.lastAwsAccountSelected === null) {
+            const handle = localStorage.getItem('awsAccountHandle');
+            if (handle !== null && handle !== '') { return handle; }
+            return null;
+        } else {
+            return UserService.lastAwsAccountSelected.handle;
+        }
+    }
     
     static UpdateSession = (session: UserSession | null) => {
         try {

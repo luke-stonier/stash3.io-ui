@@ -1,4 +1,4 @@
-import {Link} from "react-router-dom";
+import {Link, useNavigate} from "react-router-dom";
 import React, {useCallback, useState} from "react";
 import HttpService, {HttpError} from "../services/http/http-service";
 import logo from "../assets/images/stash3_logo.png";
@@ -7,6 +7,7 @@ import UserSession from "../Models/UserSession";
 
 export default function Register() {
 
+    const navigate = useNavigate();
     const [respError, setRespError] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [registerRequest, setRegisterRequest] = useState<{
@@ -30,6 +31,7 @@ export default function Register() {
                 passwordRepeat: ''
             });
             UserService.UpdateSession(resp);
+            navigate('/');
         }, (err: HttpError) => {
             setLoading(false);
             setRespError(err && err.error && err.error.error ? err.error.error : 'An unknown error occurred');

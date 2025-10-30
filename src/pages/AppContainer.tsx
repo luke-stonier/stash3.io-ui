@@ -52,6 +52,10 @@ export default function AppContainer() {
     ], () => {
         navigation('/bookmarks')
     });
+
+    useEffect(() => {
+        console.log('container render')
+    }, []);
     
     const NavRow = (baseOption: NavOption) => {
         const option = baseOption as NavigationOption;
