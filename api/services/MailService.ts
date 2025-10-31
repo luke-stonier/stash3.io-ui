@@ -108,7 +108,7 @@ function buildEmailTemplate(body: string, title = "Stash3", includeLogo = true):
         <div style="text-align:center;margin-bottom:24px;">
           ${
         includeLogo
-            ? `<img src="https://stash3.io/assets/stash3_logo.png" alt="Stash3 Logo" style="height:48px;margin-bottom:12px;" />`
+            ? `<img src="https://cdn.stash3.io/assets/stash3_logo.png" alt="Stash3 Logo" style="height:48px;margin-bottom:12px;" />`
             : ""
     }
           <h1 style="margin:0;font-size:24px;color:#0b0e14;">${title}</h1>

@@ -196,8 +196,7 @@ export default function Accounts() {
                                     </>
                                     :
                                     <>
-                                        <p className="my-0 text-warning">No local credentials configured. Click to
-                                            setup.</p>
+                                        <p className="my-0 text-warning">No local credentials configured.<br/>Account credentials do not sync between devices for security.<br/>Click to setup.</p>
                                     </>
                             }
                         </div>
