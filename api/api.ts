@@ -310,6 +310,9 @@ async function bootstrap() {
         if (!accountName) {
             return res.status(400).json({error: "Name is required"});
         }
+        if (accountType !== 's3') {
+            return res.status(400).json({error: "Unsupported account type"});
+        }
         const repo = db.getRepository(AWSAccountRef);
         const existing = await repo.findOne({where: {userId: req.user.sub, name: accountName}});
         if (existing) {

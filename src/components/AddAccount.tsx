@@ -35,8 +35,8 @@ export default function AddAccountModal(props: AddAccountModalProps) {
     const [user] = useState(UserService.GetCurrentUserSession()?.user);
 
     const accountTypes = [
-        {label: 'Amazon S3', value: 'S3'},
-        {label: 'Cloudflare R2', value: 'R2'},
+        {label: 'Amazon S3', value: 'S3', enabled: true},
+        {label: 'Cloudflare R2', value: 'R2', enabled: false},
     ];
 
     useEffect(() => {
@@ -197,9 +197,15 @@ export default function AddAccountModal(props: AddAccountModalProps) {
                                 {
                                     accountTypes.map(at => {
                                         return <div
-                                            className={`border border-2 rounded-3 px-2 py-1 ${addAccountRequest.type === at.value ? 'border-white' : 'border-secondary'}`}
+                                            className={`${at.enabled ? '' : 'opacity-25 border-danger'} border border-2 rounded-3 px-2 py-1 ${addAccountRequest.type === at.value ? 'border-white' : 'border-secondary'}`}
                                             style={{cursor: 'pointer '}}
-                                            onClick={() => setAddAccountRequest({...addAccountRequest, type: at.value})}
+                                            onClick={() => {
+                                                if (!at.enabled) {
+                                                    alert("This account type is not currently available");
+                                                    return;
+                                                }
+                                                setAddAccountRequest({...addAccountRequest, type: at.value})
+                                            }}
                                             key={at.value}>
                                             {MapIconToAccountType(at.value, addAccountRequest.type !== at.value)}
                                         </div>
