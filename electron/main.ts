@@ -11,6 +11,11 @@ console.log('icon', getIconPath())
 
 let mainWindow: BrowserWindow | null = null;
 
+if (process.platform === "darwin") {
+    app.dock.setIcon(getIconPath());
+    app.setName("Stash3.IO");
+}
+
 /** Choose the right icon per platform */
 function getIconPath() {
     if (isDev) return path.join(__dirname, '..', 'electron', "icons", 'stash3_logo.png')
@@ -19,7 +24,8 @@ function getIconPath() {
         return path.join(__dirname, '..', 'electron', "icons", "icon.ico");
     }
     if (process.platform === "darwin") {
-        return path.join(__dirname, '..', 'electron', "icons", "icon.icns");
+        return path.join(__dirname, '..', 'electron', "icons", "icon.png");
+        //return path.join(__dirname, '..', 'electron', "icons", "icon.icns");
     }
 
     return path.join(__dirname, '..', 'electron', "icons", "icon.png");
@@ -32,6 +38,7 @@ function createWindow() {
         minWidth: 600,
         minHeight: 600,
         icon: getIconPath(),
+        title: 'Stash3.IO',
         show: false, // show when ready for a cleaner appear
         webPreferences: {
             contextIsolation: true,
@@ -109,12 +116,14 @@ if (!gotLock) {
 }
 
 app.setAppUserModelId("com.nitrose.stash3io"); // needed for Win notifications & taskbar grouping
-
 app.whenReady().then(createWindow);
 
 app.on("window-all-closed", () => {
     // On macOS keep app alive until Cmd+Q
     if (process.platform !== "darwin") app.quit();
+    else if (process.platform === "darwin") {
+        app.quit();
+    }
 });
 
 app.on("activate", () => {

@@ -1,5 +1,6 @@
 {
   "name": "stash3-io-ui",
+  "productName": "Stash3.IO",
   "version": "0.0.1",
   "private": true,
   "main": "./electron-dist/main.cjs",
