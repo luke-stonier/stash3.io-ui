@@ -869,3 +869,7 @@ ipcMain.handle("creds:remove", async (_e, stash_userId, accountHandle) => {
     return {ok: true};
 });
 
+ipcMain.handle("app:getVersion", () => {
+    return app.getVersion();
+});
+

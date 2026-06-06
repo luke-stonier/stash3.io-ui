@@ -1,7 +1,13 @@
-﻿// src/electron/main.ts
+// src/electron/main.ts
 import './s3-ipc';
 import { app, BrowserWindow, Menu, MenuItem  } from "electron";
 import path from "path";
+import { updateElectronApp } from "update-electron-app";
+
+if (require("electron-squirrel-startup")) {
+    app.quit();
+}
+
 const isDev = !!process.env.ELECTRON_START_URL || !app.isPackaged;
 
 console.log("dev?", isDev);
@@ -116,7 +122,17 @@ if (!gotLock) {
 }
 
 app.setAppUserModelId("com.nitrose.stash3io"); // needed for Win notifications & taskbar grouping
-app.whenReady().then(createWindow);
+app.whenReady().then(() => {
+    if (!isDev) {
+        updateElectronApp({
+            repo: "luke-stonier/stash3.io-ui",
+            updateInterval: "1 hour",
+            notifyUser: true,
+        });
+    }
+
+    createWindow();
+});
 
 app.on("window-all-closed", () => {
     // On macOS keep app alive until Cmd+Q

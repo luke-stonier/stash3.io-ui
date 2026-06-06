@@ -16,11 +16,11 @@ import UserAccountPage from "./pages/UserAccountPage";
 import BillingPage from "./pages/BillingPage";
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
-import VersionChecker from './services/VersionChecker';
+// import VersionChecker from './services/VersionChecker';
 import APIWrapperService from "./services/APIWrapperService";
 import Icon from "./components/Icon";
 
-export const STASH_VERSION = '0.0.1';
+export const STASH_VERSION = `v${await (window as any).api.getVersion()}`;
 
 function App() {
     const [loaded, setLoaded] = useState(false);

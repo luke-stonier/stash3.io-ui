@@ -4,9 +4,9 @@ import React, {useCallback, useState} from "react";
 import HttpService, {HttpError} from "../services/http/http-service";
 import UserService from "../services/user-service";
 import UserSession from "../Models/UserSession";
+import {STASH_VERSION} from "../App";
 
 export default function Login() {
-
     const navigate = useNavigate();
     const [respError, setRespError] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
@@ -101,5 +101,11 @@ export default function Login() {
             here</Link></p>
 
         <p className="mt-0 text-muted"><Link className="text-white ms-1" to={'/forgot-password'}>Forgotten your password</Link></p>
+
+        <div
+            className="position-absolute bottom-0 start-50 translate-middle-x pb-3 text-muted small"
+        >
+            {STASH_VERSION}
+        </div>
     </div>
 }

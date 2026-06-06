@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer, webUtils } from "electron";
+﻿import { contextBridge, ipcRenderer, webUtils, app } from "electron";
 import fs from "fs";
 import path from "path";
 import type { Account } from "./s3-ipc";
@@ -6,6 +6,8 @@ import type { Account } from "./s3-ipc";
 console.log("preload baby")
 
 contextBridge.exposeInMainWorld("api", {
+    getVersion: () => ipcRenderer.invoke("app:getVersion"),
+    
     configureIPC: () => {
         console.log("configureIPC - preload");
     },
