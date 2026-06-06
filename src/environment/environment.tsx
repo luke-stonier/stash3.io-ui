@@ -6,8 +6,8 @@ export const environment: {
 	stripeKey: string;
 } = {
 	version: "0.0.1",
-	production: false,
-	protocol: "http://",
-	baseAddress: "localhost:5000/stash3/api",
+	production: true,
+	protocol: "https://",
+	baseAddress: "luke-stonier-api-80465a2c0e0b.herokuapp.com/stash3/api",
 	stripeKey: "",
 };

@@ -850,16 +850,21 @@ ipcMain.handle("creds:set", async (_e, stash_userId, accountHandle, accessKeyId,
 });
 
 ipcMain.handle("creds:get", async (_e, stash_userId, accountHandle) => {
-    const key = `${stash_userId}_${accountHandle}`
-    // console.log('GET CREDS', stash_userId, accountHandle);
-    //const key = accountHandle;
-    const accessKeyId = await keytar.getPassword(`${SERVICE}:akid`, key);
-    const secretAccessKey = await keytar.getPassword(`${SERVICE}:secret`, key);
-    
-    if (!accessKeyId || !secretAccessKey) {
-        return {ok: false, error: "No credentials found"};
+    try {
+        const key = `${stash_userId}_${accountHandle}`
+        // console.log('GET CREDS', stash_userId, accountHandle);
+        //const key = accountHandle;
+        const accessKeyId = await keytar.getPassword(`${SERVICE}:akid`, key);
+        const secretAccessKey = await keytar.getPassword(`${SERVICE}:secret`, key);
+
+        if (!accessKeyId || !secretAccessKey) {
+            return {ok: false, error: "No credentials found"};
+        }
+        return {ok: true, accessKeyId, secretAccessKey};
+    } catch (e) {
+        console.error("Error getting credentials", e);
+        return {ok: false, error: "Error getting credentials"};
     }
-    return {ok: true, accessKeyId, secretAccessKey};
 });
 
 ipcMain.handle("creds:remove", async (_e, stash_userId, accountHandle) => {

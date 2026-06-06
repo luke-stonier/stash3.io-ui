@@ -1,9 +1,26 @@
 const { FusesPlugin } = require('@electron-forge/plugin-fuses');
 const { FuseV1Options, FuseVersion } = require('@electron/fuses');
+require('dotenv').config({
+  path: require('path').join(__dirname, '.env')
+});
+
+console.log('APPLE_ID', process.env.APPLE_ID);
+console.log('APPLE_TEAM_ID', process.env.APPLE_TEAM_ID);
 
 module.exports = {
   packagerConfig: {
     asar: true,
+    osxSign: {
+      identity: "Developer ID Application: Luke Stonier (7LLQ86AEQ7)",
+      hardenedRuntime: true,
+      entitlements: "entitlements.plist",
+      "entitlements-inherit": "entitlements.plist",
+    },
+    osxNotarize: {
+      appleId: process.env.APPLE_ID,
+      appleIdPassword: process.env.APPLE_APP_SPECIFIC_PASSWORD,
+      teamId: process.env.APPLE_TEAM_ID,
+    },
   },
   rebuildConfig: {},
   makers: [
@@ -12,16 +29,20 @@ module.exports = {
       config: {},
     },
     {
-      name: '@electron-forge/maker-zip',
-      platforms: ['darwin'],
-    },
-    {
       name: '@electron-forge/maker-deb',
       config: {},
     },
     {
       name: '@electron-forge/maker-rpm',
       config: {},
+    },
+    {
+      name: "@electron-forge/maker-dmg",
+      platforms: ["darwin"],
+    },
+    {
+      name: "@electron-forge/maker-zip",
+      platforms: ["darwin"],
     },
   ],
   plugins: [

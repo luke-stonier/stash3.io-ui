@@ -1,7 +1,7 @@
 {
   "name": "stash3-io-ui",
   "productName": "Stash3.IO",
-  "version": "1.1.0",
+  "version": "1.7.0",
   "private": true,
   "main": "./electron-dist/main.cjs",
   "author": "Stash3.IO",
@@ -20,6 +20,8 @@
     "@types/react": "^19.1.11",
     "@types/react-dom": "^19.1.7",
     "axios": "^1.11.0",
+    "cpu-features": "^0.0.10",
+    "dotenv": "^17.4.2",
     "electron-squirrel-startup": "^1.0.1",
     "electron-store": "^8.2.0",
     "electron-updater": "^6.6.2",
@@ -32,6 +34,7 @@
     "react-dom": "^19.1.1",
     "react-router-dom": "^7.8.2",
     "react-scripts": "5.0.1",
+    "ssh2": "^1.17.0",
     "ssh2-sftp-client": "^12.1.1",
     "update-electron-app": "^3.2.0",
     "web-vitals": "^2.1.4"
@@ -39,6 +42,7 @@
   "devDependencies": {
     "@electron-forge/cli": "^7.11.2",
     "@electron-forge/maker-deb": "^7.11.2",
+    "@electron-forge/maker-dmg": "^7.11.2",
     "@electron-forge/maker-rpm": "^7.11.2",
     "@electron-forge/maker-squirrel": "^7.11.2",
     "@electron-forge/maker-zip": "^7.11.2",
@@ -61,7 +65,7 @@
     "react:start": "npm run reset && cross-env BROWSER=none react-scripts start",
     "react:build": "react-scripts build",
     "old-electron:build": "tsc -p electron/tsconfig.json",
-    "electron:build": "npx --yes esbuild electron/main.ts --bundle --platform=node --target=node20 --format=cjs --external:electron --external:keytar --outfile=electron-dist/main.cjs && npx --yes esbuild electron/s3-ipc.ts --bundle --platform=node --target=node20 --format=cjs --external:electron --external:keytar --outfile=electron-dist/s3-ipc.cjs && npx --yes esbuild electron/preload.ts --bundle --platform=node --target=node20 --format=cjs --external:electron --outfile=electron-dist/preload.cjs",
+    "electron:build": "npx --yes esbuild electron/main.ts --bundle --platform=node --target=node20 --format=cjs --external:electron --external:keytar --external:*.node --outfile=electron-dist/main.cjs && npx --yes esbuild electron/s3-ipc.ts --bundle --platform=node --target=node20 --format=cjs --external:electron --external:keytar --external:*.node --outfile=electron-dist/s3-ipc.cjs && npx --yes esbuild electron/preload.ts --bundle --platform=node --target=node20 --format=cjs --external:electron --external:*.node --external:ssh2 --external:cpu-features --outfile=electron-dist/preload.cjs",
     "electron:watch": "tsc -p electron/tsconfig.json -w",
     "electron:start": "cross-env ELECTRON_START_URL=http://localhost:3000 electron scripts/dev-electron.js",
     "dev": "concurrently \"npm run react:start\" \"wait-on http://localhost:3000 && npm run electron:start\"",
