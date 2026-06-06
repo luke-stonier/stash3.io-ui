@@ -11,8 +11,17 @@ export default function CreateFolderModal(props: CreateFolderModalProps) {
     const [folderName, setFolderName] = React.useState<string>('');
     
     const createFolder = useCallback(async () => {
+        const normalizedFolderName = folderName.trim().replace(/^\/+|\/+$/g, "");
+        if (!normalizedFolderName) {
+            setRespError("Folder name is required.");
+            return;
+        }
+
+        const currentPath = props.currentPath.replace(/^\/+|\/+$/g, "");
+        const folderPath = currentPath ? `${currentPath}/${normalizedFolderName}/` : `${normalizedFolderName}/`;
+
         setLoading(true);
-        const folderCreateResp = await APIWrapperService.CreateFolder(props.bucket, folderName);
+        const folderCreateResp = await APIWrapperService.CreateFolder(props.bucket, folderPath);
         setLoading(false);
         if (!folderCreateResp.ok) {
             setRespError(`Failed to create folder. ${folderCreateResp.error}`);

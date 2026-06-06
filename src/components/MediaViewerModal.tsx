@@ -1,6 +1,6 @@
 import React, {useEffect} from 'react';
 import Icon from "./Icon";
-import {BinaryFallback, AudioViewer, CodeViewer, CsvViewer, HtmlViewer, ImageViewer, JsonViewer, PdfViewer, TextViewer, VideoViewer} from "./Viewers/viewers";
+import {BinaryFallback, AudioViewer, CodeViewer, CsvViewer, ImageViewer, JsonViewer, PdfViewer, TextViewer, VideoViewer} from "./Viewers/viewers";
 import APIWrapperService from "../services/APIWrapperService";
 
 export type ViewerKind =
@@ -143,7 +143,7 @@ export function ObjectPreview({ bucket, objectKey, filename }: MediaProps) {
         case "code":     return <CodeViewer url={state.url} filename={name} />;
         case "csv":      return <CsvViewer url={state.url} />;
         case "json":     return <JsonViewer url={state.url} />;
-        case "html":     return <HtmlViewer url={state.url} sandbox />;
+        case "html":     return <CodeViewer url={state.url} filename={name} />;
         default:
             return (
                 <BinaryFallback

@@ -31,6 +31,7 @@ export default function BucketDetail() {
     const [bookmarkType, setBookmarkType] = useState<'bucket' | 'path'>(BucketService.currentPath === '' ? 'bucket' : 'path');
     const selectedAccount = UserService.GetAWSAccount();
     const isSftp = selectedAccount?.type === "SFTP";
+    const showAllBucketsButton = selectedAccount?.type === "S3" || bookmarkType !== "bucket";
 
 
     useEffect(() => {
@@ -134,11 +135,11 @@ export default function BucketDetail() {
                     <div className="row border-bottom">
                         <div className="col-12">
                             <div className="d-flex align-items-center justify-content-between gap-3 mb-4">
-                                <IconButton icon={'arrow_back'} isButton={true}
-                                            staticClasses={'btn-ghost btn-ghost-warning p-2 gap-2'}
-                                            onClick={() => navigate('/buckets')}>
+                                {showAllBucketsButton && <IconButton icon={'arrow_back'} isButton={true}
+                                                                      staticClasses={'btn-ghost btn-ghost-warning p-2 gap-2'}
+                                                                      onClick={() => navigate('/buckets')}>
                                     <span>All Buckets</span>
-                                </IconButton>
+                                </IconButton>}
 
                                 <div className="flex-fill"></div>
 

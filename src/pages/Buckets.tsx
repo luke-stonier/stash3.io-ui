@@ -4,23 +4,31 @@ import React, {useCallback, useEffect, useState} from "react";
 import UserService from "../services/user-service";
 import BucketService from "../services/BucketService";
 import Icon from "../components/Icon";
+import {useNavigate} from "react-router-dom";
 
 export default function Buckets() {
 
+    const navigate = useNavigate();
     const [loading, setLoading] = useState<boolean>(true);
     const [buckets, setBuckets] = useState<Bucket[]>([]);
 
     const FetchBuckets = useCallback(async () => {
         try {
             const bucketObjs = await BucketService.GetAllBuckets();
-            setBuckets(bucketObjs.sort((a, b) => (a.bookmarked ? 0 : 1) - (b.bookmarked ? 0 : 1) || a.bucket.localeCompare(b.bucket)));
+            const sortedBuckets = bucketObjs.sort((a, b) => (a.bookmarked ? 0 : 1) - (b.bookmarked ? 0 : 1) || a.bucket.localeCompare(b.bucket));
+            const account = UserService.GetAWSAccount();
+            if (account?.type !== "S3" && sortedBuckets.length === 1) {
+                navigate(`/buckets/${encodeURIComponent(sortedBuckets[0].id)}`, {replace: true});
+                return;
+            }
+            setBuckets(sortedBuckets);
             setLoading(false);
         } catch (err) {
             console.error('Failed to list buckets', err);
             setBuckets([]);
             setLoading(false);
         }
-    }, [])
+    }, [navigate])
 
     useEffect(() => {
         const caae = UserService.changeAWSAccountEvent.subscribe((account) => {

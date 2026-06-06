@@ -1,4 +1,4 @@
-import { app, ipcMain } from 'electron';
+import { app, ipcMain, net, protocol } from 'electron';
 import Store from 'electron-store';
 import keytar from 'keytar';
 import fs from 'fs';
@@ -47,6 +47,35 @@ type SftpCacheEntry = {
     lastUsed: number;
 };
 const sftpClientCache = new Map<string, SftpCacheEntry>();
+type SftpPreviewCacheEntry = {
+    localPath: string;
+    urlPath: string;
+};
+const sftpPreviewFileCache = new Map<string, SftpPreviewCacheEntry>();
+
+protocol.registerSchemesAsPrivileged([
+    {
+        scheme: "stash3-preview",
+        privileges: {
+            standard: true,
+            secure: true,
+            supportFetchAPI: true,
+            stream: true,
+        },
+    },
+]);
+
+app.whenReady().then(() => {
+    protocol.handle("stash3-preview", (request) => {
+        const url = new URL(request.url);
+        const token = url.hostname;
+        const preview = sftpPreviewFileCache.get(token);
+        if (!preview || url.pathname !== preview.urlPath) {
+            return new Response("Preview asset not found", {status: 404});
+        }
+        return net.fetch(pathToFileURL(preview.localPath).toString());
+    });
+});
 
 export class Account {
     userId?: string;
@@ -220,6 +249,19 @@ function sftpPreviewLocalPath(account: Account, key: string) {
         .digest("hex");
 
     return path.join(app.getPath("temp"), "stash3-preview", fingerprint, safePreviewFilename(key));
+}
+
+function sftpPreviewUrl(account: Account, key: string, localPath: string) {
+    const token = crypto
+        .createHash("sha1")
+        .update(sftpCacheKey(account))
+        .update("\0")
+        .update(key)
+        .digest("hex");
+
+    const urlPath = `/${encodeURIComponent(safePreviewFilename(key))}`;
+    sftpPreviewFileCache.set(token, {localPath, urlPath});
+    return `stash3-preview://${token}${urlPath}`;
 }
 
 function normalizeSftpHost(host: string) {
@@ -573,7 +615,7 @@ ipcMain.handle("s3:getPreSignedUrl", async (_e, accountHandle, bucket, key, expi
                 const localPath = sftpPreviewLocalPath(sftpAccount, key);
                 await fsp.mkdir(path.dirname(localPath), {recursive: true});
                 await client.fastGet(sftpPath(sftpAccount, key), localPath);
-                return {ok: true, error: null, url: pathToFileURL(localPath).toString()};
+                return {ok: true, error: null, url: sftpPreviewUrl(sftpAccount, key, localPath)};
             });
         }
         const s3 = await s3ClientForUser(accountHandle);
