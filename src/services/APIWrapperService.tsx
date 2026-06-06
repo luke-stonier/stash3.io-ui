@@ -12,15 +12,31 @@ export type SaveBucketPolicyResult = { ok: boolean; error?: string | null };
 
 // USED BY S3-IPC
 class Account {
+    userId?: string;
     handle: string;
-    accountType: 'S3' | 'R2';
+    accountType: 'S3' | 'R2' | 'SFTP';
     r2AccountId?: string; // optional, used if accountType === 'r2'
 
-    constructor(handle: string, accountType: 'S3' | 'R2', r2AccountId?: string) {
+    host?: string;
+    port?: number;
+    username?: string;
+    rootPath?: string;
+
+    constructor(handle: string, accountType: 'S3' | 'R2' | 'SFTP', r2AccountId?: string, userId?: string, host?: string, port?: number, username?: string, rootPath?: string) {
+        this.userId = userId;
         this.handle = handle;
         this.accountType = accountType;
         this.r2AccountId = r2AccountId;
+        this.host = host;
+        this.port = port;
+        this.username = username;
+        this.rootPath = rootPath;
     }
+}
+
+function normalizeAccountType(type: string): 'S3' | 'R2' | 'SFTP' {
+    if (type.toUpperCase() === 'SFTP') return 'SFTP';
+    return type.toUpperCase() === 'R2' ? 'R2' : 'S3';
 }
 
 export type S3CorsRule = {
@@ -50,6 +66,30 @@ export type SavePublicAccessBlockResult = {
 };
 
 export default class APIWrapperService {
+    private static GetSelectedAccountPayload(): Account | null {
+        const account = UserService.GetAWSAccount();
+        const userId = UserService.GetCurrentUserSession()?.user?.id;
+
+        if (account === null || !userId) return null;
+
+        const payload = new Account(
+            account.handle,
+            normalizeAccountType(account.type),
+            undefined,
+            userId,
+            account.host,
+            account.port,
+            account.username,
+            account.rootPath,
+        );
+        console.log("[s3-ui] selected account payload", {
+            handle: payload.handle,
+            accountType: payload.accountType,
+            hasUserId: !!payload.userId,
+        });
+        return payload;
+    }
+    
     
     static IPCConfigure(): boolean {
         console.log("Configuring IPC API...");
@@ -63,11 +103,11 @@ export default class APIWrapperService {
     }
     
     static async UploadFileToS3 (bucket: string, key: string, path: string, meta: { fileSize: number | undefined }) {
-        const account = UserService.GetAWSAccount();
+        const account = APIWrapperService.GetSelectedAccountPayload();
         if (account === null) return;
         
         if (key.indexOf('.') === -1) {
-            const res =  await (window as any).api.createFolder(account.handle, bucket, key);
+            const res =  await (window as any).api.createFolder(account, bucket, key);
             ToastService.Add({
                 title: res.ok ? "Folder Created" : "Create Folder Failed",
                 message: res.ok ? `Folder "${key}" created successfully.` : (res.error || "The folder creation failed to complete."),
@@ -91,7 +131,7 @@ export default class APIWrapperService {
                     const relativePath = file.replace(path + '/', '');
                     const fileKey = key + '/' + relativePath;
                     (async() => {
-                        const resp = await (window as any).api.upload(account.handle, {bucket, key: fileKey, filePath: file});
+                        const resp = await (window as any).api.upload(account, {bucket, key: fileKey, filePath: file});
                         BucketService.RefreshItems();
                         ToastService.Add({
                             title: resp.ok ? "Upload Complete" : "Upload Failed",
@@ -103,7 +143,7 @@ export default class APIWrapperService {
                 }) 
             });
         } else {
-            const resp = await (window as any).api.upload(account.handle, {bucket, key: key, filePath: path});
+            const resp = await (window as any).api.upload(account, {bucket, key: key, filePath: path});
             BucketService.RefreshItems();
             ToastService.Add({
                 title: resp.ok ? "Upload Complete" : "Upload Failed",
@@ -115,7 +155,7 @@ export default class APIWrapperService {
     }
     
     static DeleteFileFromS3 = (bucket: string, key: string) => {
-        const account = UserService.GetAWSAccount();
+        const account = APIWrapperService.GetSelectedAccountPayload();
         if (account === null) return;
 
         ConfirmationService.Add({
@@ -133,7 +173,7 @@ export default class APIWrapperService {
                 }
 
                 (async() => {
-                    const resp = await (window as any).api.deleteObject(account.handle, bucket, key);
+                    const resp = await (window as any).api.deleteObject(account, bucket, key);
                     BucketService.RefreshItems();
                     if (resp.ok) {
                         ToastService.Add({
@@ -158,9 +198,9 @@ export default class APIWrapperService {
     }
     
     static async CreateFolder (bucket: string, folderName: string) {
-        const account = UserService.GetAWSAccount();
+        const account = APIWrapperService.GetSelectedAccountPayload();
         if (account === null) return { ok: false, error: 'No account selected' };
-        const res =  await (window as any).api.createFolder(account.handle, bucket, folderName);
+        const res =  await (window as any).api.createFolder(account, bucket, folderName);
         ToastService.Add({
             title: res.ok ? "Folder Created" : "Create Folder Failed",
             message: res.ok ? `Folder "${folderName}" created successfully.` : (res.error || "The folder creation failed to complete."),
@@ -172,15 +212,15 @@ export default class APIWrapperService {
     }
     
     static ListS3Buckets = (): Promise<{Name: string, CreationDate: Date}[]> => {
-        const account = UserService.GetAWSAccount();
+        const account = APIWrapperService.GetSelectedAccountPayload();
         if (account === null) return Promise.resolve([]);
-        return (window as any).api.listBuckets(new Account(account.handle, account.type));
+        return (window as any).api.listBuckets(account);
     }
     
     static ListS3Objects = (bucket: string, prefix: string = ''): Promise<{ files: any[], folders: any[], error: string  }> => {
-        const account = UserService.GetAWSAccount();
+        const account = APIWrapperService.GetSelectedAccountPayload();
         if (account === null) return Promise.resolve({ files: [], folders: [], error: 'No account selected' });
-        return (window as any).api.listObjects(new Account(account.handle, account.type), bucket, prefix);
+        return (window as any).api.listObjects(account, bucket, prefix);
     };
     
     static async GetCredentials (userId: string, handle: string): Promise<{accessKeyId: string, secretAccessKey: string}> {
@@ -188,7 +228,7 @@ export default class APIWrapperService {
     }
     
     static SetCredentials = (userId: string, handle: string, accessKey: string, secretKey: string) => {
-        (window as any).api.setCreds(userId, handle, accessKey, secretKey);
+        return (window as any).api.setCreds(userId, handle, accessKey, secretKey);
     }
     
     static DeleteCredentials = (userId: string, handle: string) => {
@@ -196,61 +236,61 @@ export default class APIWrapperService {
     } 
 
     static DownloadAll = async (bucket: string, destDir: string): Promise<DownloadAllResult> => {
-        const account = UserService.GetAWSAccount();
+        const account = APIWrapperService.GetSelectedAccountPayload();
         if (account === null) return Promise.resolve({ ok: false, error: 'No account selected' });
-        return (window as any).api.downloadAll(account.handle, bucket, destDir);
+        return (window as any).api.downloadAll(account, bucket, destDir);
     };
 
     static GetCors = async (bucket: string): Promise<GetCorsResult> => {
-        const account = UserService.GetAWSAccount();
+        const account = APIWrapperService.GetSelectedAccountPayload();
         if (account === null) return Promise.resolve({ ok: false, error: 'No account selected' });
-        return (window as any).api.getCors(account.handle, bucket);
+        return (window as any).api.getCors(account, bucket);
     };
 
     static SaveCors = async (bucket: string, corsRules: S3CorsRule[]): Promise<SaveCorsResult> => {
-        const account = UserService.GetAWSAccount();
+        const account = APIWrapperService.GetSelectedAccountPayload();
         if (account === null) return Promise.resolve({ ok: false, error: 'No account selected' });
-        return (window as any).api.saveCors(account.handle, bucket, corsRules);
+        return (window as any).api.saveCors(account, bucket, corsRules);
     };
 
     static GetBucketPolicy = async (bucket: string): Promise<GetBucketPolicyResult> => {
-        const account = UserService.GetAWSAccount();
+        const account = APIWrapperService.GetSelectedAccountPayload();
         if (account === null) return Promise.resolve({ ok: false, error: 'No account selected' });
-        return (window as any).api.getBucketPolicy(account.handle, bucket);
+        return (window as any).api.getBucketPolicy(account, bucket);
     };
     
     static SaveBucketPolicy = async (
         bucket: string,
         policy: string | Record<string, unknown>
     ): Promise<SaveBucketPolicyResult> => {
-        const account = UserService.GetAWSAccount();
+        const account = APIWrapperService.GetSelectedAccountPayload();
         if (account === null) return Promise.resolve({ ok: false, error: 'No account selected' });
-        return (window as any).api.saveBucketPolicy(account.handle, bucket, policy);
+        return (window as any).api.saveBucketPolicy(account, bucket, policy);
     };
 
     static GetPublicAccessBlock = async (
         bucket: string
     ): Promise<GetPublicAccessBlockResult> => {
-        const account = UserService.GetAWSAccount();
+        const account = APIWrapperService.GetSelectedAccountPayload();
         if (account === null) return Promise.resolve({ ok: false, error: 'No account selected' });
-        return (window as any).api.getPublicAccessBlock(account.handle, bucket);
+        return (window as any).api.getPublicAccessBlock(account, bucket);
     };
 
     static SavePublicAccessBlock = async (
         bucket: string,
         config: PublicAccessBlockConfig
     ): Promise<SavePublicAccessBlockResult> => {
-        const account = UserService.GetAWSAccount();
+        const account = APIWrapperService.GetSelectedAccountPayload();
         if (account === null) return Promise.resolve({ ok: false, error: 'No account selected' });
-        return (window as any).api.savePublicAccessBlock(account.handle, bucket, config);
+        return (window as any).api.savePublicAccessBlock(account, bucket, config);
     };
 
     static async GetBucketUrl(bucket: string): Promise<string | null> {
-        const account = UserService.GetAWSAccount();
+        const account = APIWrapperService.GetSelectedAccountPayload();
         if (account === null) return null;
 
         try {
-            const { url, error } = await (window as any).api.getBucketUrl(account.handle, bucket);
+            const { url, error } = await (window as any).api.getBucketUrl(account, bucket);
             if (error) {
                 console.error("GetBucketUrl error:", error);
                 return null;
@@ -263,11 +303,11 @@ export default class APIWrapperService {
     }
     
     static async GetObjectHead(bucket: string, key: string): Promise<{[key: string]: any} | null> {
-        const account = UserService.GetAWSAccount();
+        const account = APIWrapperService.GetSelectedAccountPayload();
         if (account === null) return null;
 
         try {
-            const { head, error } = await (window as any).api.getObjectHead(account.handle, bucket, key);
+            const { head, error } = await (window as any).api.getObjectHead(account, bucket, key);
             if (error) {
                 console.error("GetObjectHead error:", error, account, bucket, key);
                 return null;
@@ -280,11 +320,11 @@ export default class APIWrapperService {
     }
     
     static async GetPreSignedUrl(bucket: string, key: string, expiresIn: number = 3600): Promise<string | null> {
-        const account = UserService.GetAWSAccount();
+        const account = APIWrapperService.GetSelectedAccountPayload();
         if (account === null) return null;
 
         try {
-            const { url, error } = await (window as any).api.getPreSignedUrl(account.handle, bucket, key, expiresIn);
+            const { url, error } = await (window as any).api.getPreSignedUrl(account, bucket, key, expiresIn);
             if (error) {
                 console.error("getPresignedUrl error:", error);
                 return null;
@@ -296,3 +336,4 @@ export default class APIWrapperService {
         }
     }
 }
+

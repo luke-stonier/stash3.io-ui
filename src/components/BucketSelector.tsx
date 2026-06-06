@@ -5,11 +5,14 @@ import {useContextMenu} from "../hooks/useContextMenu";
 import {MenuItem} from "./ContextMenu";
 import BucketService from "../services/BucketService";
 import {useEffect, useState} from "react";
+import UserService from "../services/user-service";
 
 export default function BucketSelector({bucket, altStyle = false}: { bucket: Bucket, altStyle?: boolean }) {
 
     const {open, contextElement} = useContextMenu();
     const [bookmarked, setBookmarked] = useState(BucketService.IsBucketBookmarked(bucket.bucket));
+    const account = UserService.GetAWSAccount();
+    const isSftp = account?.type === "SFTP";
 
     const contextOptions: MenuItem[] = [
         {type: "title", data: bucket.bucket},
@@ -64,9 +67,9 @@ export default function BucketSelector({bucket, altStyle = false}: { bucket: Buc
         <button
             className="bg-lighter text-white border-0 overflow-hidden rounded-3 p-3 w-100">
             <div className="flex items-center justify-between gap-2">
-                <Icon className={'display-4 fw-normal text-warning'} name={'deployed_code'} filled={altStyle}/>
-                <p className="text-center fw-bolder my-0">{bucket.bucket}</p>
-                <p className="text-center fw-light my-0">{bucket.region}</p>
+                <Icon className={'display-4 fw-normal text-warning'} name={isSftp ? 'lan' : 'deployed_code'} filled={altStyle}/>
+                <p className="text-center fw-bolder my-0">{isSftp ? 'SFTP Root' : bucket.bucket}</p>
+                <p className="text-center fw-light my-0">{isSftp ? account?.host : bucket.region}</p>
             </div>
         </button>
     </div>;

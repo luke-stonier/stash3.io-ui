@@ -6,6 +6,7 @@ import BucketService from "../services/BucketService";
 import BucketObject from "../Models/BucketObject";
 import APIWrapperService from "../services/APIWrapperService";
 import {ToastService} from "../services/Overlays";
+import UserService from "../services/user-service";
 
 type BucketItemRowProps = {
     item: BucketObject;
@@ -17,6 +18,7 @@ type BucketItemRowProps = {
 export default function BucketItemRow({isDir, name, item, goInto}: BucketItemRowProps) {
 
     const {open, contextElement} = useContextMenu();
+    const isSftp = UserService.GetAWSAccount()?.type === "SFTP";
     const [bookmarked, setBookmarked] = React.useState<boolean>(isDir ?
         BucketService.IsPathBookmarked(BucketService.currentBucket, item.key) :
         BucketService.IsItemBookmarked(BucketService.currentBucket, item.key));
@@ -82,7 +84,7 @@ export default function BucketItemRow({isDir, name, item, goInto}: BucketItemRow
                 }
             },
             {id: "copy_key", label: "Copy Key", icon: <Icon name="content_copy"/>, onClick: handleCopyKey},
-            {id: "copy_url", label: "Copy Url", icon: <Icon name="link"/>, onClick: handleCopyUrl},
+            ...(!isSftp ? [{id: "copy_url", label: "Copy Url", icon: <Icon name="link"/>, onClick: handleCopyUrl}] : []),
             {type: "separator"},
             {id: "delete", label: "Delete", icon: <Icon name="delete" filled/>, onClick: handleDelete},
         ]

@@ -6,8 +6,8 @@ export const environment: {
 	stripeKey: string;
 } = {
 	version: "0.0.1",
-	production: true,
-	protocol: "https://",
-	baseAddress: "www.stash3.io/api",
+	production: false,
+	protocol: "http://",
+	baseAddress: "localhost:5000/stash3/api",
 	stripeKey: "",
 };

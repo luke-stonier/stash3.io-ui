@@ -29,6 +29,8 @@ export default function BucketDetail() {
     const [currentPrefix] = useState<string>((searchParams !== null && decodeURIComponent(searchParams.get("prefix") || '')) || '');
     const [bookmarked, setBookmarked] = useState<boolean>(BucketService.currentPath === '' ? BucketService.IsBucketBookmarked(BucketService.currentBucket) : BucketService.IsPathBookmarked(BucketService.currentBucket, BucketService.currentPath));
     const [bookmarkType, setBookmarkType] = useState<'bucket' | 'path'>(BucketService.currentPath === '' ? 'bucket' : 'path');
+    const selectedAccount = UserService.GetAWSAccount();
+    const isSftp = selectedAccount?.type === "SFTP";
 
 
     useEffect(() => {
@@ -158,7 +160,7 @@ export default function BucketDetail() {
                                         <span>Create Folder</span>
                                     </IconButton>
 
-                                    <IconButton onClick={() => {
+                                    {!isSftp && <IconButton onClick={() => {
                                         (async () => {
                                             const url = await APIWrapperService.GetBucketUrl(bucketId);
                                             if (url === null) return;
@@ -173,15 +175,15 @@ export default function BucketDetail() {
                                     }} icon={'link'} isButton={true}
                                                 staticClasses={'btn btn-outline-warning p-2 gap-2'}>
                                         <span>Bucket URL</span>
-                                    </IconButton>
+                                    </IconButton>}
 
-                                    <IconButton icon={'tune'} filled isButton={true}
+                                    {!isSftp && <IconButton icon={'tune'} filled isButton={true}
                                                 onClick={() => {
                                                     setUpdatingSettings(true);
                                                 }}
                                                 staticClasses={'btn btn-outline-warning p-2 gap-2'}>
                                         <span>Settings</span>
-                                    </IconButton>
+                                    </IconButton>}
                                 </div>
 
                                 <div className="d-block d-lg-none dropdown bg-dark">
@@ -202,7 +204,7 @@ export default function BucketDetail() {
                                                 <span>Create Folder</span>
                                             </IconButton>
                                         </li>
-                                        <li>
+                                        {!isSftp && <li>
                                             <IconButton onClick={() => {
                                                 closeDropdown();
                                                 (async () => {
@@ -221,9 +223,9 @@ export default function BucketDetail() {
                                             >
                                                 <span>Bucket URL</span>
                                             </IconButton>
-                                        </li>
+                                        </li>}
                                         
-                                        <li>
+                                        {!isSftp && <li>
                                             <IconButton onClick={() => {
                                                 closeDropdown();
                                                 setUpdatingSettings(true);
@@ -232,7 +234,7 @@ export default function BucketDetail() {
                                             >
                                                 <span>Settings</span>
                                             </IconButton>
-                                        </li>
+                                        </li>}
                                     </ul>
                                 </div>
                             </div>
@@ -240,8 +242,8 @@ export default function BucketDetail() {
 
                         <div className="col-12 mb-3 d-flex justify-content-between align-items-center">
                             <div className="d-flex align-items-center gap-2 w-100">
-                                <Icon name={'inventory_2'} className={'display-6 text-warning'}/>
-                                <p className="my-0 d-block fs-2 fw-bolder">{bucketId}</p>
+                                <Icon name={isSftp ? 'lan' : 'inventory_2'} className={'display-6 text-warning'}/>
+                                <p className="my-0 d-block fs-2 fw-bolder">{isSftp ? selectedAccount?.host : bucketId}</p>
                                 
                                 <div className="flex-fill"></div>
 

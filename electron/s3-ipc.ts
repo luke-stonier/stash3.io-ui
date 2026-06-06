@@ -1,14 +1,17 @@
-﻿import { ipcMain } from 'electron';
+import { app, ipcMain } from 'electron';
 import Store from 'electron-store';
 import keytar from 'keytar';
 import fs from 'fs';
 import path from "path";
 import fsp from 'fs/promises';
+import crypto from 'crypto';
+import { pathToFileURL } from 'url';
 import { pipeline } from 'stream';
 import { promisify } from 'util';
 const streamPipeline = promisify(pipeline)
 import { pipeline as pipelinePromise } from "stream/promises";
 import { Readable } from "stream";
+import SftpClient from "ssh2-sftp-client";
 
 import {
     S3Client,
@@ -38,17 +41,78 @@ const store = new Store<Prefs>({
 const SERVICE = "stash3.io";
 
 const clientCache = new Map();
+const SFTP_IDLE_TTL_MS = 5 * 60 * 1000;
+type SftpCacheEntry = {
+    client: SftpClient;
+    lastUsed: number;
+};
+const sftpClientCache = new Map<string, SftpCacheEntry>();
 
 export class Account {
+    userId?: string;
     handle: string;
-    accountType: 'S3' | 'R2';
+    accountType: 'S3' | 'R2' | 'SFTP';
     r2AccountId?: string; // optional, used if accountType === 'r2'
+    host?: string;
+    port?: number;
+    username?: string;
+    rootPath?: string;
 
-    constructor(handle: string, accountType: 'S3' | 'R2', r2AccountId?: string) {
+    constructor(handle: string, accountType: 'S3' | 'R2' | 'SFTP', r2AccountId?: string, userId?: string, host?: string, port?: number, username?: string, rootPath?: string) {
+        this.userId = userId;
         this.handle = handle;
         this.accountType = accountType;
         this.r2AccountId = r2AccountId;
+        this.host = host;
+        this.port = port;
+        this.username = username;
+        this.rootPath = rootPath;
     }
+}
+
+type AccountInput = Account | string;
+
+function normalizeAccount(account: AccountInput): Account {
+    if (typeof account === "string") {
+        return new Account(account, "S3");
+    }
+
+    const accountType = `${account.accountType}`.toUpperCase();
+    return new Account(
+        account.handle,
+        accountType === "SFTP" ? "SFTP" : accountType === "R2" ? "R2" : "S3",
+        account.r2AccountId,
+        account.userId,
+        account.host,
+        account.port,
+        account.username,
+        account.rootPath,
+    );
+}
+
+async function getStoredCredentials(account: Account) {
+    const lookupKeys = [
+        account.userId ? `${account.userId}_${account.handle}` : null,
+        account.handle,
+    ].filter((key): key is string => !!key);
+
+    console.log("[s3-ipc] credential lookup", {
+        handle: account.handle,
+        accountType: account.accountType,
+        hasUserId: !!account.userId,
+        lookupKeys,
+    });
+
+    for (const key of lookupKeys) {
+        const accessKeyId = await keytar.getPassword(`${SERVICE}:akid`, key);
+        const secretAccessKey = await keytar.getPassword(`${SERVICE}:secret`, key);
+
+        if (accessKeyId && secretAccessKey) {
+            return {accessKeyId, secretAccessKey};
+        }
+    }
+
+    return null;
 }
 
 // Convert AWS v3 GetObject Body → Node Readable (no Readable.fromWeb needed)
@@ -88,8 +152,9 @@ async function ensureDirForFile(filePath: string) {
     await fsp.mkdir(path.dirname(filePath), { recursive: true });
 }
 
-async function s3ClientForUser(account: Account): Promise<S3Client | null> {
+async function s3ClientForUser(accountInput: AccountInput): Promise<S3Client | null> {
     try {
+        const account = normalizeAccount(accountInput);
         const region = store.get("region") || "eu-west-2";
 
         const cacheKey = `${region}_${account.handle}_${account.accountType}`;
@@ -99,9 +164,8 @@ async function s3ClientForUser(account: Account): Promise<S3Client | null> {
             clientCache.delete(cacheKey);
         }
 
-        const accessKeyId = await keytar.getPassword(`${SERVICE}:akid`, account.handle);
-        const secretAccessKey = await keytar.getPassword(`${SERVICE}:secret`, account.handle);
-        if (!accessKeyId || !secretAccessKey) {
+        const credentials = await getStoredCredentials(account);
+        if (!credentials) {
             console.error("Missing credentials for", account.handle);
             return null;
         }
@@ -109,7 +173,7 @@ async function s3ClientForUser(account: Account): Promise<S3Client | null> {
         // ✅ R2-specific endpoint configuration
         let clientConfig: any = {
             region,
-            credentials: { accessKeyId, secretAccessKey },
+            credentials,
         };
 
         if (account.accountType === 'R2') {
@@ -121,7 +185,7 @@ async function s3ClientForUser(account: Account): Promise<S3Client | null> {
                 region: 'auto',
                 endpoint: `https://${account.r2AccountId}.r2.cloudflarestorage.com`,
                 forcePathStyle: true,
-                credentials: { accessKeyId, secretAccessKey },
+                credentials,
             };
         }
 
@@ -129,8 +193,111 @@ async function s3ClientForUser(account: Account): Promise<S3Client | null> {
         clientCache.set(cacheKey, client);
         return client;
     } catch (err) {
-        console.error("[s3-ipc] [s3ClientForUser]", account.handle, err);
+        console.error("[s3-ipc] [s3ClientForUser]", accountInput, err);
         return null;
+    }
+}
+
+function sftpPath(account: Account, childPath: string = "") {
+    const root = account.rootPath || "/";
+    const normalizedRoot = root === "/" ? "" : root.replace(/\/+$/g, "");
+    const normalizedChild = childPath.replace(/^\/+/g, "");
+    const fullPath = `${normalizedRoot}/${normalizedChild}`.replace(/\/+/g, "/");
+    return fullPath || "/";
+}
+
+function safePreviewFilename(key: string) {
+    const filename = path.posix.basename(key) || "preview";
+    return filename.replace(/[<>:"/\\|?*\x00-\x1F]/g, "_");
+}
+
+function sftpPreviewLocalPath(account: Account, key: string) {
+    const fingerprint = crypto
+        .createHash("sha1")
+        .update(sftpCacheKey(account))
+        .update("\0")
+        .update(key)
+        .digest("hex");
+
+    return path.join(app.getPath("temp"), "stash3-preview", fingerprint, safePreviewFilename(key));
+}
+
+function normalizeSftpHost(host: string) {
+    return host
+        .trim()
+        .replace(/^sftp:\/\//i, "")
+        .replace(/^ssh\s+/i, "")
+        .replace(/^.+@/, "")
+        .replace(/\/.*$/, "")
+        .trim();
+}
+
+function sftpCacheKey(account: Account) {
+    return [
+        account.userId || "legacy",
+        account.handle,
+        normalizeSftpHost(account.host || ""),
+        Number(account.port || 22),
+        account.username || "",
+        account.rootPath || "/",
+    ].join("|");
+}
+
+async function closeCachedSftpClient(cacheKey: string) {
+    const cached = sftpClientCache.get(cacheKey);
+    if (!cached) return;
+    sftpClientCache.delete(cacheKey);
+    await cached.client.end().catch(() => undefined);
+}
+
+async function getSftpClient(account: Account) {
+    const cacheKey = sftpCacheKey(account);
+    const cached = sftpClientCache.get(cacheKey);
+    if (cached) {
+        cached.lastUsed = Date.now();
+        return cached.client;
+    }
+
+    const credentials = await getStoredCredentials(account);
+    if (!credentials) throw new Error(`Missing credentials for ${account.handle}`);
+
+    const client = new SftpClient();
+    await client.connect({
+        host: normalizeSftpHost(account.host || ""),
+        port: Number(account.port || 22),
+        username: account.username || "",
+        password: credentials.secretAccessKey,
+    });
+
+    sftpClientCache.set(cacheKey, {
+        client,
+        lastUsed: Date.now(),
+    });
+
+    return client;
+}
+
+const sftpCleanupInterval = setInterval(() => {
+    const cutoff = Date.now() - SFTP_IDLE_TTL_MS;
+    for (const [cacheKey, cached] of sftpClientCache.entries()) {
+        if (cached.lastUsed < cutoff) {
+            void closeCachedSftpClient(cacheKey);
+        }
+    }
+}, 60 * 1000);
+sftpCleanupInterval.unref?.();
+
+async function withSftp<T>(accountInput: AccountInput, work: (client: SftpClient, account: Account) => Promise<T>): Promise<T> {
+    const account = normalizeAccount(accountInput);
+    if (!account.host || !account.username) throw new Error("Missing SFTP host or username");
+    const cacheKey = sftpCacheKey(account);
+
+    try {
+        const client = await getSftpClient(account);
+        return await work(client, account);
+    } catch (err) {
+        await closeCachedSftpClient(cacheKey);
+        throw err;
     }
 }
 
@@ -146,8 +313,9 @@ async function resolveBucketRegion(client: S3Client, bucket: string, account: Ac
     }
 }
 
-async function GetClientForBucket(account: Account, bucket: string) {
+async function GetClientForBucket(accountInput: AccountInput, bucket: string) {
     try {
+        const account = normalizeAccount(accountInput);
         const s3 = await s3ClientForUser(account);
         if (!s3) return null;
         const bucketRegion = await resolveBucketRegion(s3, bucket, account);
@@ -161,6 +329,10 @@ async function GetClientForBucket(account: Account, bucket: string) {
 
 // ---------- IPC HANDLERS ----------
 ipcMain.handle("s3:listBuckets", async (_e, account: Account) => {
+    const normalized = normalizeAccount(account);
+    if (normalized.accountType === "SFTP") {
+        return [{Name: normalized.handle, CreationDate: new Date()}];
+    }
     const s3 = await s3ClientForUser(account);
     if (!s3) return [];
     const { Buckets } = await s3.send(new ListBucketsCommand({}));
@@ -169,6 +341,31 @@ ipcMain.handle("s3:listBuckets", async (_e, account: Account) => {
 
 ipcMain.handle("s3:listObjects", async (_e, account: Account, bucket, prefix = "") => {
     try {
+        const normalized = normalizeAccount(account);
+        if (normalized.accountType === "SFTP") {
+            return await withSftp(normalized, async (client, sftpAccount) => {
+                const remotePath = sftpPath(sftpAccount, prefix);
+                const entries = await client.list(remotePath);
+                const files: any[] = [];
+                const folders: any[] = [];
+
+                for (const entry of entries) {
+                    const key = `${prefix || ""}${entry.name}${entry.type === "d" ? "/" : ""}`;
+                    if (entry.type === "d") {
+                        folders.push({Prefix: key});
+                    } else {
+                        files.push({
+                            Key: key,
+                            LastModified: entry.modifyTime ? new Date(entry.modifyTime) : undefined,
+                            Size: entry.size || 0,
+                            StorageClass: "SFTP",
+                        });
+                    }
+                }
+
+                return {files, folders, error: null};
+            });
+        }
         const s3 = await GetClientForBucket(account, bucket);
         if (!s3) return { files: [], folders: [], error: "No S3 client" };
         const { Contents, CommonPrefixes } = await s3.send(
@@ -183,6 +380,16 @@ ipcMain.handle("s3:listObjects", async (_e, account: Account, bucket, prefix = "
 
 ipcMain.handle("s3:upload", async (e, accountHandle, {bucket, key, filePath}) => {
     try {
+        const normalized = normalizeAccount(accountHandle);
+        if (normalized.accountType === "SFTP") {
+            await withSftp(normalized, async (client, sftpAccount) => {
+                const remotePath = sftpPath(sftpAccount, key);
+                await client.mkdir(path.posix.dirname(remotePath), true);
+                await client.fastPut(filePath, remotePath);
+            });
+            e.sender.send("s3:uploadEnd", {key, status: true});
+            return {ok: true};
+        }
         const s3 = await s3ClientForUser(accountHandle);
         if (!s3) {
             e.sender.send("s3:uploadEnd", {key, status: false});
@@ -258,6 +465,14 @@ ipcMain.handle("s3:upload", async (e, accountHandle, {bucket, key, filePath}) =>
 
 ipcMain.handle("s3:createFolder", async (_e, accountHandle, bucket, prefix) => {
     try {
+        const normalized = normalizeAccount(accountHandle);
+        if (normalized.accountType === "SFTP") {
+            await withSftp(normalized, async (client, sftpAccount) => {
+                await client.mkdir(sftpPath(sftpAccount, prefix), true);
+            });
+            _e.sender.send("s3:uploadEnd", {key: prefix, status: true});
+            return {ok: true, error: null};
+        }
         const s3 = await s3ClientForUser(accountHandle);
         if (!s3) { return {ok: false, error: "No S3 client"}; }
         const key = prefix.endsWith("/") ? prefix : prefix + "/";
@@ -285,6 +500,15 @@ ipcMain.handle("s3:createFolder", async (_e, accountHandle, bucket, prefix) => {
 
 ipcMain.handle("s3:deleteObject", async (_e, accountHandle, bucket, key) => {
     try {
+        const normalized = normalizeAccount(accountHandle);
+        if (normalized.accountType === "SFTP") {
+            await withSftp(normalized, async (client, sftpAccount) => {
+                const remotePath = sftpPath(sftpAccount, key);
+                if (key.endsWith("/")) await client.rmdir(remotePath, true);
+                else await client.delete(remotePath);
+            });
+            return {ok: true, error: null};
+        }
         const s3 = await s3ClientForUser(accountHandle);
         if (!s3) {
             return {ok: false, error: "No S3 client"};
@@ -304,6 +528,22 @@ ipcMain.handle("s3:deleteObject", async (_e, accountHandle, bucket, key) => {
 
 ipcMain.handle("s3:getObjectHead", async (_e, accountHandle, bucket, key) => {
     try {
+        const normalized = normalizeAccount(accountHandle);
+        if (normalized.accountType === "SFTP") {
+            return await withSftp(normalized, async (client, sftpAccount) => {
+                const stat = await client.stat(sftpPath(sftpAccount, key));
+                return {
+                    ok: true,
+                    error: null,
+                    head: {
+                        contentType: "application/octet-stream",
+                        contentLength: Number(stat.size ?? 0),
+                        etag: "",
+                        lastModified: stat.modifyTime ? new Date(stat.modifyTime) : undefined,
+                    }
+                };
+            });
+        }
         const s3 = await s3ClientForUser(accountHandle);
         if (!s3) {
             return {ok: false, error: "No S3 client"};
@@ -327,6 +567,15 @@ ipcMain.handle("s3:getObjectHead", async (_e, accountHandle, bucket, key) => {
 
 ipcMain.handle("s3:getPreSignedUrl", async (_e, accountHandle, bucket, key, expiresIn = 3600) => {
     try {
+        const normalized = normalizeAccount(accountHandle);
+        if (normalized.accountType === "SFTP") {
+            return await withSftp(normalized, async (client, sftpAccount) => {
+                const localPath = sftpPreviewLocalPath(sftpAccount, key);
+                await fsp.mkdir(path.dirname(localPath), {recursive: true});
+                await client.fastGet(sftpPath(sftpAccount, key), localPath);
+                return {ok: true, error: null, url: pathToFileURL(localPath).toString()};
+            });
+        }
         const s3 = await s3ClientForUser(accountHandle);
         if (!s3) {
             return {ok: false, error: "No S3 client"};
@@ -342,6 +591,9 @@ ipcMain.handle("s3:getPreSignedUrl", async (_e, accountHandle, bucket, key, expi
 
 ipcMain.handle("s3:getObjectUrl", async (_e, accountHandle, bucket, key) => {
     try {
+        if (normalizeAccount(accountHandle).accountType === "SFTP") {
+            return {url: null, error: "Object URLs are not supported for SFTP accounts"};
+        }
         const s3 = await GetClientForBucket(accountHandle, bucket);
         if (!s3) {
             return {ok: false, error: "No S3 client"};
@@ -359,6 +611,9 @@ ipcMain.handle("s3:getObjectUrl", async (_e, accountHandle, bucket, key) => {
 
 ipcMain.handle("s3:getBucketUrl", async (_e, accountHandle, bucket) => {
     try {
+        if (normalizeAccount(accountHandle).accountType === "SFTP") {
+            return {url: null, error: "Bucket URLs are not supported for SFTP accounts"};
+        }
         const s3 = await GetClientForBucket(accountHandle, bucket);
         if (!s3) {
             return {ok: false, error: "No S3 client"};
@@ -376,6 +631,13 @@ ipcMain.handle("s3:getBucketUrl", async (_e, accountHandle, bucket) => {
 
 ipcMain.handle('s3:downloadAll', async (_e, accountHandle, bucket, destDir) => {
     try {
+        const normalized = normalizeAccount(accountHandle);
+        if (normalized.accountType === "SFTP") {
+            await withSftp(normalized, async (client, sftpAccount) => {
+                await client.downloadDir(sftpPath(sftpAccount, ""), destDir);
+            });
+            return {ok: true, error: null};
+        }
         const s3 = await GetClientForBucket(accountHandle, bucket);
         if (!s3) return { ok: false, error: 'No S3 client' };
 
@@ -564,3 +826,4 @@ ipcMain.handle("creds:remove", async (_e, stash_userId, accountHandle) => {
     await keytar.deletePassword(`${SERVICE}:secret`, key);
     return {ok: true};
 });
+

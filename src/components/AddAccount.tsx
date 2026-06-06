@@ -13,6 +13,9 @@ class AddAccountRequest {
     accessKey: string = '';
     secretKey: string = '';
     type: string = 'S3';
+    host: string = '';
+    port: string = '22';
+    rootPath: string = '/';
 }
 
 class AddAccountResponse {
@@ -36,6 +39,7 @@ export default function AddAccountModal(props: AddAccountModalProps) {
 
     const accountTypes = [
         {label: 'Amazon S3', value: 'S3', enabled: true},
+        {label: 'SFTP', value: 'SFTP', enabled: true},
         {label: 'Cloudflare R2', value: 'R2', enabled: false},
     ];
 
@@ -46,6 +50,9 @@ export default function AddAccountModal(props: AddAccountModalProps) {
                 accessKey: props.account.awsAccessKey,
                 secretKey: props.account.awsSecretKey,
                 type: props.account.type,
+                host: props.account.host || '',
+                port: `${props.account.port || 22}`,
+                rootPath: props.account.rootPath || '/',
             });
         }
     }, [props])
@@ -56,9 +63,13 @@ export default function AddAccountModal(props: AddAccountModalProps) {
         setLoading(true);
         HttpService.post(`/accounts`, {
             accountName: addAccountRequest.name,
-            accountType: addAccountRequest.type
-        }, (resp: AddAccountResponse) => {
-            APIWrapperService.SetCredentials(user.id, resp.handle, addAccountRequest.accessKey, addAccountRequest.secretKey);
+            accountType: addAccountRequest.type,
+            host: addAccountRequest.host,
+            port: Number(addAccountRequest.port || 22),
+            username: addAccountRequest.accessKey,
+            rootPath: addAccountRequest.rootPath || '/',
+        }, async (resp: AddAccountResponse) => {
+            await APIWrapperService.SetCredentials(user.id, resp.handle, addAccountRequest.accessKey, addAccountRequest.secretKey);
             setTimeout(() => {
                 setLoading(false);
                 props.onClose && props.onClose();
@@ -69,10 +80,10 @@ export default function AddAccountModal(props: AddAccountModalProps) {
         });
     }, [addAccountRequest, props, user]);
 
-    const updateAccountClickHandler = useCallback(() => {
+    const updateAccountClickHandler = useCallback(async () => {
         if (!user) return;
         if (!props.account) return;
-        APIWrapperService.SetCredentials(user.id, props.account.handle, addAccountRequest.accessKey, addAccountRequest.secretKey);
+        await APIWrapperService.SetCredentials(user.id, props.account.handle, addAccountRequest.accessKey, addAccountRequest.secretKey);
 
         setTimeout(() => {
             setLoading(false);
@@ -128,11 +139,15 @@ export default function AddAccountModal(props: AddAccountModalProps) {
                 return false;
             }
         } else {
-            return addAccountRequest.name.length > 0 &&
+            const hasBaseFields = addAccountRequest.name.length > 0 &&
                 addAccountRequest.accessKey.length > 0 &&
                 addAccountRequest.secretKey.length > 0;
+            if (addAccountRequest.type === 'SFTP') return hasBaseFields && addAccountRequest.host.length > 0;
+            return hasBaseFields;
         }
     }, [addAccountRequest, props]);
+
+    const isSftp = addAccountRequest.type === 'SFTP';
 
     return <div onClick={props.onClose} className="position-absolute d-flex align-items-center justify-content-center"
                 style={{top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0,0,0,0.5)'}}>
@@ -167,7 +182,31 @@ export default function AddAccountModal(props: AddAccountModalProps) {
                                setAddAccountRequest({...addAccountRequest, name: e.target.value})
                            }}/>
 
-                    <input type="text" placeholder="Account Access Key"
+                    {isSftp && <>
+                        <input type="text" placeholder="SFTP Host"
+                               disabled={props.editing}
+                               className={`form-control mb-2 bg-lighter text-white border-0 ${props.editing ? 'opacity-50' : ''}`}
+                               value={addAccountRequest.host}
+                               onChange={(e) => {
+                                   setAddAccountRequest({...addAccountRequest, host: e.target.value})
+                               }}/>
+                        <input type="number" placeholder="SFTP Port"
+                               disabled={props.editing}
+                               className={`form-control mb-2 bg-lighter text-white border-0 ${props.editing ? 'opacity-50' : ''}`}
+                               value={addAccountRequest.port}
+                               onChange={(e) => {
+                                   setAddAccountRequest({...addAccountRequest, port: e.target.value})
+                               }}/>
+                        <input type="text" placeholder="Root Path"
+                               disabled={props.editing}
+                               className={`form-control mb-2 bg-lighter text-white border-0 ${props.editing ? 'opacity-50' : ''}`}
+                               value={addAccountRequest.rootPath}
+                               onChange={(e) => {
+                                   setAddAccountRequest({...addAccountRequest, rootPath: e.target.value})
+                               }}/>
+                    </>}
+
+                    <input type="text" placeholder={isSftp ? "SFTP Username" : "Account Access Key"}
                            className="form-control mb-2 bg-lighter text-white border-0"
                            value={addAccountRequest.accessKey}
                            onChange={(e) => {
@@ -175,7 +214,7 @@ export default function AddAccountModal(props: AddAccountModalProps) {
                            }}/>
 
                     <div className="position-relative">
-                        <input type={showPassword ? 'text' : 'password'} placeholder="Account Secret"
+                        <input type={showPassword ? 'text' : 'password'} placeholder={isSftp ? "SFTP Password" : "Account Secret"}
                                className="form-control mb-2 bg-lighter text-white border-0"
                                value={addAccountRequest.secretKey}
                                onChange={(e) => {

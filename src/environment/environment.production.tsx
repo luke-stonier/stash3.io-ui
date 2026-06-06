@@ -7,7 +7,7 @@ export const environment: {
 } = {
 	version: "0.0.1",
 	production: true,
-	protocol: "https://",
-	baseAddress: "www.stash3.io/api",
+	protocol: "http://",
+	baseAddress: "luke-stonier-api-80465a2c0e0b.herokuapp.com/stash3/api",
 	stripeKey: "",
 };

@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useMemo, useState} from "react";
+import React, {useCallback, useEffect, useMemo, useRef, useState} from "react";
 import BucketObject from "../Models/BucketObject";
 import Icon from "./Icon";
 import APIWrapperService from "../services/APIWrapperService";
@@ -21,6 +21,7 @@ export default function BucketItems(props: BucketItemsProps) {
     const [loading, setLoading] = useState<boolean>(false);
     const [items, setItems] = useState<BucketObject[]>([]);
     const [currentPrefix, setCurrentPrefix] = useState<string>((searchParams !== null && decodeURIComponent(searchParams.get("prefix") || '')) || '');
+    const loadRequestId = useRef(0);
 
     const directoryItems = useMemo(() => {
         const list = items.filter((i) => i.isInDirectory(currentPrefix));
@@ -34,11 +35,13 @@ export default function BucketItems(props: BucketItemsProps) {
 
     const LoadItems = useCallback((prefix: string) => {
         if (!props.bucketId) return;
+        const requestId = ++loadRequestId.current;
         setLoading(true);
         APIWrapperService.ListS3Objects(props.bucketId, prefix).then(resp => {
+            if (requestId !== loadRequestId.current) return;
+
             if (resp.error !== null) {
                 console.log(resp.error);
-                setLoading(false);
             } else {
                 const files = resp.files.map(f => {
                     return new BucketObject({
@@ -59,18 +62,13 @@ export default function BucketItems(props: BucketItemsProps) {
                     })
                 });
                 setItems([...files, ...folders]);
-
-                setTimeout(() => {
-                    setLoading(false);
-                }, 50)
             }
+        }).catch(err => {
+            if (requestId === loadRequestId.current) console.log(err);
+        }).finally(() => {
+            if (requestId === loadRequestId.current) setLoading(false);
         });
     }, [props.bucketId]);
-
-    useEffect(() => {
-        LoadItems(currentPrefix);
-        BucketService.SetBucketAndPath(props.bucketId, "");
-    }, [LoadItems, currentPrefix, props.bucketId]);
 
     useEffect(() => {
         LoadItems(currentPrefix);
@@ -113,8 +111,6 @@ export default function BucketItems(props: BucketItemsProps) {
         BucketService.SetBucketAndPath(props.bucketId, prefix);
     };
 
-    if (loading) return <></>
-
     return <div className={'px-0'}>
         
         <BucketBreadcrumbs bucketId={props.bucketId} path={currentPrefix} onChange={(newPath: string) => {
@@ -134,7 +130,18 @@ export default function BucketItems(props: BucketItemsProps) {
             </thead>
             <tbody>
 
-            {canGoUp && <tr role="button">
+            {loading && (
+                <tr style={{userSelect: "none"}}>
+                    <td colSpan={3} className="text-center text-secondary py-4">
+                        <div className="d-flex align-items-center justify-content-center gap-3">
+                            <div className="spinner-border spinner-border-sm text-warning" role="status" aria-label="Loading folder"/>
+                            <span>Loading folder...</span>
+                        </div>
+                    </td>
+                </tr>
+            )}
+
+            {!loading && canGoUp && <tr role="button">
                 <td onClick={() => {
                     canGoUp && goUp()
                 }}>
@@ -148,7 +155,7 @@ export default function BucketItems(props: BucketItemsProps) {
             </tr>
             }
 
-            {directoryItems.map((item) => {
+            {!loading && directoryItems.map((item) => {
                 const name = item.displayName(currentPrefix);
                 const isDir = item.isDirectory();
 
@@ -158,7 +165,7 @@ export default function BucketItems(props: BucketItemsProps) {
                     <BucketItemRow item={item} name={name} goInto={goInto} isDir={isDir}/>
                 </React.Fragment>
             })}
-            {directoryItems.length === 0 && (
+            {!loading && directoryItems.length === 0 && (
                 <tr style={{userSelect: "none"}}>
                     <td colSpan={3} className="text-center text-secondary py-4" style={{userSelect: "none"}}>
                         Empty folder. Drop files here to upload.

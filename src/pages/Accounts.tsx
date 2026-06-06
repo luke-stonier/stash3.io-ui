@@ -10,7 +10,7 @@ import APIWrapperService from "../services/APIWrapperService";
 export const MapIconToAccountType = (type: string, muted: boolean = false) => {
     return <div className={'d-flex align-items-center justify-content-end'} style={{ width: 'fit-content' }}>
         <Icon className={`fs-1 my-0 ${muted ? 'text-muted' : ''} d-block`}
-              name={ type === 'S3' ? 'deployed_code' : 'cloud' }
+              name={ type === 'SFTP' ? 'lan' : type === 'S3' ? 'deployed_code' : 'cloud' }
         />
         <p className={`${muted ? 'text-muted' : ''} ms-2 fs-5 my-0 d-block`}>{type}</p>
     </div>;
