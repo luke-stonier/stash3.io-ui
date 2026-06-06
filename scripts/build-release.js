@@ -1,68 +1,62 @@
-const { spawnSync } = require("child_process");
 const fs = require("fs");
 const path = require("path");
+const { execSync } = require("child_process");
 
-const rootDir = path.resolve(__dirname, "..");
-const environmentPath = path.join(rootDir, "src", "environment", "environment.tsx");
-const productionEnvironmentPath = path.join(rootDir, "src", "environment", "environment.production.tsx");
+const root = path.resolve(__dirname, "..");
 
-function run(command, args) {
-    const executable = process.platform === "win32" ? (process.env.ComSpec || "cmd.exe") : command;
-    const executableArgs = process.platform === "win32"
-        ? ["/d", "/s", "/c", [command, ...args].map(quoteCmdArg).join(" ")]
-        : args;
+const packageJsonPath = path.join(root, "package.json");
 
-    const result = spawnSync(executable, executableArgs, {
-        cwd: rootDir,
+const environmentPath = path.join(root, "src/environment/environment.tsx");
+const productionEnvironmentPath = path.join(
+    root,
+    "src/environment/environment.production.tsx"
+);
+const localEnvironmentPath = path.join(
+    root,
+    "src/environment/environment.local.tsx"
+);
+
+function run(command) {
+    console.log(`\n▶ ${command}`);
+    execSync(command, {
+        cwd: root,
         stdio: "inherit",
-        env: {
-            ...process.env,
-            NODE_ENV: "production",
-            CSC_IDENTITY_AUTO_DISCOVERY: "false",
-        },
+        shell: true,
     });
-
-    if (result.error) throw result.error;
-    if (result.status !== 0) {
-        throw new Error(`${command} ${args.join(" ")} failed with exit code ${result.status}`);
-    }
 }
 
-function quoteCmdArg(value) {
-    if (/^[A-Za-z0-9_./:@=-]+$/.test(value)) return value;
-    return `"${value.replace(/"/g, '\\"')}"`;
+function copyFileContents(from, to) {
+    fs.copyFileSync(from, to);
+    console.log(`Copied ${path.relative(root, from)} → ${path.relative(root, to)}`);
 }
 
-function main() {
-    if (!fs.existsSync(environmentPath)) {
-        throw new Error(`Missing environment file: ${environmentPath}`);
+function incrementMinorVersion() {
+    const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
+
+    const [major, minor] = packageJson.version.split(".").map(Number);
+
+    if (!Number.isInteger(major) || !Number.isInteger(minor)) {
+        throw new Error(`Invalid package.json version: ${packageJson.version}`);
     }
-    if (!fs.existsSync(productionEnvironmentPath)) {
-        throw new Error(`Missing production environment file: ${productionEnvironmentPath}`);
-    }
 
-    const originalEnvironment = fs.readFileSync(environmentPath);
+    packageJson.version = `${major}.${minor + 1}.0`;
 
-    try {
-        fs.copyFileSync(productionEnvironmentPath, environmentPath);
-        console.log("[release] environment.tsx replaced with production environment");
+    fs.writeFileSync(
+        packageJsonPath,
+        `${JSON.stringify(packageJson, null, 2)}\n`
+    );
 
-        run("npm", ["run", "react:build"]);
-        run("npm", ["run", "electron:build"]);
-        run("npx", [
-            "electron-builder",
-            "-w",
-            "--publish",
-            "never",
-            "-c.win.signAndEditExecutable=false",
-            "-c.win.forceCodeSigning=false",
-        ]);
-
-        console.log("[release] Windows installer build complete");
-    } finally {
-        fs.writeFileSync(environmentPath, originalEnvironment);
-        console.log("[release] environment.tsx restored");
-    }
+    console.log(`Version bumped to ${packageJson.version}`);
 }
 
-main();
+try {
+    incrementMinorVersion();
+
+    copyFileContents(productionEnvironmentPath, environmentPath);
+
+    run("npm run react:build");
+    run("npm run electron:build");
+    run("npm run publish");
+} finally {
+    copyFileContents(localEnvironmentPath, environmentPath);
+}

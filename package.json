@@ -1,7 +1,7 @@
 {
   "name": "stash3-io-ui",
   "productName": "Stash3.IO",
-  "version": "0.0.1",
+  "version": "1.1.0",
   "private": true,
   "main": "./electron-dist/main.cjs",
   "author": "Stash3.IO",
@@ -78,7 +78,8 @@
     "start": "electron-forge start",
     "package": "electron-forge package",
     "make": "electron-forge make",
-    "publish": "electron-forge publish"
+    "publish": "electron-forge publish",
+    "release": "node ./scripts/build-release.js"
   },
   "eslintConfig": {
     "extends": [
